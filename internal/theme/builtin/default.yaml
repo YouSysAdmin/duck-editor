@@ -1,0 +1,297 @@
+# Duck default theme, Catppuccin Mocha colors.
+#
+# dk export theme NAME copies this file to ~/.config/duck/themes/NAME.yaml as
+# a starting point, theme: NAME in config.yaml selects it.
+#
+# A scope maps to a style: a color for the text, or a table with
+#   fg, bg       a palette name, "#rrggbb", a 0-255 index or a terminal color name
+#   modifiers    bold, dim, italic, underlined, slow_blink, rapid_blink,
+#                reversed, hidden, crossed_out
+#   underline    { color, style }, style is line, curl, double, dotted, dashed
+# Inside a scope table, any other key is a child scope. A scope without a
+# style of its own takes the style of its parent: keyword.control.repeat
+# falls back to keyword.control, then to keyword. The "also" comments list
+# the child scopes the language queries use, give one a style to tell it
+# apart from its parent.
+
+# ------------------------------------------------------------------------------
+# Syntax
+# ------------------------------------------------------------------------------
+
+attribute: yellow
+
+# also: type.builtin, type.definition, type.enum, type.parameter,
+# type.enum.variant.builtin
+type:
+  fg: yellow
+  enum:
+    variant: teal
+
+constructor: sapphire
+
+# also: constant.builtin, constant.builtin.boolean, constant.macro,
+# constant.numeric, constant.numeric.float, constant.numeric.integer
+constant:
+  fg: peach
+  character:
+    fg: teal
+    escape: pink
+
+# also: string.special.path, string.escape
+string:
+  fg: green
+  regexp: pink
+  special:
+    fg: blue
+    symbol: red
+    url: { fg: blue, modifiers: [underlined] }
+
+# also: comment.line, comment.block, comment.line.documentation,
+# comment.block.documentation, comment.unused
+comment: { fg: overlay2, modifiers: [italic] }
+
+# also: variable.name, variable.mutable, variable.builtin.mutable,
+# variable.parameter.builtin, variable.parameter.mutable,
+# variable.other.member.private
+variable:
+  fg: text
+  parameter: { fg: maroon, modifiers: [italic] }
+  builtin: red
+  other:
+    member: blue
+
+# Struct fields in languages that name them property.
+property: blue
+
+label: sapphire
+
+# also: punctuation.bracket, punctuation.delimiter
+punctuation:
+  fg: overlay2
+  special: sky
+
+# also: keyword.control, keyword.control.import, keyword.control.repeat,
+# keyword.control.return, keyword.control.exception, keyword.debug,
+# keyword.directive, keyword.directive.define, keyword.exception,
+# keyword.function, keyword.import, keyword.macro, keyword.operator,
+# keyword.storage, keyword.storage.type, keyword.storage.modifier,
+# keyword.storage.modifier.mut, keyword.storage.modifier.ref, keyword.type
+keyword:
+  fg: mauve
+  control:
+    conditional: { fg: mauve, modifiers: [italic] }
+
+# also: operator.control
+operator: sky
+
+# also: function.method, function.method.private, function.method.public,
+# function.name, function.public, function.special
+function:
+  fg: blue
+  builtin: peach
+  macro: mauve
+
+tag: blue
+
+namespace: { fg: yellow, modifiers: [italic] }
+
+# Interpolated code inside template strings.
+embedded: text
+
+# Plain text inside markup languages.
+text: text
+
+# ------------------------------------------------------------------------------
+# Markup
+# ------------------------------------------------------------------------------
+
+markup:
+  # A heading without a level, then each level.
+  heading:
+    fg: red
+    marker: overlay2
+    1: red
+    2: peach
+    3: yellow
+    4: green
+    5: sapphire
+    6: lavender
+  # also: markup.list.numbered, markup.list.unnumbered
+  list:
+    fg: teal
+    unchecked: overlay2
+    checked: green
+  bold: { fg: red, modifiers: [bold] }
+  italic: { fg: red, modifiers: [italic] }
+  strikethrough: { modifiers: [crossed_out] }
+  link:
+    url: { fg: blue, modifiers: [italic, underlined] }
+    text: lavender
+    label: sapphire
+  # also: markup.raw.inline, markup.raw.block
+  raw: green
+  quote: pink
+
+# ------------------------------------------------------------------------------
+# Diff, diagnostics and messages
+# ------------------------------------------------------------------------------
+
+# Git gutter, and diff files. also: diff.delta.moved
+diff:
+  plus: green
+  minus: red
+  delta: blue
+
+# Underlines of diagnostics in the text.
+diagnostic:
+  error: { underline: { color: red, style: curl } }
+  warning: { underline: { color: yellow, style: curl } }
+  info: { underline: { color: sky, style: curl } }
+  hint: { underline: { color: teal, style: curl } }
+
+# Gutter signs and diagnostic messages.
+error: red
+warning: yellow
+info: sky
+hint: teal
+
+# Matched characters in pickers.
+special: blue
+
+# Bracket colors by nesting depth, with editor.rainbow-brackets.
+rainbow: [red, peach, yellow, green, sapphire, lavender]
+
+# ------------------------------------------------------------------------------
+# User interface
+# ------------------------------------------------------------------------------
+
+ui:
+  # The text area, and the line under a picker prompt.
+  background:
+    fg: text
+    bg: base
+    separator: { fg: surface2 }
+
+  # Line numbers, the cursor line number.
+  linenr:
+    fg: surface1
+    selected: { fg: lavender }
+
+  # Statusline: focused and inactive views, the separator element and the
+  # host of a remote file, the mode name with color-modes.
+  statusline:
+    bg: mantle
+    fg: subtext1
+    inactive: { fg: surface2, bg: mantle }
+    separator: { fg: subtext1, bg: mantle }
+    normal: { fg: base, bg: rosewater, modifiers: [bold] }
+    insert: { fg: base, bg: green, modifiers: [bold] }
+    select: { fg: base, bg: lavender, modifiers: [bold] }
+
+  # Popups: hover docs, signature help, key menus. info is the key menu.
+  popup:
+    fg: text
+    bg: surface0
+    info: { fg: text, bg: surface0 }
+
+  # Borders between splits.
+  window: { fg: crust }
+
+  # Picker body and its frame, the frame also goes around menus and
+  # popups with popup-border.
+  picker:
+    fg: text
+    bg: base
+    border: { fg: overlay1 }
+
+  # Buffer tabs with editor.bufferline.
+  bufferline:
+    bg: mantle
+    fg: subtext0
+    active: { fg: mauve, bg: base, underline: { color: mauve, style: line } }
+    background: { bg: crust }
+
+  # Text of pickers and menus: the selected entry, dimmed text, info box
+  # text, directories in the explorer and directory previews.
+  text:
+    fg: text
+    focus: { fg: text, bg: surface0, modifiers: [bold] }
+    inactive: { fg: overlay1 }
+    info: { fg: text }
+    directory: { fg: blue }
+
+  # Text that is not part of the file.
+  virtual:
+    fg: overlay0
+    ruler: { bg: surface0 }
+    whitespace: { fg: overlay0 }
+    indent-guide: surface0
+    wrap: { fg: overlay0 }
+    inlay-hint:
+      fg: surface1
+      bg: mantle
+      parameter: { fg: surface1, bg: mantle }
+      type: { fg: surface1, bg: mantle }
+    jump-label: { fg: rosewater, modifiers: [bold] }
+    blame: { fg: overlay0 }
+
+  # Selections, the primary one apart.
+  selection:
+    bg: surface1
+    primary: { bg: surface1 }
+
+  # Cursors: every cursor, then the primary one.
+  cursor:
+    bg: secondary_cursor
+    fg: base
+    primary: { fg: base, bg: rosewater }
+
+  # Cursor line and column with editor.cursorline and editor.cursorcolumn,
+  # secondary for the lines of the other cursors.
+  cursorline:
+    primary: { bg: cursorline }
+    secondary: { bg: cursorline }
+  cursorcolumn:
+    primary: { bg: cursorline }
+
+  # The line of a picker preview, search matches.
+  highlight:
+    bg: surface1
+    modifiers: [bold]
+    search: { bg: surface1, modifiers: [bold] }
+
+  # Completion and code action menus.
+  menu:
+    bg: surface0
+    fg: overlay2
+    selected: { fg: text, bg: surface1, modifiers: [bold] }
+
+palette:
+  base: "#1e1e2e"
+  blue: "#89b4fa"
+  crust: "#11111b"
+  cursorline: "#2a2b3c"
+  flamingo: "#f2cdcd"
+  green: "#a6e3a1"
+  lavender: "#b4befe"
+  mantle: "#181825"
+  maroon: "#eba0ac"
+  mauve: "#cba6f7"
+  overlay0: "#6c7086"
+  overlay1: "#7f849c"
+  overlay2: "#9399b2"
+  peach: "#fab387"
+  pink: "#f5c2e7"
+  red: "#f38ba8"
+  rosewater: "#f5e0dc"
+  sapphire: "#74c7ec"
+  secondary_cursor: "#b5a6a8"
+  sky: "#89dceb"
+  subtext0: "#a6adc8"
+  subtext1: "#bac2de"
+  surface0: "#313244"
+  surface1: "#45475a"
+  surface2: "#585b70"
+  teal: "#94e2d5"
+  text: "#cdd6f4"
+  yellow: "#f9e2af"

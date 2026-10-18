@@ -1,0 +1,3177 @@
+# ------------------------------------------------------------------------------
+# Shared Grammars
+# ------------------------------------------------------------------------------
+grammars:
+  embedded-template:
+    git: https://github.com/tree-sitter/tree-sitter-embedded-template
+    rev: 5bce9d580d3b78f48e13e331f69dfa0abd4ff68b
+  gitcommit:
+    git: https://github.com/gbprod/tree-sitter-gitcommit
+    rev: 49715a9e6f19ce3d33b875aacdd6ad8ddaee0ffe
+  jinja2:
+    git: https://github.com/varpeti/tree-sitter-jinja2
+    rev: a533cd3c33aea6acb0f9bf9a56f35dcfe6a8eb53
+
+# ------------------------------------------------------------------------------
+# Shared LSPs
+# ------------------------------------------------------------------------------
+language-servers:
+  # GitHub Actions workflows
+  # https://github.com/actions/languageservices
+  actions-language-server:
+    command: actions-languageserver
+    args: ["--stdio"]
+    config:
+      actions-language-server:
+        sessionToken: ""
+
+  # Angular templates
+  # https://github.com/angular/vscode-ng-language-service
+  # No language starts it, list it in your languages.yaml to use it
+  angular:
+    command: ngserver
+    args: ["--stdio", "--tsProbeLocations", ., "--ngProbeLocations", .]
+
+  # Ansible playbooks
+  # https://github.com/ansible/vscode-ansible
+  ansible-language-server:
+    command: ansible-language-server
+    args: ["--stdio"]
+
+  # Assembly: GAS, NASM and others
+  # https://github.com/bergercookie/asm-lsp
+  asm-lsp:
+    command: asm-lsp
+
+  # AWK
+  # https://github.com/Beaglefoot/awk-language-server
+  awk-language-server:
+    command: awk-language-server
+
+  # Python, a pyright fork with more checks
+  # https://github.com/DetachHead/basedpyright
+  # No language starts it, list it in your languages.yaml to use it
+  basedpyright:
+    command: basedpyright-langserver
+    args: ["--stdio"]
+    config: {}
+
+  # Bash and POSIX shell
+  # https://github.com/bash-lsp/bash-language-server
+  bash-language-server:
+    command: bash-language-server
+    args: [start]
+
+  # Biome, linter and formatter for JS, TS, JSON and CSS
+  # https://github.com/biomejs/biome
+  # No language starts it, list it in your languages.yaml to use it
+  biome-lsp-proxy:
+    command: biome
+    args: [lsp-proxy]
+
+  # Protocol Buffers through the buf CLI
+  # https://github.com/bufbuild/buf
+  buf:
+    command: buf
+    args: [lsp, serve, "--timeout", "0"]
+
+  # C and C++
+  # https://github.com/clangd/clangd
+  clangd:
+    command: clangd
+
+  # Clojure
+  # https://github.com/clojure-lsp/clojure-lsp
+  clojure-lsp:
+    command: clojure-lsp
+
+  # CMake
+  # https://github.com/regen100/cmake-language-server
+  cmake-language-server:
+    command: cmake-language-server
+
+  # Git commit messages
+  # https://github.com/texel-sensei/commit-lsp
+  commit-lsp:
+    command: commit-lsp
+    args: [run]
+
+  # Chef cookbooks, Cookstyle is RuboCop with the Chef cops, served
+  # through RuboCop's own --lsp mode
+  # https://github.com/chef/cookstyle
+  cookstyle:
+    command: cookstyle
+    args: ["--lsp"]
+
+  # C#
+  # https://github.com/razzmatazz/csharp-language-server
+  csharp-ls:
+    command: csharp-ls
+
+  # Dart, from the Dart SDK
+  # https://github.com/dart-lang/sdk
+  dart:
+    command: dart
+    args: [language-server, "--client-id=duck-editor"]
+
+  # Debian packaging files
+  # https://github.com/jelmer/debian-lsp
+  debian-lsp:
+    command: debian-lsp
+
+  # Deno, JavaScript and TypeScript
+  # https://github.com/denoland/deno
+  # No language starts it, list it in your languages.yaml to use it
+  deno:
+    command: deno
+    args: [lsp]
+    config:
+      deno:
+        enable: true
+
+  # Django templates
+  # https://github.com/fourdigits/django-template-lsp
+  djlsp:
+    command: djlsp
+
+  # Docker Compose files
+  # https://github.com/microsoft/compose-language-service
+  docker-compose-langserver:
+    command: docker-compose-langserver
+    args: ["--stdio"]
+
+  # Dockerfile
+  # https://github.com/rcjsuen/dockerfile-language-server
+  docker-langserver:
+    command: docker-langserver
+    args: ["--stdio"]
+
+  # Docker: Dockerfile, Compose and Bake
+  # https://github.com/docker/docker-language-server
+  docker-language-server:
+    command: docker-language-server
+    args: [start, "--stdio"]
+
+  # Graphviz DOT
+  # https://github.com/nikeee/dot-language-server
+  dot-language-server:
+    command: dot-language-server
+    args: ["--stdio"]
+
+  # Elixir
+  # https://github.com/elixir-lsp/elixir-ls
+  elixir-ls:
+    command: elixir-ls
+    config:
+      elixirLS:
+        dialyzerEnabled: false
+
+  # Erlang, from WhatsApp
+  # https://github.com/WhatsApp/erlang-language-platform
+  elp:
+    command: elp
+    args: [server]
+
+  # Erlang
+  # https://github.com/erlang-ls/erlang_ls
+  erlang-ls:
+    command: erlang_ls
+
+  # Elixir, the official server
+  # https://github.com/elixir-lang/expert
+  expert:
+    command: expert
+    args: ["--stdio"]
+
+  # Fish shell
+  # https://github.com/ndonfris/fish-lsp
+  fish-lsp:
+    command: fish-lsp
+    args: [start]
+
+  # F#, FsAutoComplete
+  # https://github.com/ionide/FsAutoComplete
+  fsharp-ls:
+    command: fsautocomplete
+    config:
+      AutomaticWorkspaceInit: true
+
+  # GitLab CI pipelines
+  # https://github.com/alesbrelih/gitlab-ci-ls
+  gitlab-ci-ls:
+    command: gitlab-ci-ls
+
+  # golangci-lint diagnostics for Go
+  # https://github.com/nametake/golangci-lint-langserver
+  golangci-lint-lsp:
+    command: golangci-lint-langserver
+    config:
+      command:
+        - golangci-lint
+        - run
+        - "--output.json.path=stdout"
+        - "--show-stats=false"
+        - "--issues-exit-code=1"
+
+  # Go
+  # https://github.com/golang/tools/tree/master/gopls
+  gopls:
+    command: gopls
+    config:
+      hints:
+        assignVariableTypes: true
+        compositeLiteralFields: true
+        constantValues: true
+        functionTypeParameters: true
+        parameterNames: true
+        rangeVariableTypes: true
+    except-code-actions: [gopls.doc.features]
+
+  # GraphQL
+  # https://github.com/graphql/graphiql/tree/main/packages/graphql-language-service-cli
+  graphql-language-service:
+    command: graphql-lsp
+    args: [server, "-m", stream]
+
+  # Harper, grammar checker for prose and comments
+  # https://github.com/Automattic/harper
+  # No language starts it, list it in your languages.yaml to use it
+  harper-ls:
+    command: harper-ls
+    args: ["--stdio"]
+
+  # Haskell
+  # https://github.com/haskell/haskell-language-server
+  haskell-language-server:
+    command: haskell-language-server-wrapper
+    args: ["--lsp"]
+
+  # Helm charts
+  # https://github.com/mrjosh/helm-ls
+  helm_ls:
+    command: helm_ls
+    args: [serve]
+
+  # PHP
+  # https://github.com/bmewburn/vscode-intelephense
+  intelephense:
+    command: intelephense
+    args: ["--stdio"]
+
+  # Java, Eclipse JDT
+  # https://github.com/eclipse-jdtls/eclipse.jdt.ls
+  jdtls:
+    command: jdtls
+
+  # Python, based on Jedi
+  # https://github.com/pappasam/jedi-language-server
+  jedi:
+    command: jedi-language-server
+
+  # jq
+  # https://github.com/wader/jq-lsp
+  jq-lsp:
+    command: jq-lsp
+
+  # Julia, LanguageServer.jl
+  # https://github.com/julia-vscode/LanguageServer.jl
+  julia:
+    command: julia
+    args:
+      - "--startup-file=no"
+      - "--history-file=no"
+      - "--quiet"
+      - "-e"
+      - "using LanguageServer; runserver()"
+
+  # just recipes
+  # https://github.com/terror/just-lsp
+  just-lsp:
+    command: just-lsp
+
+  # Kotlin
+  # https://github.com/fwcd/kotlin-language-server
+  kotlin-language-server:
+    command: kotlin-language-server
+
+  # Kotlin, the JetBrains server
+  # https://github.com/Kotlin/kotlin-lsp
+  # No language starts it, list it in your languages.yaml to use it
+  kotlin-lsp:
+    command: kotlin-lsp
+    args: ["--stdio"]
+
+  # LanguageTool grammar checker for prose
+  # https://github.com/valentjn/ltex-ls
+  # No language starts it, list it in your languages.yaml to use it
+  ltex-ls:
+    command: ltex-ls
+
+  # LanguageTool grammar checker, maintained ltex-ls fork
+  # https://github.com/ltex-plus/ltex-ls-plus
+  # No language starts it, list it in your languages.yaml to use it
+  ltex-ls-plus:
+    command: ltex-ls-plus
+
+  # Lua
+  # https://github.com/LuaLS/lua-language-server
+  lua-language-server:
+    command: lua-language-server
+    config:
+      Lua:
+        hint:
+          arrayIndex: Enable
+          await: true
+          enable: true
+          paramName: All
+          paramType: true
+          setType: true
+
+  # Markdown notes with links, Obsidian style
+  # https://github.com/Feel-ix-343/markdown-oxide
+  markdown-oxide:
+    command: markdown-oxide
+
+  # Markdown
+  # https://github.com/artempyanykh/marksman
+  marksman:
+    command: marksman
+    args: [server]
+
+  # Meson build files
+  # https://github.com/JCWasmx86/mesonlsp
+  mesonlsp:
+    command: mesonlsp
+    args: ["--lsp"]
+
+  # CMake
+  # https://github.com/neocmakelsp/neocmakelsp
+  neocmakelsp:
+    command: neocmakelsp
+    args: [stdio]
+
+  # nginx configuration
+  # https://github.com/pappasam/nginx-language-server
+  nginx-language-server:
+    command: nginx-language-server
+
+  # Nix
+  # https://github.com/oxalica/nil
+  nil:
+    command: nil
+
+  # Nix, with option and package completion
+  # https://github.com/nix-community/nixd
+  nixd:
+    command: nixd
+
+  # C#, OmniSharp
+  # https://github.com/OmniSharp/omnisharp-roslyn
+  omnisharp:
+    command: OmniSharp
+    args: ["--languageserver"]
+
+  # oxfmt, formatter for JS and TS from the oxc project
+  # https://github.com/oxc-project/oxc
+  # No language starts it, list it in your languages.yaml to use it
+  oxfmt-language-server:
+    command: oxfmt
+    args: ["--lsp"]
+
+  # oxlint, linter for JS and TS from the oxc project
+  # https://github.com/oxc-project/oxc
+  # No language starts it, list it in your languages.yaml to use it
+  oxlint-language-server:
+    command: oxlint
+    args: ["--lsp"]
+
+  # Protocol Buffers through pbkit
+  # https://github.com/pbkit/pbkit
+  pbkit:
+    command: pb
+    args: [lsp]
+
+  # Perl
+  # https://github.com/bscan/PerlNavigator
+  perlnavigator:
+    command: perlnavigator
+    args: ["--stdio"]
+
+  # Prisma schemas
+  # https://github.com/prisma/language-tools
+  prisma-language-server:
+    command: prisma-language-server
+    args: ["--stdio"]
+    config:
+      prisma:
+        enableDiagnostics: true
+
+  # Protocol Buffers
+  # https://github.com/coder3101/protols
+  protols:
+    command: protols
+    args: []
+
+  # Puppet manifests
+  # https://github.com/puppetlabs/puppet-editor-services
+  puppet-languageserver:
+    command: puppet-languageserver
+    args: ["--stdio"]
+
+  # Python, python-lsp-server
+  # https://github.com/python-lsp/python-lsp-server
+  pylsp:
+    command: pylsp
+
+  # Python, static analyzer written in Rust
+  # https://github.com/mtshiba/pylyzer
+  # No language starts it, list it in your languages.yaml to use it
+  pylyzer:
+    command: pylyzer
+    args: ["--server"]
+
+  # Python, type checker from Meta
+  # https://github.com/facebook/pyrefly
+  # No language starts it, list it in your languages.yaml to use it
+  pyrefly:
+    command: pyrefly
+    args: [lsp]
+
+  # Python, type checker from Microsoft
+  # https://github.com/microsoft/pyright
+  # No language starts it, list it in your languages.yaml to use it
+  pyright:
+    command: pyright-langserver
+    args: ["--stdio"]
+    config: {}
+
+  # pytest fixtures
+  # https://github.com/bellini666/pytest-language-server
+  # No language starts it, list it in your languages.yaml to use it
+  pytest-language-server:
+    command: pytest-language-server
+
+  # Rego policies for OPA
+  # https://github.com/kitagry/regols
+  regols:
+    command: regols
+
+  # RON, Rusty Object Notation
+  # https://github.com/jasonjmcghee/ron-lsp
+  ron-lsp:
+    command: ron-lsp
+
+  # C#, the Roslyn server used by VS Code
+  # https://github.com/dotnet/roslyn
+  roslyn-language-server:
+    command: roslyn-language-server
+    args: ["--stdio", "--autoLoadProjects"]
+
+  # Ruby, from Shopify
+  # https://github.com/Shopify/ruby-lsp
+  ruby-lsp:
+    command: ruby-lsp
+
+  # Python linter and formatter
+  # https://github.com/astral-sh/ruff
+  ruff:
+    command: ruff
+    args: [server]
+
+  # Markdown linter
+  # https://github.com/rvben/rumdl
+  rumdl:
+    command: rumdl
+    args: [server]
+
+  # Rust
+  # https://github.com/rust-lang/rust-analyzer
+  rust-analyzer:
+    command: rust-analyzer
+    config:
+      files:
+        watcher: server
+      inlayHints:
+        bindingModeHints:
+          enable: false
+        closingBraceHints:
+          minLines: 10
+        closureReturnTypeHints:
+          enable: with_block
+        discriminantHints:
+          enable: fieldless
+        lifetimeElisionHints:
+          enable: skip_trivial
+        typeHints:
+          hideClosureInitialization: false
+
+  # Ruby
+  # https://github.com/castwide/solargraph
+  solargraph:
+    command: solargraph
+    args: [stdio]
+
+  # Swift
+  # https://github.com/swiftlang/sourcekit-lsp
+  sourcekit-lsp:
+    command: sourcekit-lsp
+
+  # HTML validator and formatter
+  # https://github.com/kristoff-it/superhtml
+  superhtml:
+    command: superhtml
+    args: [lsp]
+
+  # Svelte
+  # https://github.com/sveltejs/language-tools
+  svelteserver:
+    command: svelteserver
+    args: ["--stdio"]
+    config:
+      configuration:
+        javascript:
+          inlayHints:
+            enumMemberValues:
+              enabled: true
+            functionLikeReturnTypes:
+              enabled: true
+            parameterNames:
+              enabled: all
+            parameterTypes:
+              enabled: true
+            propertyDeclarationTypes:
+              enabled: true
+            variableTypes:
+              enabled: true
+        typescript:
+          inlayHints:
+            enumMemberValues:
+              enabled: true
+            functionLikeReturnTypes:
+              enabled: true
+            parameterNames:
+              enabled: all
+            parameterTypes:
+              enabled: true
+            propertyDeclarationTypes:
+              enabled: true
+            variableTypes:
+              enabled: true
+
+  # systemd unit files
+  # https://github.com/JFryy/systemd-lsp
+  systemd-lsp:
+    command: systemd-lsp
+
+  # Tailwind CSS classes
+  # https://github.com/tailwindlabs/tailwindcss-intellisense
+  # No language starts it, list it in your languages.yaml to use it
+  tailwindcss-ls:
+    command: tailwindcss-language-server
+    args: ["--stdio"]
+
+  # TOML
+  # https://github.com/tamasfe/taplo
+  taplo:
+    command: taplo
+    args: [lsp, stdio]
+    config: {}
+
+  # templ, Go HTML templates
+  # https://github.com/a-h/templ
+  templ:
+    command: templ
+    args: [lsp]
+
+  # PKGBUILD and other build scripts
+  # https://github.com/termux/termux-language-server
+  termux-language-server:
+    command: termux-language-server
+
+  # Terraform and HCL
+  # https://github.com/hashicorp/terraform-ls
+  terraform-ls:
+    command: terraform-ls
+    args: [serve]
+
+  # TOML formatter and linter
+  # https://github.com/tombi-toml/tombi
+  tombi:
+    command: tombi
+    args: [lsp]
+
+  # Tree-sitter query files
+  # https://github.com/ribru17/ts_query_ls
+  ts_query_ls:
+    command: ts_query_ls
+
+  # Python type checker from Astral
+  # https://github.com/astral-sh/ty
+  ty:
+    command: ty
+    args: [server]
+
+  # JavaScript and TypeScript
+  # https://github.com/typescript-language-server/typescript-language-server
+  typescript-language-server:
+    command: typescript-language-server
+    args: ["--stdio"]
+    config:
+      hostInfo: duck-editor
+      javascript:
+        inlayHints:
+          includeInlayEnumMemberValueHints: true
+          includeInlayFunctionLikeReturnTypeHints: true
+          includeInlayFunctionParameterTypeHints: true
+          includeInlayParameterNameHints: all
+          includeInlayParameterNameHintsWhenArgumentMatchesName: true
+          includeInlayPropertyDeclarationTypeHints: true
+          includeInlayVariableTypeHints: true
+      typescript:
+        inlayHints:
+          includeInlayEnumMemberValueHints: true
+          includeInlayFunctionLikeReturnTypeHints: true
+          includeInlayFunctionParameterTypeHints: true
+          includeInlayParameterNameHints: all
+          includeInlayParameterNameHintsWhenArgumentMatchesName: true
+          includeInlayPropertyDeclarationTypeHints: true
+          includeInlayVariableTypeHints: true
+
+  # Vale prose linter
+  # https://github.com/errata-ai/vale-ls
+  # No language starts it, list it in your languages.yaml to use it
+  vale-ls:
+    command: vale-ls
+
+  # CSS, SCSS and Less, from VS Code
+  # https://github.com/hrsh7th/vscode-langservers-extracted
+  vscode-css-language-server:
+    command: vscode-css-language-server
+    args: ["--stdio"]
+    config:
+      css:
+        validate:
+          enable: true
+      provideFormatter: true
+
+  # HTML, from VS Code
+  # https://github.com/hrsh7th/vscode-langservers-extracted
+  vscode-html-language-server:
+    command: vscode-html-language-server
+    args: ["--stdio"]
+    config:
+      provideFormatter: true
+
+  # JSON, from VS Code
+  # https://github.com/hrsh7th/vscode-langservers-extracted
+  vscode-json-language-server:
+    command: vscode-json-language-server
+    args: ["--stdio"]
+    config:
+      json:
+        validate:
+          enable: true
+      provideFormatter: true
+
+  # TypeScript, the VS Code TypeScript extension as a server
+  # https://github.com/yioneko/vtsls
+  # No language starts it, list it in your languages.yaml to use it
+  vtsls:
+    command: vtsls
+    args: ["--stdio"]
+    config:
+      vtsls:
+        autoUseWorkspaceTsdk: true
+
+  # Vue
+  # https://github.com/vuejs/language-tools
+  vuels:
+    command: vue-language-server
+    args: ["--stdio"]
+    config:
+      typescript:
+        tsdk: node_modules/typescript/lib/
+
+  # YAML with JSON schemas
+  # https://github.com/redhat-developer/yaml-language-server
+  yaml-language-server:
+    command: yaml-language-server
+    args: ["--stdio"]
+
+  # Security audit of GitHub Actions workflows
+  # https://github.com/zizmorcore/zizmor
+  zizmor:
+    command: zizmor
+    args: ["--lsp"]
+
+  # Python type checker and server
+  # https://github.com/zubanls/zuban
+  zuban:
+    command: zuban
+    args: [server]
+
+# ------------------------------------------------------------------------------
+# Languages
+# ------------------------------------------------------------------------------
+languages:
+  # Ansible playbooks, roles and inventory variables, YAML read by the
+  # Ansible language server next to the YAML one
+  ansible:
+    scope: source.yaml.ansible
+    file-types:
+      - { glob: "*playbook*.yml" }
+      - { glob: "*playbook*.yaml" }
+      - { glob: site.yml }
+      - { glob: site.yaml }
+      - { glob: "playbooks/**/*.yml" }
+      - { glob: "playbooks/**/*.yaml" }
+      - { glob: "roles/**/tasks/*.yml" }
+      - { glob: "roles/**/tasks/*.yaml" }
+      - { glob: "roles/**/handlers/*.yml" }
+      - { glob: "roles/**/handlers/*.yaml" }
+      - { glob: "roles/*/meta/main.yml" }
+      - { glob: "roles/*/defaults/*.yml" }
+      - { glob: "roles/*/vars/*.yml" }
+      - { glob: "tasks/*.yml" }
+      - { glob: "handlers/*.yml" }
+      - { glob: "group_vars/**" }
+      - { glob: "host_vars/**" }
+    roots: [ansible.cfg]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: ansible
+    language-servers: [ansible-language-server, yaml-language-server]
+    grammar: yaml
+
+  # AWK text processing scripts
+  awk:
+    scope: source.awk
+    injection-regex: awk
+    file-types: [awk, gawk, nawk, mawk]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [awk-language-server]
+    grammar:
+      git: https://github.com/Beaglefoot/tree-sitter-awk
+      rev: 34bbdc7cce8e803096f47b625979e34c1be38127
+
+  # Bash and POSIX shell scripts, shell startup files
+  bash:
+    scope: source.bash
+    injection-regex: "(shell|bash|zsh|sh)"
+    file-types:
+      - sh
+      - bash
+      - ash
+      - dash
+      - ksh
+      - mksh
+      - zsh
+      - zshenv
+      - zlogin
+      - zlogout
+      - zprofile
+      - zshrc
+      - eclass
+      - ebuild
+      - bazelrc
+      - Renviron
+      - zsh-theme
+      - cshrc
+      - tcshrc
+      - bashrc_Apple_Terminal
+      - zshrc_Apple_Terminal
+      - { glob: i3/config }
+      - { glob: sway/config }
+      - { glob: .tmux.conf }
+      - { glob: tmux.conf }
+      - { glob: .sh_history }
+      - { glob: .bash_history }
+      - { glob: .bash_login }
+      - { glob: .bash_logout }
+      - { glob: .bash_profile }
+      - { glob: .bashrc }
+      - { glob: .profile }
+      - { glob: .zshenv }
+      - { glob: .zlogin }
+      - { glob: .zlogout }
+      - { glob: .zprofile }
+      - { glob: .zshrc }
+      - { glob: .zimrc }
+      - { glob: APKBUILD }
+      - { glob: .bash_aliases }
+      - { glob: bash_completion }
+      - { glob: "bash-completion/completions/*" }
+      - { glob: "bash_completion.d/*" }
+      - { glob: bin/activate }
+      - { glob: .Renviron }
+      - { glob: .xprofile }
+      - { glob: .xsession }
+      - { glob: .xsessionrc }
+      - { glob: .yashrc }
+      - { glob: .yash_profile }
+      - { glob: .hushlogin }
+      - { glob: .xinitrc }
+      - { glob: xinitrc }
+      - { glob: .xserverrc }
+      - { glob: xserverrc }
+      - { glob: direnvrc }
+      - { glob: /etc/profile }
+      - { glob: "/etc/profile.d/*" }
+      - { glob: bash.bashrc }
+      - { glob: /etc/bashrc }
+      - { glob: /etc/zshrc }
+      - { glob: "/etc/default/*" }
+      - { glob: "/etc/sysconfig/*" }
+      - { glob: "/etc/conf.d/*" }
+    shebangs: [sh, bash, dash, zsh]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [bash-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-bash
+      rev: a06c2e4415e9bc0346c6b86d401879ffb44058f7
+
+  # Laravel Blade templates for PHP
+  blade:
+    scope: source.blade.php
+    injection-regex: blade
+    file-types:
+      - { glob: "*.blade.php" }
+      - blade
+    roots: [composer.json, index.php]
+    grammar:
+      git: https://github.com/EmranMR/tree-sitter-blade
+      rev: 5dbdcb0ccbe91e64b038b41545d3acc26c74907a
+
+  # C
+  c:
+    scope: source.c
+    injection-regex: c
+    file-types: [c]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [clangd]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-c
+      rev: b780e47fc780ddc8da13afa35a3f4ed5c157823d
+
+  # C#
+  c-sharp:
+    scope: source.csharp
+    injection-regex: "c-?sharp"
+    file-types: [cs, csx, cake]
+    roots: ["*.slnx", "*.sln", "*.csproj"]
+    comment-tokens: [//, ///]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "\t"
+    language-servers: [roslyn-language-server, omnisharp, csharp-ls]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-c-sharp
+      rev: cac6d5fb595f5811a076336682d5d595ac1c9e85
+
+  # Caddy web server configuration
+  caddyfile:
+    scope: source.caddyfile
+    injection-regex: caddyfile
+    file-types:
+      - Caddyfile
+      - { glob: Caddyfile }
+      - { glob: "Caddyfile.*" }
+      - caddyfile
+      - { glob: caddyfile }
+      - { glob: "caddyfile.*" }
+    comment-tokens: ["#"]
+    indent:
+      tab-width: 4
+      unit: "    "
+    auto-format: true
+    formatter:
+      args: [fmt, "-"]
+      command: caddy
+    grammar:
+      git: https://github.com/caddyserver/tree-sitter-caddyfile
+      rev: 15437433b7deec0f0431fb4a5bedb64ecae01513
+
+  # Common Expression Language, used in Kubernetes policies and protovalidate
+  cel:
+    scope: source.cel
+    injection-regex: cel
+    file-types: [cel]
+    comment-token: //
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/bufbuild/tree-sitter-cel
+      rev: 9f2b65da14c216df53933748e489db0f11121464
+
+  # Chef cookbooks and policies, Ruby with the Chef cops of Cookstyle
+  chef:
+    scope: source.ruby.chef
+    file-types:
+      - { glob: metadata.rb }
+      - { glob: Policyfile.rb }
+      - { glob: "*.policy.rb" }
+      - { glob: Berksfile }
+      - { glob: "recipes/*.rb" }
+      - { glob: "attributes/*.rb" }
+      - { glob: "resources/*.rb" }
+      - { glob: "providers/*.rb" }
+      - { glob: "libraries/*.rb" }
+      - { glob: "definitions/*.rb" }
+    roots: [metadata.rb, Policyfile.rb]
+    glob-roots: true
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: ruby
+    language-servers: [cookstyle, ruby-lsp, solargraph]
+    grammar: ruby
+
+  # Clojure and ClojureScript
+  clojure:
+    scope: source.clojure
+    injection-regex: "(clojure|clj|edn|boot)"
+    file-types: [clj, cljs, cljc, clje, cljr, cljx, edn, boot]
+    roots: [project.clj, build.boot, deps.edn, shadow-cljs.edn]
+    comment-token: ";"
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      args: [fix, "-"]
+      command: cljfmt
+    language-servers: [clojure-lsp]
+    grammar:
+      git: https://github.com/sogaiu/tree-sitter-clojure
+      rev: e43eff80d17cf34852dcd92ca5e6986d23a7040f
+
+  # CMake build files
+  cmake:
+    scope: source.cmake
+    injection-regex: cmake
+    file-types:
+      - cmake
+      - { glob: CMakeLists.txt }
+    comment-token: "#"
+    block-comment-tokens: { start: "#[[", end: "]]" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [neocmakelsp, cmake-language-server]
+    grammar:
+      git: https://github.com/uyha/tree-sitter-cmake
+      rev: c7b2a71e7f8ecb167fad4c97227c838439280175
+
+  # TODO, FIXME and similar tags inside comments of other languages
+  comment:
+    scope: scope.comment
+    injection-regex: comment
+    file-types: []
+    grammar:
+      git: https://github.com/stsewd/tree-sitter-comment
+      rev: 66272d2b6c73fb61157541b69dd0a7ce7b42a5ad
+
+  # C++, also CUDA and Arduino sketches
+  cpp:
+    scope: source.cpp
+    injection-regex: cpp
+    file-types:
+      - cc
+      - hh
+      - c++
+      - cpp
+      - hpp
+      - h
+      - ipp
+      - tpp
+      - cxx
+      - hxx
+      - ixx
+      - txx
+      - ino
+      - C
+      - H
+      - cu
+      - cuh
+      - cppm
+      - h++
+      - ii
+      - inl
+      - { glob: .hpp.in }
+      - { glob: .h.in }
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      command: clang-format
+    language-servers: [clangd]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-cpp
+      rev: 8b5b49eb196bec7040441bee33b2c9a4838d6967
+
+  # User crontabs: five schedule fields or an @ nickname, then the command
+  crontab:
+    scope: source.crontab
+    file-types:
+      - { glob: crontab }
+      - { glob: "tmp/crontab.*" }
+      - { glob: "/var/spool/cron/*" }
+      - { glob: "/var/spool/cron/crontabs/*" }
+    comment-token: "#"
+    grammar: bash
+
+  # CSS
+  css:
+    scope: source.css
+    injection-regex: css
+    file-types: [css]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-css-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-css
+      rev: dda5cfc5722c429eaba1c910ca32c2c0c5bb1a3f
+
+  # Comma separated values, columns colored in turn
+  csv:
+    scope: source.csv
+    file-types: [csv]
+    grammar:
+      git: https://github.com/weartist/rainbow-csv-tree-sitter
+      rev: d3dbf916446131417e4c2ea9eb8591b23b466d27
+
+  # Dart and Flutter
+  dart:
+    scope: source.dart
+    file-types: [dart]
+    roots: [pubspec.yaml]
+    comment-tokens: [//, ///]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [dart]
+    grammar:
+      git: https://github.com/UserNobody14/tree-sitter-dart
+      rev: a9bdfa3db2fbc9b9f12c93450d04a671f33a5102
+
+  # Debian packaging files and apt sources
+  debian:
+    scope: text.debian
+    file-types:
+      - dsc
+      - changes
+      - { glob: debian/control }
+      - { glob: debian/copyright }
+      - { glob: debian/watch }
+      - { glob: debian/changelog }
+      - { glob: debian/source/format }
+      - { glob: debian/source/options }
+      - { glob: debian/source/local-options }
+      - { glob: debian/tests/control }
+      - { glob: debian/upstream/metadata }
+      - { glob: debian/rules }
+      - { glob: "etc/apt/sources.list.d/*.sources" }
+    comment-tokens: "#"
+    language-servers: [debian-lsp]
+    grammar:
+      git: https://gitlab.com/MggMuggins/tree-sitter-debian
+      rev: 9b3f4b78c45aab8a2f25a5f9e7bbc00995bc3dde
+
+  # Diffs and patches
+  diff:
+    scope: source.diff
+    injection-regex: diff
+    file-types: [diff, patch, rej]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/the-mikedavis/tree-sitter-diff
+      rev: 2520c3f934b3179bb540d23e0ef45f75304b5fed
+
+  # Docker Buildx Bake files
+  docker-bake:
+    scope: source.docker-bake
+    injection-regex: docker-bake
+    file-types:
+      - { glob: docker-bake.hcl }
+      - { glob: docker-bake.override.hcl }
+    comment-token: "#"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: dockerbake
+    language-servers: [docker-language-server]
+    grammar: hcl
+
+  # Docker Compose files
+  docker-compose:
+    scope: source.yaml.docker-compose
+    check:
+      command: docker
+      args: [compose, -f, "{file}", config, -q, --no-interpolate]
+    file-types:
+      - { glob: docker-compose.yaml }
+      - { glob: docker-compose.yml }
+      - { glob: compose.yaml }
+      - { glob: compose.yml }
+    roots: [docker-compose.yaml, docker-compose.yml, compose.yaml, compose.yml]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: dockercompose
+    language-servers:
+      - docker-compose-langserver
+      - yaml-language-server
+      - docker-language-server
+    grammar: yaml
+
+  # Dockerfile and Containerfile
+  dockerfile:
+    scope: source.dockerfile
+    injection-regex: "docker|dockerfile"
+    file-types:
+      - Dockerfile
+      - { glob: Dockerfile }
+      - { glob: "Dockerfile.*" }
+      - dockerfile
+      - { glob: dockerfile }
+      - { glob: "dockerfile.*" }
+      - Containerfile
+      - { glob: Containerfile }
+      - { glob: "Containerfile.*" }
+      - containerfile
+      - { glob: containerfile }
+      - { glob: "containerfile.*" }
+    roots: [Dockerfile, Containerfile]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "  "
+    formatter:
+      command: dockerfmt
+    language-servers: [docker-langserver, docker-language-server]
+    grammar:
+      git: https://github.com/camdencheek/tree-sitter-dockerfile
+      rev: 971acdd908568b4531b0ba28a445bf0bb720aba5
+
+  # Graphviz DOT graphs
+  dot:
+    scope: source.dot
+    injection-regex: dot
+    file-types: [dot]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [dot-language-server]
+    grammar:
+      git: https://github.com/rydesun/tree-sitter-dot
+      rev: 917230743aa10f45a408fea2ddb54bbbf5fbe7b7
+
+  # Embedded Elixir templates
+  eex:
+    scope: source.eex
+    injection-regex: eex
+    file-types: [eex]
+    roots: [mix.exs, mix.lock]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/connorlay/tree-sitter-eex
+      rev: f742f2fe327463335e8671a87c0b9b396905d1d1
+
+  # Embedded JavaScript templates
+  ejs:
+    scope: text.html.ejs
+    injection-regex: ejs
+    file-types: [ejs]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: embedded-template
+
+  # Emacs Lisp
+  elisp:
+    scope: source.elisp
+    file-types: [el]
+    comment-tokens: [";"]
+    auto-pairs:
+      '"': '"'
+      (: )
+    grammar:
+      git: https://github.com/Wilfred/tree-sitter-elisp
+      rev: 29b4e49275f4a947ce17c8533bc20a1f97768c70
+
+  # Elixir
+  elixir:
+    scope: source.elixir
+    injection-regex: "(elixir|ex)"
+    file-types:
+      - ex
+      - exs
+      - { glob: mix.lock }
+    shebangs: [elixir]
+    roots: [mix.exs, mix.lock]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [elixir-ls, expert]
+    grammar:
+      git: https://github.com/elixir-lang/tree-sitter-elixir
+      rev: 7937d3b4d65fa574163cfa59394515d3c1cf16f4
+
+  # .env and .envrc files
+  env:
+    scope: source.env
+    injection-regex: env
+    file-types:
+      - { glob: .env }
+      - { glob: ".env.*" }
+      - { glob: .envrc }
+      - { glob: ".envrc.*" }
+      - { glob: _environment }
+      - { glob: "_environment-*" }
+      - { glob: _environment.local }
+      - { glob: _environment.required }
+      - { glob: .bazeliskrc }
+      - { glob: .gitlab-ci-local-env }
+      - { glob: /etc/environment }
+      - { glob: os-release }
+      - { glob: lsb-release }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "\t"
+    grammar: bash
+
+  # Embedded Ruby templates
+  erb:
+    scope: text.html.erb
+    injection-regex: erb
+    file-types: [erb]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: embedded-template
+
+  # Erlang
+  erlang:
+    scope: source.erlang
+    injection-regex: "erl(ang)?"
+    file-types:
+      - erl
+      - hrl
+      - app
+      - { glob: rebar.config }
+      - { glob: rebar.lock }
+      - { glob: "*.app.src" }
+    shebangs: [escript]
+    roots: [rebar.config]
+    comment-token: "%%"
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers:
+      - name: erlang-ls
+        except-features: [document-symbols, workspace-symbols]
+      - { name: elp, except-features: [document-symbols, workspace-symbols] }
+    grammar:
+      git: https://github.com/the-mikedavis/tree-sitter-erlang
+      rev: d85b18e76962d6a3ba131bc5b514d77558e82762
+
+  # Fish shell scripts
+  fish:
+    scope: source.fish
+    injection-regex: fish
+    file-types: [fish]
+    shebangs: [fish]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    auto-format: true
+    formatter:
+      command: fish_indent
+    language-servers: [fish-lsp]
+    grammar:
+      git: https://github.com/ram02z/tree-sitter-fish
+      rev: f435b0bd772578c70e5d158b85267bb886316f88
+
+  # F#
+  fsharp:
+    scope: source.fs
+    injection-regex: fsharp
+    file-types: [fs, fsx, fsi, fsscript]
+    roots: ["*.slnx", "*.sln", "*.fsproj"]
+    comment-tokens: [//, ///]
+    block-comment-tokens: { start: "(*", end: "*)" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    auto-format: true
+    language-servers: [fsharp-ls]
+    grammar:
+      git: https://github.com/ionide/tree-sitter-fsharp
+      rev: cfc12456941da47b64b7a3994f8dccdc9fe7d2c9
+      subpath: fsharp
+
+  # GNU assembler
+  gas:
+    scope: source.gas
+    injection-regex: gas
+    file-types: [s]
+    comment-token: "#"
+    indent:
+      tab-width: 8
+      unit: "        "
+    language-servers: [asm-lsp]
+    grammar:
+      git: https://github.com/sirius94/tree-sitter-gas
+      rev: 5d6c0a0b4d7b6f35913906ba922fe38064a9bede
+
+  # Gherkin feature files for Cucumber and similar BDD tools
+  gherkin:
+    scope: source.feature
+    file-types: [feature]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/SamyAB/tree-sitter-gherkin
+      rev: 43873ee8de16476635b48d52c46f5b6407cb5c09
+
+  # .gitattributes
+  git-attributes:
+    scope: source.gitattributes
+    injection-regex: git-attributes
+    file-types:
+      - { glob: .gitattributes }
+      - { glob: .config/git/attributes }
+    comment-token: "#"
+    grammar:
+      name: gitattributes
+      git: https://github.com/mtoohey31/tree-sitter-gitattributes
+      rev: 3dd50808e3096f93dccd5e9dc7dc3dba2eb12dc4
+
+  # Git commit messages
+  git-commit:
+    scope: git.commitmsg
+    file-types:
+      - { glob: COMMIT_EDITMSG }
+      - { glob: MERGE_MSG }
+      - { glob: TAG_EDITMSG }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    text-width: 72
+    rulers: [51, 73]
+    language-servers: [commit-lsp]
+    grammar: gitcommit
+
+  # Git configuration files
+  git-config:
+    scope: source.gitconfig
+    injection-regex: git-config
+    file-types:
+      - gitconfig
+      - { glob: .gitmodules }
+      - { glob: gitconfig }
+      - { glob: .gitconfig }
+      - { glob: .git/config }
+      - { glob: .config/git/config }
+      - { glob: ".git/modules/*/config" }
+      - { glob: config.worktree }
+      - { glob: .lfsconfig }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "\t"
+    grammar:
+      git: https://github.com/the-mikedavis/tree-sitter-git-config
+      rev: 0fbc9f99d5a28865f9de8427fb0672d66f9d83a5
+
+  # .gitignore and other ignore files
+  git-ignore:
+    scope: source.gitignore
+    injection-regex: git-ignore
+    file-types:
+      - { glob: .gitignore_global }
+      - { glob: git/ignore }
+      - { glob: .git/info/exclude }
+      - { glob: .ignore }
+      - { glob: CODEOWNERS }
+      - { glob: ".*ignore" }
+      - { glob: .git-blame-ignore-revs }
+    comment-token: "#"
+    grammar:
+      name: gitignore
+      git: https://github.com/shunsambongi/tree-sitter-gitignore
+      rev: f4685bf11ac466dd278449bcfe5fd014e94aa504
+
+  # Git notes messages
+  git-notes:
+    scope: git.notesmsg
+    file-types:
+      - { glob: NOTES_EDITMSG }
+      - { glob: EDIT_DESCRIPTION }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    text-width: 72
+    rulers: [73]
+    grammar: gitcommit
+
+  # Git interactive rebase todo lists
+  git-rebase:
+    scope: source.gitrebase
+    injection-regex: git-rebase
+    file-types:
+      - { glob: git-rebase-todo }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "\t"
+    grammar:
+      git: https://github.com/the-mikedavis/tree-sitter-git-rebase
+      rev: 32686d6b72980b36f876ae2d07719c9c3ed154e2
+
+  # GitHub Actions workflows
+  github-action:
+    scope: source.yaml.github-action
+    file-types:
+      - { glob: ".github/workflows/*.yaml" }
+      - { glob: ".github/workflows/*.yml" }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [actions-language-server, yaml-language-server, zizmor]
+    grammar: yaml
+
+  # GitLab CI pipelines
+  gitlab-ci:
+    scope: source.gitlab-ci
+    injection-regex: "^gitlab-ci$"
+    file-types:
+      - { glob: .gitlab-ci.yml }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [yaml-language-server, gitlab-ci-ls]
+    grammar: yaml
+
+  # Go
+  go:
+    scope: source.go
+    injection-regex: go
+    file-types: [go]
+    roots: [go.work, go.mod]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "\t"
+    auto-format: true
+    language-servers: [gopls, golangci-lint-lsp]
+    code-actions-on-save: [source.organizeImports]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-go
+      rev: 2346a3ab1bb3857b48b29d779a1ef9799a248cd7
+
+  # Format strings inside Go printf style calls
+  go-format-string:
+    scope: source.go-format-string
+    injection-regex: go-format-string
+    file-types: []
+    grammar:
+      git: https://codeberg.org/kpbaks/tree-sitter-go-format-string
+      rev: 06587ea641155db638f46a32c959d68796cd36bb
+
+  # go.mod
+  gomod:
+    scope: source.gomod
+    injection-regex: gomod
+    file-types:
+      - { glob: go.mod }
+    comment-token: //
+    indent:
+      tab-width: 4
+      unit: "\t"
+    auto-format: true
+    language-servers: [gopls]
+    grammar:
+      git: https://github.com/camdencheek/tree-sitter-go-mod
+      rev: 6efb59652d30e0e9cd5f3b3a669afd6f1a926d3c
+
+  # Go text and html templates
+  gotmpl:
+    scope: source.gotmpl
+    injection-regex: gotmpl
+    file-types: [gotmpl]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: " "
+    language-servers: [gopls]
+    grammar:
+      git: https://github.com/ngalaiko/tree-sitter-go-template
+      rev: aa71f63de226c5592dfbfc1f29949522d7c95fac
+
+  # go.work
+  gowork:
+    scope: source.gowork
+    injection-regex: gowork
+    file-types:
+      - { glob: go.work }
+    comment-token: //
+    indent:
+      tab-width: 4
+      unit: "\t"
+    auto-format: true
+    language-servers: [gopls]
+    grammar:
+      git: https://github.com/omertuc/tree-sitter-go-work
+      rev: 6dd9dd79fb51e9f2abc829d5e97b15015b6a8ae2
+
+  # GraphQL schemas and queries
+  graphql:
+    scope: source.graphql
+    injection-regex: graphql
+    file-types: [gql, graphql, graphqls]
+    comment-token: "#"
+    block-comment-tokens: { start: '"""', end: '"""' }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [graphql-language-service]
+    grammar:
+      git: https://github.com/bkegley/tree-sitter-graphql
+      rev: 5e66e961eee421786bdda8495ed1db045e06b5fe
+
+  # Groovy, Gradle build scripts and Jenkinsfiles
+  groovy:
+    scope: source.groovy
+    file-types:
+      - gradle
+      - groovy
+      - jenkinsfile
+      - { glob: Jenkinsfile }
+      - { glob: "Jenkinsfile.*" }
+    shebangs: [groovy]
+    comment-token: //
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: groovy
+    grammar:
+      git: https://github.com/murtaza64/tree-sitter-groovy
+      rev: 235009aad0f580211fc12014bb0846c3910130c1
+
+  # Haskell
+  haskell:
+    scope: source.haskell
+    injection-regex: "hs|haskell"
+    file-types: [hs, hs-boot, hsc]
+    shebangs: [runhaskell, stack]
+    roots: [Setup.hs, stack.yaml, cabal.project, hie.yaml]
+    comment-token: "--"
+    block-comment-tokens: { start: "{-", end: "-}" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [haskell-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-haskell
+      rev: 0975ef72fc3c47b530309ca93937d7d143523628
+
+  # HCL, Terraform and Nomad
+  hcl:
+    scope: source.hcl
+    injection-regex: "(hcl|tf|nomad)"
+    file-types: [hcl, tf, nomad]
+    comment-token: "#"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-id: terraform
+    language-servers: [terraform-ls]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-hcl
+      rev: 64ad62785d442eb4d45df3a1764962dafd5bc98b
+
+  # HTML aware Elixir templates of Phoenix
+  heex:
+    scope: source.heex
+    injection-regex: heex
+    file-types: [heex]
+    roots: [mix.exs, mix.lock]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [elixir-ls, expert]
+    grammar:
+      git: https://github.com/phoenixframework/tree-sitter-heex
+      rev: f6b83f305a755cd49cf5f6a66b2b789be93dc7b9
+
+  # Helm chart templates
+  helm:
+    scope: source.helm
+    file-types:
+      - { glob: "templates/**/*.yaml" }
+      - { glob: "templates/**/*.yml" }
+      - { glob: "templates/**/_*.tpl" }
+      - { glob: templates/NOTES.txt }
+    roots: [Chart.yaml]
+    glob-roots: true
+    comment-token: "#"
+    language-servers: [helm_ls]
+    grammar: gotmpl
+
+  # /etc/hosts
+  hosts:
+    scope: source.hosts
+    file-types:
+      - { glob: hosts }
+    comment-token: "#"
+    grammar:
+      git: https://github.com/ath3/tree-sitter-hosts
+      rev: 301b9379ce7dfc8bdbe2c2699a6887dcb73953f9
+
+  # HTML
+  html:
+    scope: text.html.basic
+    injection-regex: html
+    file-types:
+      - html
+      - htm
+      - shtml
+      - xhtml
+      - xht
+      - jsp
+      - asp
+      - aspx
+      - jshtm
+      - volt
+      - rhtml
+      - cshtml
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    auto-pairs:
+      '"': '"'
+      "'": "'"
+      (: )
+      "<": ">"
+      "[": "]"
+      "{": "}"
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-html-language-server, superhtml]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-html
+      rev: 73a3947324f6efddf9e17c0ea58d454843590cc0
+
+  # Django templates
+  htmldjango:
+    scope: source.htmldjango
+    injection-regex: htmldjango
+    file-types: []
+    roots: [manage.py]
+    auto-pairs:
+      '"': '"'
+      "%": "%"
+      (: )
+      "<": ">"
+      "[": "]"
+      "{": "}"
+    language-servers: [djlsp, vscode-html-language-server, superhtml]
+    grammar:
+      git: https://github.com/interdependence/tree-sitter-htmldjango
+      rev: a10318892603d9a0b925df7cc7771a840304b997
+
+  # Hurl HTTP request files
+  hurl:
+    scope: source.hurl
+    injection-regex: hurl
+    file-types: [hurl]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      command: hurlfmt
+    grammar:
+      git: https://github.com/pfeiferj/tree-sitter-hurl
+      rev: 597efbd7ce9a814bb058f48eabd055b1d1e12145
+
+  # INI style configuration files
+  ini:
+    scope: source.ini
+    injection-regex: ini
+    file-types:
+      - ini
+      - desktop
+      - { glob: mimeapps.list }
+      - { glob: .editorconfig }
+      - { glob: .npmrc }
+      - { glob: hgrc }
+      - { glob: npmrc }
+      - { glob: rclone.conf }
+      - { glob: .aws/config }
+      - cfg
+      - directory
+      - { glob: .wslconfig }
+      - { glob: .buckconfig }
+      - { glob: .buckconfig.local }
+      - { glob: ".buckconfig.d/*" }
+      - { glob: /etc/buckconfig }
+      - { glob: "/etc/buckconfig.d/*" }
+      - { glob: "aerc/*.conf" }
+      - cnf
+      - nmconnection
+      - repo
+      - { glob: dnf.conf }
+      - { glob: yum.conf }
+      - { glob: pacman.conf }
+      - { glob: supervisord.conf }
+      - { glob: "supervisor/conf.d/*.conf" }
+      - { glob: "supervisord.d/*" }
+      - { glob: smb.conf }
+      - { glob: "fail2ban/**/*.conf" }
+      - { glob: "fail2ban/**/*.local" }
+      - { glob: php-fpm.conf }
+      - { glob: "php-fpm.d/*.conf" }
+      - { glob: "php/**/fpm/pool.d/*.conf" }
+      - { glob: pip.conf }
+      - { glob: .pypirc }
+      - { glob: wsl.conf }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "\t"
+    grammar:
+      git: https://github.com/justinmk/tree-sitter-ini
+      rev: e4018b5176132b4f3c5d6e61cea383f42288d0f5
+
+  # Java
+  java:
+    scope: source.java
+    injection-regex: java
+    file-types: [java, jav, pde]
+    roots: [pom.xml, build.gradle, build.gradle.kts]
+    comment-tokens: [//]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [jdtls]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-java
+      rev: e10607b45ff745f5f876bfa3e94fbcc6b44bdc11
+
+  # JavaScript
+  javascript:
+    scope: source.js
+    injection-regex: "(js|javascript)"
+    file-types:
+      - js
+      - mjs
+      - cjs
+      - rules
+      - es6
+      - pac
+      - gs
+      - { glob: .node_repl_history }
+      - { glob: jakefile }
+    shebangs: [node]
+    roots: [package.json, jsconfig.json]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: javascript
+    language-servers: [typescript-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-javascript
+      rev: 58404d8cf191d69f2674a8fd507bd5776f46cb11
+
+  # Jinja templates, Ansible .j2 files
+  jinja:
+    scope: text.html.jinja
+    injection-regex: jinja
+    file-types: [jinja, jinja2, j2]
+    block-comment-tokens: { start: "{#", end: "#}" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: jinja2
+
+  # jq filters
+  jq:
+    scope: source.jq
+    injection-regex: jq
+    file-types: [jq]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [jq-lsp]
+    grammar:
+      git: https://github.com/flurie/tree-sitter-jq
+      rev: 13990f530e8e6709b7978503da9bc8701d366791
+
+  # JSDoc comments inside JavaScript and TypeScript
+  jsdoc:
+    scope: source.jsdoc
+    injection-regex: jsdoc
+    file-types: [jsdoc]
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-jsdoc
+      rev: 658d18dcdddb75c760363faa4963427a7c6b52db
+
+  # JSON
+  json:
+    scope: source.json
+    injection-regex: json
+    file-types:
+      - json
+      - arb
+      - ipynb
+      - geojson
+      - gltf
+      - webmanifest
+      - { glob: flake.lock }
+      - { glob: .babelrc }
+      - { glob: .bowerrc }
+      - { glob: .jscrc }
+      - js.map
+      - ts.map
+      - css.map
+      - { glob: .jslintrc }
+      - jsonl
+      - { glob: .vuerc }
+      - { glob: composer.lock }
+      - { glob: .watchmanconfig }
+      - avsc
+      - ldtk
+      - ldtkl
+      - { glob: .swift-format }
+      - sublime-build
+      - sublime-color-scheme
+      - sublime-commands
+      - sublime-completions
+      - sublime-keymap
+      - sublime-macro
+      - sublime-menu
+      - sublime-mousemap
+      - sublime-project
+      - sublime-settings
+      - sublime-theme
+      - sublime-workspace
+      - code-workspace
+      - { glob: ".pytest_cache/v/cache/*" }
+      - { glob: devenv.lock }
+      - { glob: devbox.lock }
+      - { glob: manifest.lock }
+      - { glob: deno.lock }
+      - tfstate
+      - { glob: "*.tfstate.backup" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-json-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-json
+      rev: 001c28d7a29832b06b0e831ec77845553c89b56d
+
+  # JSON-LD linked data
+  json-ld:
+    scope: source.json-ld
+    injection-regex: json-ld
+    file-types: [jsonld]
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-json-language-server]
+    grammar: json
+
+  # JSON5, JSON with comments and trailing commas
+  json5:
+    scope: source.json5
+    injection-regex: json5
+    file-types: [json5]
+    comment-token: //
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: []
+    grammar:
+      git: https://github.com/Joakker/tree-sitter-json5
+      rev: 248b8564567087d7866be76569b182f6dd7e14e9
+
+  # JSON with comments, tsconfig and VS Code settings
+  jsonc:
+    scope: source.json
+    injection-regex: jsonc
+    file-types:
+      - jsonc
+      - { glob: "{t,j}sconfig.json" }
+      - { glob: bun.lock }
+      - { glob: .devcontainer.json }
+      - { glob: devcontainer.json }
+      - { glob: ".vscode/*.json" }
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-json-language-server]
+    grammar: json
+
+  # JavaScript with JSX
+  jsx:
+    scope: source.jsx
+    injection-regex: jsx
+    file-types: [jsx]
+    roots: [package.json, jsconfig.json]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: javascriptreact
+    language-servers: [typescript-language-server]
+    grammar: javascript
+
+  # Julia
+  julia:
+    scope: source.julia
+    injection-regex: julia
+    file-types: [jl]
+    shebangs: [julia]
+    roots: [Manifest.toml, Project.toml]
+    comment-token: "#"
+    block-comment-tokens: { start: "#=", end: "=#" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [julia]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-julia
+      rev: e0f9dcd180fdcfcfa8d79a3531e11d99e79321d3
+
+  # just command runner recipes
+  just:
+    scope: source.just
+    injection-regex: just
+    file-types:
+      - just
+      - { glob: justfile }
+      - { glob: Justfile }
+      - { glob: .justfile }
+      - { glob: .Justfile }
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    formatter:
+      args: ["--fmt", "--justfile", "-"]
+      command: just
+    language-servers: [just-lsp]
+    grammar:
+      git: https://github.com/poliorcetics/tree-sitter-just
+      rev: 00859eebfb774d371af174ea1e582d46e697b469
+
+  # KDL documents, zellij configuration
+  kdl:
+    scope: source.kdl
+    injection-regex: kdl
+    file-types: [kdl]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    formatter:
+      args: [format, "-"]
+      command: kdlfmt
+    grammar:
+      git: https://github.com/amaanq/tree-sitter-kdl
+      rev: b37e3d58e5c5cf8d739b315d6114e02d42e66664
+
+  # Kotlin
+  kotlin:
+    scope: source.kotlin
+    file-types: [kt, kts]
+    roots: [settings.gradle, settings.gradle.kts]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [kotlin-language-server]
+    grammar:
+      git: https://github.com/fwcd/tree-sitter-kotlin
+      rev: f66d2908542e93c0204c6c241f794afe4e9cd5d1
+
+  # LDAP data interchange format
+  ldif:
+    scope: source.ldif
+    injection-regex: ldif
+    file-types: [ldif]
+    comment-token: "#"
+    grammar:
+      git: https://github.com/kepet19/tree-sitter-ldif
+      rev: 0a917207f65ba3e3acfa9cda16142ee39c4c1aaa
+
+  # Less stylesheets
+  less:
+    scope: source.less
+    injection-regex: less
+    file-types: [less]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-css-language-server]
+    grammar:
+      git: https://github.com/jimliang/tree-sitter-less
+      rev: e5ae6245f841b5778c79ac93b28fa4f56b679c5d
+
+  # Log files, levels and timestamps colored
+  log:
+    scope: source.log
+    file-types: [log]
+    grammar:
+      git: https://github.com/Tudyx/tree-sitter-log
+      rev: 62cfe307e942af3417171243b599cc7deac5eab9
+
+  # Lua
+  lua:
+    scope: source.lua
+    injection-regex: lua
+    file-types: [lua, rockspec]
+    shebangs: [lua, luajit]
+    roots: [.luarc.json, .luacheckrc, .stylua.toml, selene.toml, .git]
+    comment-tokens: ["--", "---"]
+    block-comment-tokens: { start: "--[[", end: "--]]" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [lua-language-server]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-lua
+      rev: 10fe0054734eec83049514ea2e718b2a56acd0c9
+
+  # Makefiles
+  make:
+    scope: source.make
+    injection-regex: "(make|makefile|Makefile|mk)"
+    file-types:
+      - { glob: Makefile }
+      - { glob: makefile }
+      - make
+      - mk
+      - mak
+      - { glob: GNUmakefile }
+      - { glob: OCamlMakefile }
+    shebangs: [make, gmake]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "\t"
+    grammar:
+      git: https://github.com/alemuller/tree-sitter-make
+      rev: a4b9187417d6be349ee5fd4b6e77b4172c6827dd
+
+  # Markdown
+  markdown:
+    scope: source.md
+    injection-regex: "md|markdown"
+    file-types:
+      - md
+      - livemd
+      - markdown
+      - mdx
+      - mkd
+      - mkdn
+      - mdwn
+      - mdown
+      - markdn
+      - mdtxt
+      - mdtext
+      - workbook
+      - { glob: PULLREQ_EDITMSG }
+    roots: [.marksman.toml]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    auto-pairs:
+      '"': '"'
+      "'": "'"
+      (: )
+      "[": "]"
+      "`": "`"
+      "{": "}"
+      "«": "»"
+      "‘": "’"
+      "“": "”"
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      command: prettier
+      args: [--parser, markdown]
+    auto-format: true
+    language-servers: [marksman, markdown-oxide, rumdl]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-markdown
+      rev: f969cd3ae3f9fbd4e43205431d0ae286014c05b5
+      subpath: tree-sitter-markdown
+
+  # Markdown inside Rust doc comments
+  markdown-rustdoc:
+    scope: source.markdown-rustdoc
+    injection-regex: markdown-rustdoc
+    file-types: []
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: markdown
+
+  # Inline Markdown, used by the markdown language
+  markdown.inline:
+    scope: source.markdown.inline
+    injection-regex: "markdown\\.inline"
+    file-types: []
+    grammar:
+      name: markdown_inline
+      git: https://github.com/tree-sitter-grammars/tree-sitter-markdown
+      rev: f969cd3ae3f9fbd4e43205431d0ae286014c05b5
+      subpath: tree-sitter-markdown-inline
+
+  # Mermaid diagrams
+  mermaid:
+    scope: source.mermaid
+    injection-regex: mermaid
+    file-types: [mermaid, mmd]
+    comment-token: "%%"
+    indent:
+      tab-width: 4
+      unit: "    "
+    grammar:
+      git: https://github.com/monaqa/tree-sitter-mermaid
+      rev: d787c66276e7e95899230539f556e8b83ee16f6d
+
+  # Meson build files
+  meson:
+    scope: source.meson
+    injection-regex: meson
+    file-types:
+      - { glob: meson.build }
+      - { glob: meson.options }
+      - { glob: meson_options.txt }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [mesonlsp]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-meson
+      rev: c84f3540624b81fc44067030afce2ff78d6ede05
+
+  # mise tool and task configuration
+  miseconfig:
+    scope: source.miseconfig
+    injection-regex: miseconfig
+    file-types:
+      - { glob: mise.toml }
+      - { glob: .mise.toml }
+      - { glob: "mise.*.toml" }
+      - { glob: ".mise.*.toml" }
+      - { glob: mise/config.toml }
+      - { glob: .mise/config.toml }
+      - { glob: .config/mise.toml }
+      - { glob: ".config/mise/conf.d/*.toml" }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [taplo, tombi]
+    grammar: toml
+
+  # MSBuild project files
+  msbuild:
+    scope: source.msbuild
+    injection-regex: msbuild
+    file-types: [proj, vbproj, csproj, fsproj, targets, props]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    auto-pairs:
+      '"': '"'
+      "'": "'"
+      (: )
+      "<": ">"
+      "[": "]"
+      "{": "}"
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: xml
+
+  # NASM assembler
+  nasm:
+    scope: source.nasm
+    injection-regex: "n?asm"
+    file-types: [asm, S, nasm]
+    comment-token: ";"
+    indent:
+      tab-width: 8
+      unit: "        "
+    language-servers: [asm-lsp]
+    grammar:
+      git: https://github.com/naclsn/tree-sitter-nasm
+      rev: 570f3d7be01fffc751237f4cfcf52d04e20532d1
+
+  # nginx configuration
+  nginx:
+    scope: source.nginx
+    injection-regex: nginx
+    file-types:
+      # Includes under an nginx directory, with .conf or without as
+      # distributions differ, and any .conf below it
+      - { glob: "nginx/sites-available/*" }
+      - { glob: "nginx/sites-enabled/*" }
+      - { glob: "nginx/conf.d/*" }
+      - { glob: "nginx/snippets/*" }
+      - { glob: "nginx/servers/*" }
+      - { glob: "nginx/**/*.conf" }
+      - { glob: nginx.conf }
+      - { glob: fastcgi.conf }
+      - { glob: fastcgi_params }
+      - { glob: "proxy_params" }
+      - { glob: "scgi_params" }
+      - { glob: "uwsgi_params" }
+    roots: [nginx.conf]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [nginx-language-server]
+    grammar:
+      git: https://gitlab.com/joncoole/tree-sitter-nginx
+      rev: f6d13cf6281b25f2ce342a49a41a10a0381e00f0
+
+  # Nix expressions and flakes
+  nix:
+    scope: source.nix
+    injection-regex: nix
+    file-types: [nix]
+    shebangs: []
+    comment-token: "#"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      command: nixfmt
+    language-servers: [nil, nixd]
+    grammar:
+      git: https://github.com/numtide/tree-sitter-nix
+      rev: 70f34e95e30b7ebcc40815d4385d68576c4a15cd
+
+  # Nunjucks templates
+  nunjucks:
+    scope: text.html.nunjucks
+    injection-regex: nunjucks
+    file-types: [njk]
+    block-comment-tokens: { start: "{#", end: "#}" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar: jinja2
+
+  # /etc/passwd
+  passwd:
+    scope: source.passwd
+    file-types:
+      - { glob: passwd }
+    grammar:
+      git: https://github.com/ath3/tree-sitter-passwd
+      rev: 20239395eacdc2e0923a7e5683ad3605aee7b716
+
+  # PEM certificates and keys
+  pem:
+    scope: source.pem
+    injection-regex: pem
+    file-types: [pem, cert, crt]
+    grammar:
+      git: https://github.com/mtoohey31/tree-sitter-pem
+      rev: 62842ea106ff66876f9af4cccdf87913d1ed912e
+
+  # Perl and Raku
+  perl:
+    scope: source.perl
+    file-types:
+      - pl
+      - pm
+      - t
+      - psgi
+      - raku
+      - rakumod
+      - rakutest
+      - rakudoc
+      - nqp
+      - p6
+      - pl6
+      - pm6
+      - { glob: latexmkrc }
+      - { glob: .latexmkrc }
+    shebangs: [perl]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [perlnavigator]
+    grammar:
+      git: https://github.com/tree-sitter-perl/tree-sitter-perl
+      rev: 72a08a496a23212f23802490ef6f4700d68cfd0e
+
+  # PHP with embedded HTML
+  php:
+    scope: source.php
+    injection-regex: php
+    file-types: [php, inc, php4, php5, phtml, ctp]
+    shebangs: [php]
+    roots: [composer.json, index.php]
+    comment-token: //
+    block-comment-tokens:
+      - { start: "/**", end: "*/" }
+      - { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [intelephense]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-php
+      rev: 3f2465c217d0a966d41e584b42d75522f2a3149e
+      subpath: php
+
+  # PHP code without HTML, used inside other languages
+  php-only:
+    scope: source.php-only
+    injection-regex: php-only
+    file-types: []
+    roots: [composer.json, index.php]
+    indent:
+      tab-width: 4
+      unit: "    "
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-php
+      rev: 3f2465c217d0a966d41e584b42d75522f2a3149e
+      subpath: php_only
+
+  # pip requirements and constraints files
+  pip-requirements:
+    scope: source.pip-requirements
+    injection-regex: "(pip-)?requirements(\\.txt)?"
+    file-types:
+      - { glob: requirements.txt }
+      - { glob: constraints.txt }
+    grammar:
+      name: requirements
+      git: https://github.com/tree-sitter-grammars/tree-sitter-requirements
+      rev: 2c3bb291f497258ba417d052faa14a2dfee6d401
+
+  # Arch Linux PKGBUILD files
+  pkgbuild:
+    scope: source.bash
+    file-types:
+      - { glob: PKGBUILD }
+    comment-token: "#"
+    language-servers:
+      - termux-language-server
+      - name: bash-language-server
+        except-features: [diagnostics]
+    grammar: bash
+
+  # PowerShell
+  powershell:
+    scope: source.powershell
+    injection-regex: "(pwsh|powershell)"
+    file-types: [ps1, psm1, psd1, pscc, psrc]
+    shebangs: [pwsh, powershell]
+    comment-token: "#"
+    block-comment-tokens: { start: "<#", end: "#>" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    grammar:
+      git: https://github.com/airbus-cert/tree-sitter-powershell
+      rev: c9316be0faca5d5b9fd3b57350de650755f42dc0
+
+  # Prisma schemas
+  prisma:
+    scope: source.prisma
+    injection-regex: prisma
+    file-types: [prisma]
+    roots: [package.json]
+    comment-token: //
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [prisma-language-server]
+    grammar:
+      git: https://github.com/victorhqc/tree-sitter-prisma
+      rev: eca2596a355b1a9952b4f80f8f9caed300a272b5
+
+  # Java properties files
+  properties:
+    scope: source.properties
+    injection-regex: properties
+    file-types:
+      - properties
+      - prefs
+      # Linux configs of key value lines
+      - { glob: redis.conf }
+      - { glob: "redis/*.conf" }
+      - { glob: sentinel.conf }
+      - { glob: sshd_config }
+      - { glob: "sshd_config.d/*.conf" }
+      - { glob: sysctl.conf }
+      - { glob: "sysctl.d/*.conf" }
+      - { glob: postgresql.conf }
+      - { glob: postgresql.auto.conf }
+      - { glob: pg_hba.conf }
+      - { glob: pg_ident.conf }
+      - { glob: resolv.conf }
+      - { glob: chrony.conf }
+      - { glob: ntp.conf }
+      - { glob: dnsmasq.conf }
+      - { glob: "dnsmasq.d/*" }
+      - { glob: login.defs }
+      - { glob: memcached.conf }
+      - { glob: "modprobe.d/*.conf" }
+      - { glob: "modules-load.d/*.conf" }
+      - { glob: "security/limits.conf" }
+      - { glob: "limits.d/*.conf" }
+      - { glob: sudoers }
+      - { glob: "sudoers.d/*" }
+      - { glob: haproxy.cfg }
+      - { glob: vsftpd.conf }
+    comment-tokens: ["#"]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-properties
+      rev: 6310671b24d4e04b803577b1c675d765cbd5773b
+
+  # Protocol Buffers
+  protobuf:
+    scope: source.proto
+    injection-regex: proto
+    file-types: [proto]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [buf, pbkit, protols]
+    grammar:
+      name: proto
+      git: https://github.com/sdoerner/tree-sitter-proto
+      rev: 35a6a3b543e418b7037328261f40e912c767c598
+
+  # Pug templates
+  pug:
+    scope: source.pug
+    file-types: [pug]
+    comment-tokens: [//, //-]
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/zealot128/tree-sitter-pug
+      rev: 13e9195370172c86a8b88184cc358b23b677cc46
+
+  # Puppet manifests
+  puppet:
+    scope: source.puppet
+    injection-regex: puppet
+    file-types: [pp]
+    comment-token: "#"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [puppet-languageserver]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-puppet
+      rev: 15f192929b7d317f5914de2b4accd37b349182a6
+
+  # Python
+  python:
+    scope: source.python
+    injection-regex: "py(thon)?"
+    file-types:
+      - py
+      - pyi
+      - py3
+      - pyw
+      - ptl
+      - rpy
+      - cpy
+      - ipy
+      - pyt
+      - { glob: .python_history }
+      - { glob: .pythonstartup }
+      - { glob: .pythonrc }
+      - { glob: "*SConstruct" }
+      - { glob: "*SConscript" }
+      - { glob: "*sconstruct" }
+    shebangs: [python, uv]
+    roots: [pyproject.toml, setup.py, poetry.lock, pyrightconfig.json]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [ty, ruff, jedi, pylsp, zuban]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-python
+      rev: 293fdc02038ee2bf0e2e206711b69c90ac0d413f
+
+  # Regular expressions inside other languages
+  regex:
+    scope: source.regex
+    injection-regex: regex
+    file-types:
+      - regex
+      - { glob: .Rbuildignore }
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-regex
+      rev: b2ac15e27fce703d2f37a79ccd94a5c0cbe9720b
+
+  # Rego policies for Open Policy Agent
+  rego:
+    scope: source.rego
+    injection-regex: rego
+    file-types: [rego]
+    comment-token: "#"
+    auto-format: true
+    language-servers: [regols]
+    grammar:
+      git: https://github.com/FallenAngel97/tree-sitter-rego
+      rev: ddd39af81fe8b0288102a7cb97959dfce723e0f3
+
+  # RON, Rusty Object Notation
+  ron:
+    scope: source.ron
+    injection-regex: ron
+    file-types: [ron]
+    roots: [Cargo.toml]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [ron-lsp]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-ron
+      rev: 78938553b93075e638035f624973083451b29055
+
+  # RPM spec files
+  rpmspec:
+    scope: source.rpmspec
+    file-types: [spec]
+    comment-token: "#"
+    grammar:
+      git: https://gitlab.com/cryptomilk/tree-sitter-rpmspec
+      rev: d0275cd1316d9b7a2e0fae028ce95a5a18741e1d
+
+  # Ruby, Gemfile, Rakefile and Vagrantfile
+  ruby:
+    scope: source.ruby
+    injection-regex: ruby
+    file-types:
+      - rb
+      - rake
+      - irb
+      - gemspec
+      - rabl
+      - jbuilder
+      - jb
+      - podspec
+      - rjs
+      - rbi
+      - rbs
+      - { glob: rakefile }
+      - { glob: gemfile }
+      - { glob: Rakefile }
+      - { glob: Gemfile }
+      - { glob: Podfile }
+      - { glob: Vagrantfile }
+      - { glob: Brewfile }
+      - { glob: "*.Brewfile" }
+      - { glob: Guardfile }
+      - { glob: Capfile }
+      - { glob: Cheffile }
+      - { glob: Hobofile }
+      - { glob: Appraisals }
+      - { glob: Rantfile }
+      - { glob: Berksfile.lock }
+      - { glob: Thorfile }
+      - { glob: Puppetfile }
+      - { glob: Fastfile }
+      - { glob: Appfile }
+      - { glob: Deliverfile }
+      - { glob: Matchfile }
+      - { glob: Scanfile }
+      - { glob: Snapfile }
+      - { glob: Gymfile }
+      - { glob: .irbrc }
+      - { glob: .simplecov }
+    shebangs: [ruby]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [ruby-lsp, solargraph]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-ruby
+      rev: ad907a69da0c8a4f7a943a7fe012712208da6dee
+
+  # Rust
+  rust:
+    scope: source.rust
+    injection-regex: "rs|rust"
+    file-types: [rs]
+    shebangs: [rust-script, cargo]
+    roots: [Cargo.toml, Cargo.lock]
+    comment-tokens: [//, ///, "//!"]
+    block-comment-tokens:
+      - { start: "/*", end: "*/" }
+      - { start: "/**", end: "*/" }
+      - { start: "/*!", end: "*/" }
+    auto-pairs:
+      '"': '"'
+      (: )
+      "[": "]"
+      "`": "`"
+      "{": "}"
+    indent:
+      tab-width: 4
+      unit: "    "
+    auto-format: true
+    language-servers: [rust-analyzer]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-rust
+      rev: 77a3747266f4d621d0757825e6b11edcbf991ca5
+
+  # Format strings inside Rust macros such as format!
+  rust-format-args:
+    scope: source.rust-format-args
+    injection-regex: rust-format-args
+    file-types: []
+    grammar:
+      git: https://github.com/nik-rev/tree-sitter-rust-format-args
+      rev: 84ffe550e261cf5ea40a0ec31849ba2443bae99f
+
+  # Arguments of Rust format macros
+  rust-format-args-macro:
+    scope: source.rust-format-args-macro
+    file-types: []
+    grammar: rust
+
+  # SCSS stylesheets
+  scss:
+    scope: source.scss
+    injection-regex: scss
+    file-types: [scss]
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-servers: [vscode-css-language-server]
+    grammar:
+      git: https://github.com/serenadeai/tree-sitter-scss
+      rev: c478c6868648eff49eb04a4df90d703dc45b312a
+
+  # One line apt sources, deb822 .sources files are debian
+  sources-list:
+    scope: source.sources-list
+    file-types:
+      - { glob: sources.list }
+      - { glob: "sources.list.d/*.list" }
+    comment-token: "#"
+    grammar: bash
+
+  # SQL
+  sql:
+    scope: source.sql
+    injection-regex: sql
+    file-types: [sql, dsql]
+    comment-token: "--"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 4
+      unit: "    "
+    grammar:
+      git: https://github.com/DerekStride/tree-sitter-sql
+      rev: 851e9cb257ba7c66cc8c14214a31c44d2f1e954e
+
+  # OpenSSH client configuration, ~/.ssh/config
+  ssh_client_config:
+    scope: source.ssh_client_config
+    check: { command: ssh, args: [-G, -F, "{file}", localhost] }
+    file-types:
+      - { glob: .ssh/config }
+      - { glob: /etc/ssh/ssh_config }
+      - { glob: "ssh_config.d/*.conf" }
+    comment-token: "#"
+    grammar:
+      git: https://github.com/metio/tree-sitter-ssh-client-config
+      rev: 4abd07dc3884124d60e37e1f2dd98a1676859ae0
+
+  # strace output
+  strace:
+    scope: source.strace
+    file-types: [strace]
+    grammar:
+      git: https://github.com/sigmaSd/tree-sitter-strace
+      rev: 2b18fdf9a01e7ec292cc6006724942c81beb7fd5
+
+  # Svelte components
+  svelte:
+    scope: source.svelte
+    injection-regex: svelte
+    file-types: [svelte]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [svelteserver]
+    grammar:
+      git: https://github.com/themixednuts/tree-sitter-htmlx
+      rev: c9b9cc35709fff494a3a9e41cd9471b633649e45
+      subpath: crates/tree-sitter-svelte
+
+  # Swift
+  swift:
+    scope: source.swift
+    injection-regex: swift
+    file-types: [swift, swiftinterface]
+    roots: [Package.swift]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    formatter:
+      command: swift-format
+    language-servers: [sourcekit-lsp]
+    grammar:
+      git: https://github.com/alex-pinkus/tree-sitter-swift
+      rev: 7b7909f2f6b9414be0958275f4c8e5d69c3bca43
+
+  # System crontabs: the schedule, the user, then the command
+  system-crontab:
+    scope: source.crontab
+    file-types:
+      - { glob: /etc/crontab }
+      - { glob: "/etc/cron.d/*" }
+    comment-token: "#"
+    grammar: bash
+
+  # systemd unit files
+  systemd:
+    scope: source.ini
+    injection-regex: systemd
+    file-types:
+      - service
+      - automount
+      - device
+      - mount
+      - nspawn
+      - path
+      - scope
+      - slice
+      - socket
+      - swap
+      - target
+      - timer
+      - { glob: "systemd/**/*.conf" }
+      - container
+      - { glob: "containers/systemd/**/*.pod" }
+      - kube
+      - network
+      - volume
+      - build
+      - image
+    comment-token: "#"
+    language-servers: [systemd-lsp]
+    grammar: ini
+
+  # Tcl
+  tcl:
+    scope: source.tcl
+    injection-regex: tcl
+    file-types: [tcl]
+    shebangs: [tclsh, tclish, jimsh, wish]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-tcl
+      rev: 56ad1fa6a34ba800e5495d1025a9b0fda338d5b8
+
+  # templ, Go HTML templates
+  templ:
+    scope: source.templ
+    file-types: [templ]
+    roots: [go.work, go.mod]
+    comment-token: //
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [templ]
+    grammar:
+      git: https://github.com/vrischmann/tree-sitter-templ
+      rev: 68d6707ed20159ae7525241b8161c126dc1c620c
+
+  # Protocol Buffers text format
+  textproto:
+    scope: source.textproto
+    file-types: [txtpb, textpb, textproto]
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    formatter:
+      command: txtpbfmt
+    grammar:
+      git: https://github.com/PorterAtGoogle/tree-sitter-textproto
+      rev: 568471b80fd8793d37ed01865d8c2208a9fefd1b
+
+  # Terraform variable files
+  tfvars:
+    scope: source.tfvars
+    file-types: [tfvars]
+    comment-token: "#"
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    language-id: terraform-vars
+    language-servers: [terraform-ls]
+    grammar: hcl
+
+  # TOML
+  toml:
+    scope: source.toml
+    injection-regex: toml
+    file-types:
+      - toml
+      - { glob: pdm.lock }
+      - { glob: poetry.lock }
+      - { glob: Cargo.lock }
+      - { glob: uv.lock }
+      - { glob: containers.conf }
+      - { glob: "containers.conf.d/*.conf" }
+      - { glob: "containers.conf.modules/*.conf" }
+      - { glob: mounts.conf }
+      - { glob: policy.conf }
+      - { glob: registries.conf }
+      - { glob: storage.conf }
+      - { glob: staticcheck.conf }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [taplo, tombi]
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-toml
+      rev: 64b56832c2cffe41758f28e05c756a3a98d16f41
+
+  # Tree-sitter query files
+  tsq:
+    scope: source.tsq
+    injection-regex: tsq
+    file-types:
+      - { glob: "queries/*.scm" }
+      - { glob: injections.scm }
+      - { glob: highlights.scm }
+      - { glob: indents.scm }
+      - { glob: textobjects.scm }
+      - { glob: locals.scm }
+      - { glob: tags.scm }
+    comment-token: ";"
+    auto-pairs:
+      '"': '"'
+      (: )
+      "[": "]"
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [ts_query_ls]
+    grammar:
+      name: query
+      git: https://github.com/tree-sitter-grammars/tree-sitter-query
+      rev: a6674e279b14958625d7a530cabe06119c7a1532
+
+  # TypeScript with JSX
+  tsx:
+    scope: source.tsx
+    injection-regex: (tsx)
+    file-types: [tsx]
+    roots: [package.json, tsconfig.json]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: typescriptreact
+    language-servers: [typescript-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-typescript
+      rev: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+      subpath: tsx
+
+  # Twig templates
+  twig:
+    scope: source.twig
+    injection-regex: twig
+    file-types: [twig]
+    block-comment-tokens: { start: "{#", end: "#}" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/gbprod/tree-sitter-twig
+      rev: 0afd9a6d808944e65a7be393e31868b85345735f
+
+  # TypeScript
+  typescript:
+    scope: source.ts
+    injection-regex: "(ts|typescript)"
+    file-types: [ts, mts, cts]
+    shebangs: [deno, bun, ts-node]
+    roots: [package.json, tsconfig.json]
+    comment-token: //
+    block-comment-tokens: { start: "/*", end: "*/" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-id: typescript
+    language-servers: [typescript-language-server]
+    grammar:
+      git: https://github.com/tree-sitter/tree-sitter-typescript
+      rev: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+      subpath: typescript
+
+  # Vim script
+  vim:
+    scope: source.vim
+    injection-regex: vim
+    file-types:
+      - vim
+      - { glob: .vimrc }
+      - { glob: .nvimrc }
+      - { glob: .exrc }
+    comment-token: '"'
+    indent:
+      tab-width: 4
+      unit: "\t"
+    grammar:
+      git: https://github.com/tree-sitter-grammars/tree-sitter-vim
+      rev: f3cd62d8bd043ef20507e84bb6b4b53731ccf3a7
+
+  # Vue single file components
+  vue:
+    scope: source.vue
+    injection-regex: vue
+    file-types: [vue]
+    roots: [package.json]
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    indent:
+      tab-width: 2
+      unit: "  "
+    language-servers: [vuels]
+    grammar:
+      git: https://github.com/ikatyang/tree-sitter-vue
+      rev: 91fe2754796cd8fba5f229505a23fa08f3546c06
+
+  # XML
+  xml:
+    scope: source.xml
+    injection-regex: xml
+    file-types:
+      - ascx
+      - atom
+      - axaml
+      - axml
+      - bpmn
+      - checkstyle
+      - cpt
+      - csl
+      - csproj.user
+      - dita
+      - ditamap
+      - dtml
+      - fods
+      - fodt
+      - fxml
+      - gir
+      - glif
+      - gml
+      - gpx
+      - iml
+      - isml
+      - itermcolors
+      - jmx
+      - kml
+      - launch
+      - menu
+      - mobileconfig
+      - mpd
+      - musicxml
+      - mxml
+      - ncx
+      - nuspec
+      - opml
+      - osc
+      - osm
+      - plist
+      - policy
+      - pproj
+      - pt
+      - publishsettings
+      - pubxml
+      - pubxml.user
+      - rbxlx
+      - rbxmx
+      - resx
+      - rng
+      - rss
+      - shproj
+      - smil
+      - storyboard
+      - sublime-snippet
+      - svg
+      - terminal
+      - tld
+      - tmx
+      - ui
+      - vbproj.user
+      - vcxproj
+      - vcxproj.filters
+      - wixproj
+      - wsdl
+      - wxi
+      - wxs
+      - xaml
+      - xbl
+      - xib
+      - xlf
+      - xliff
+      - xml
+      - xmp
+      - xoml
+      - xpdl
+      - xrc
+      - xsd
+      - xsl
+      - xul
+      - { glob: "*.tm[Ll]anguage" }
+      - { glob: "*.tm[Pp]references" }
+      - { glob: "*.tm[Tt]heme" }
+    block-comment-tokens: { start: "<!--", end: "-->" }
+    auto-pairs:
+      '"': '"'
+      "'": "'"
+      (: )
+      "<": ">"
+      "[": "]"
+      "{": "}"
+    indent:
+      tab-width: 2
+      unit: "  "
+    grammar:
+      git: https://github.com/RenjiSann/tree-sitter-xml
+      rev: 48a7c2b6fb9d515577e115e6788937e837815651
+
+  # YAML
+  yaml:
+    scope: source.yaml
+    injection-regex: "yml|yaml"
+    file-types:
+      - yml
+      - yaml
+      - { glob: .prettierrc }
+      - { glob: .clangd }
+      - { glob: .clang-format }
+      - { glob: .clang-tidy }
+      - { glob: .gem/credentials }
+      - { glob: .kube/config }
+      - { glob: .kube/kuberc }
+      - { glob: yarn.lock }
+      - sublime-syntax
+      - bu
+      - { glob: .stylelintrc }
+      - { glob: .puppeteerrc }
+      - { glob: .bundle/config }
+    comment-token: "#"
+    indent:
+      tab-width: 2
+      unit: "  "
+    auto-format: true
+    formatter:
+      args: ["-"]
+      command: yamlfmt
+    language-servers: [yaml-language-server]
+    grammar:
+      git: https://github.com/ikatyang/tree-sitter-yaml
+      rev: 0e36bed171768908f331ff7dff9d956bae016efb

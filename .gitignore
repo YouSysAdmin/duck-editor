@@ -1,0 +1,13 @@
+.idea
+.vscode
+.zed
+/bin/
+/dk
+*.log
+runtime/grammars/*.so
+runtime/grammars/*.dylib
+runtime/grammars/sources/
+/dist/
+/.tools/
+/.task/
+internal/grammarpack/lib/*.gz

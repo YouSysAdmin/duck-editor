@@ -1,0 +1,281 @@
+# Duck, a modal terminal editor. The command is dk.
+#
+# Run `task` with no arguments for the list. Install go-task from
+# https://taskfile.dev. The editor needs cgo for tree-sitter, the grammars
+# are shared libraries compiled with the system C compiler.
+version: "3"
+
+vars:
+  BIN: bin/dk
+  RUNTIME: runtime
+  CONFIG_DIR: '{{.XDG_CONFIG_HOME | default (printf "%s/.config" .HOME)}}/duck'
+  INSTALL_BIN: '{{.HOME}}/.local/bin'
+  GO_DIRS: cmd internal hack catalog/embed.go runtime/embed.go
+  PACK_DIR: internal/grammarpack/lib
+  VERSION: '{{.VERSION | default "dev"}}'
+  # zig is the C cross compiler for the Linux release builds. It is
+  # downloaded into .tools on first use, pinned and checksum verified.
+  ZIG_VERSION: 0.16.0
+  ZIG: '{{.ROOT_DIR}}/.tools/zig-{{.ZIG_VERSION}}/zig'
+  # Oldest glibc the Linux builds run on.
+  GLIBC: "2.17"
+  # Run through go run so the version is pinned here, not by what the
+  # machine happens to have installed.
+  GOLANGCI_LINT: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+
+env:
+  CGO_ENABLED: "1"
+
+tasks:
+  default:
+    desc: List the tasks
+    silent: true
+    cmds:
+      - task --list
+
+  # Sequential cmds rather than deps, because deps run in parallel and the
+  # grammar build uses the binary built first.
+  all:
+    desc: Build the editor and the grammars
+    cmds:
+      - task: build
+      - task: grammars
+
+  build:
+    desc: Build bin/dk with a runtime link next to it
+    sources: ["**/*.go", go.mod, go.sum, catalog/languages.yaml, "catalog/queries/**/*.scm", runtime/help.md, "{{.PACK_DIR}}/*"]
+    generates: ["{{.BIN}}"]
+    cmds:
+      - go build -o {{.BIN}} ./cmd/dk
+      - ln -sfn ../{{.RUNTIME}} bin/runtime
+
+  agent:
+    desc: Build the Linux agents a development build installs on remote hosts, dk host:path
+    vars:
+      AGENT_DIR: '{{.XDG_CACHE_HOME | default (printf "%s/.cache" .HOME)}}/duck/agent'
+    env:
+      CGO_ENABLED: "0"
+    sources: ["**/*.go", go.mod, go.sum]
+    generates: ["{{.AGENT_DIR}}/dk-linux-amd64", "{{.AGENT_DIR}}/dk-linux-arm64"]
+    cmds:
+      - mkdir -p {{.AGENT_DIR}}
+      - for: [amd64, arm64]
+        cmd: GOOS=linux GOARCH={{.ITEM}} go build -trimpath -ldflags "-s -w" -o {{.AGENT_DIR}}/dk-linux-{{.ITEM}} ./cmd/dk
+
+  run:
+    desc: "Run the editor, pass files after --: task run -- main.go"
+    deps: [build]
+    interactive: true
+    cmds:
+      - ./{{.BIN}} {{.CLI_ARGS}}
+
+  grammars:fetch:
+    desc: Clone or update the grammar sources listed in languages.yaml
+    deps: [build]
+    cmds:
+      - ./{{.BIN}} grammar fetch -runtime {{.RUNTIME}}
+
+  grammars:
+    desc: Compile the grammars into runtime/grammars, fetching missing sources
+    deps: [build]
+    cmds:
+      - ./{{.BIN}} grammar fetch -runtime {{.RUNTIME}}
+      - ./{{.BIN}} grammar build -runtime {{.RUNTIME}}
+
+  pack:
+    desc: Compress compiled grammars into the binary's embedded set
+    vars:
+      SRC: '{{.SRC | default (printf "%s/grammars" .RUNTIME)}}'
+    cmds:
+      - rm -f {{.PACK_DIR}}/*.so.gz
+      - for f in {{.SRC}}/*.so; do gzip -9n -c "$f" > {{.PACK_DIR}}/$(basename "$f").gz; done
+
+  grammars:clean:
+    desc: Remove compiled grammars and their sources
+    cmds:
+      - rm -rf {{.RUNTIME}}/grammars/*.so {{.RUNTIME}}/grammars/*.dylib {{.RUNTIME}}/grammars/sources
+
+  catalog:
+    desc: Sort catalog/languages.yaml, build its grammars and drop the ones it no longer names
+    cmds:
+      - go run ./hack/catalog
+      - task: build
+      - task: grammars
+      - go run ./hack/catalog -prune {{.RUNTIME}}/grammars
+
+  test:
+    desc: Run the tests
+    cmds:
+      - go test ./...
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Format the Go code, blank lines included
+    cmds:
+      - gofmt -w {{.GO_DIRS}}
+      - go run ./hack/blanklines {{.GO_DIRS}}
+
+  lint:
+    desc: Run golangci-lint with .golangci.yml
+    cmds:
+      - '{{.GOLANGCI_LINT}} run ./...'
+
+  check:
+    desc: Format and blank line check, vet, lint, tests and a build without cgo
+    cmds:
+      - test -z "$(gofmt -l {{.GO_DIRS}})" || (gofmt -l {{.GO_DIRS}}; exit 1)
+      # The tool exits non zero when it lists files or cannot run.
+      - go run ./hack/blanklines -l {{.GO_DIRS}}
+      - task: vet
+      - task: lint
+      - task: test
+      - go run ./hack/docs -check
+      - CGO_ENABLED=0 go build ./...
+
+  screenshots:
+    desc: Retake docs/images with a clean config, needs python3 with pyte
+    deps: [build]
+    vars:
+      TMP:
+        sh: mktemp -d
+    env:
+      XDG_CONFIG_HOME: '{{.TMP}}/config'
+      XDG_CACHE_HOME: '{{.TMP}}/cache'
+    cmds:
+      - defer: rm -rf {{.TMP}}
+      - >-
+        OUT=docs/images/editor.svg START=5
+        STEPS='[["\u0017v",1],[":o cmd/dk/remote.go\r",3],["/func parseRemote\r",1],["zt",1],["\u0017h",1],["/func \\(r \\*Remote\\) read\r",1],["zt",0.5],["jx",0.3],["19x",0.5],["s",0.3],["resp\r",1.5]]'
+        python3 hack/screenshot.py ./{{.BIN}} internal/host/remote.go
+      - >-
+        OUT=docs/images/picker.svg START=5
+        STEPS='[[" f",2],["host",1.5],["\u000e",1.5]]'
+        python3 hack/screenshot.py ./{{.BIN}} internal/host/remote.go
+
+  docs:
+    desc: Regenerate the generated parts of docs/ from the code
+    cmds:
+      - go run ./hack/docs
+
+  install:
+    desc: Install a self contained dk with embedded grammars into ~/.local/bin
+    cmds:
+      - task: all
+      - task: pack
+      - mkdir -p {{.INSTALL_BIN}}
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.INSTALL_BIN}}/dk ./cmd/dk
+
+  tools:zig:
+    internal: true
+    status:
+      - test -x {{.ZIG}}
+    cmds:
+      - |
+        set -eu
+        arch=$(uname -m | sed 's/arm64/aarch64/')
+        os=$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/macos/')
+        dir=$(dirname {{.ZIG}})
+        tmp=$(mktemp)
+        trap 'rm -f "$tmp"' EXIT
+        want=$(curl -fsSL https://ziglang.org/download/index.json | python3 -c "import json,sys; print(json.load(sys.stdin)['{{.ZIG_VERSION}}']['$arch-$os']['shasum'])")
+        curl -fsSL "https://ziglang.org/download/{{.ZIG_VERSION}}/zig-$arch-$os-{{.ZIG_VERSION}}.tar.xz" -o "$tmp"
+        echo "$want  $tmp" | shasum -a 256 -c - >/dev/null
+        mkdir -p "$dir"
+        tar -xJf "$tmp" -C "$dir" --strip-components 1
+
+  release:
+    desc: "Self contained binaries for macOS and Linux in dist/, task release VERSION=x.y.z"
+    cmds:
+      - rm -rf dist
+      - task: all
+      - task: release:host
+      - task: release:linux
+        vars: {ARCH: amd64}
+      - task: release:linux
+        vars: {ARCH: arm64}
+      - task: release:agent
+        vars: {ARCH: amd64}
+      - task: release:agent
+        vars: {ARCH: arm64}
+      - cd dist && shasum -a 256 dk-*.tar.gz > SHA256SUMS
+      # Leave the host grammars embedded for local builds.
+      - task: pack
+
+  release:publish:
+    desc: "Publish dist/ as GitHub release v$VERSION with gh, task release:publish VERSION=x.y.z"
+    preconditions:
+      - sh: test "{{.VERSION}}" != dev
+        msg: "set VERSION, task release:publish VERSION=x.y.z"
+      - sh: test -f dist/SHA256SUMS
+        msg: "run task release first"
+    cmds:
+      - gh release create v{{.VERSION}} --title v{{.VERSION}} --generate-notes dist/dk-*.tar.gz dist/SHA256SUMS install.sh
+
+  release:host:
+    internal: true
+    vars:
+      NAME: dk-{{OS}}-{{ARCH}}
+    cmds:
+      - task: pack
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
+      - COPYFILE_DISABLE=1 tar --no-xattrs -C dist/{{.NAME}} -czf dist/{{.NAME}}.tar.gz dk
+
+  release:linux:
+    internal: true
+    deps: [tools:zig]
+    vars:
+      NAME: dk-linux-{{.ARCH}}
+      TARGET: '{{if eq .ARCH "amd64"}}x86_64{{else}}aarch64{{end}}-linux-gnu.{{.GLIBC}}'
+      RT: dist/runtime-linux-{{.ARCH}}
+    env:
+      CC: '{{.ZIG}} cc -target {{.TARGET}}'
+      CXX: '{{.ZIG}} c++ -target {{.TARGET}}'
+    cmds:
+      - mkdir -p {{.RT}}/grammars
+      - ln -sfn {{.ROOT_DIR}}/{{.RUNTIME}}/grammars/sources {{.RT}}/grammars/sources
+      - ./{{.BIN}} grammar build -runtime {{.RT}} -target-os linux
+      - task: pack
+        vars: {SRC: '{{.RT}}/grammars'}
+      - GOOS=linux GOARCH={{.ARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
+      - COPYFILE_DISABLE=1 tar --no-xattrs -C dist/{{.NAME}} -czf dist/{{.NAME}}.tar.gz dk
+
+  # The agent needs no grammars, built without cgo it runs on any C
+  # library, Alpine and distroless images included.
+  release:agent:
+    internal: true
+    vars:
+      NAME: dk-agent-linux-{{.ARCH}}
+    env:
+      CGO_ENABLED: "0"
+    cmds:
+      - GOOS=linux GOARCH={{.ARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
+      - COPYFILE_DISABLE=1 tar --no-xattrs -C dist/{{.NAME}} -czf dist/{{.NAME}}.tar.gz dk
+
+  release:smoke:
+    desc: "Load every embedded grammar of the Linux builds in old glibc and Alpine containers, ARCHES=amd64 limits it"
+    vars:
+      ARCHES: '{{.ARCHES | default "amd64 arm64"}}'
+    cmds:
+      - for: {var: ARCHES}
+        task: release:smoke:arch
+        vars: {ARCH: '{{.ITEM}}'}
+
+  release:smoke:arch:
+    internal: true
+    vars:
+      RUN: docker run --rm --platform linux/{{.ARCH}} -v {{.ROOT_DIR}}/dist:/dist:ro -e HOME=/tmp
+      CHECK: /dist/dk-linux-{{.ARCH}}/dk version && /dist/dk-linux-{{.ARCH}}/dk grammar check
+    cmds:
+      - '{{.RUN}} centos:7 sh -c "{{.CHECK}}"'
+      - '{{.RUN}} debian:stable-slim sh -c "{{.CHECK}}"'
+      - '{{.RUN}} alpine:3.22 sh -c "apk add -q --no-cache gcompat && {{.CHECK}}"'
+      - '{{.RUN}} alpine:3.22 /dist/dk-agent-linux-{{.ARCH}}/dk version'
+
+  clean:
+    desc: Remove build output
+    cmds:
+      - rm -rf bin dk dist

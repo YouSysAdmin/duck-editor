@@ -1,0 +1,16 @@
+language-servers:
+  gopls:
+    command: gopls
+    config:
+      hints:
+        assignVariableTypes: true
+        compositeLiteralFields: true
+        constantValues: true
+        functionTypeParameters: true
+        parameterNames: true
+        rangeVariableTypes: true
+      analyses:
+        # Splitting WriteString(a + b) into separate calls saves one small
+        # allocation, measured as noise in this code base.
+        writestring: false
+    except-code-actions: [gopls.doc.features]

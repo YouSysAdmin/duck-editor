@@ -1,0 +1,76 @@
+# Builds and publishes a release when a v* tag is pushed.
+# The macOS runner builds the native binary and cross compiles
+# the Linux ones with zig, the Linux runners load every embedded grammar in CentOS 7,
+# Debian and Alpine containers before anything is published.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  TASK_VERSION: 3.54.0
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: go-task/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+      - run: task release VERSION="${GITHUB_REF_NAME#v}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  smoke:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: go-task/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: |
+          mkdir -p dist/dk-linux-${{ matrix.arch }}
+          tar -xzf dist/dk-linux-${{ matrix.arch }}.tar.gz -C dist/dk-linux-${{ matrix.arch }}
+          mkdir -p dist/dk-agent-linux-${{ matrix.arch }}
+          tar -xzf dist/dk-agent-linux-${{ matrix.arch }}.tar.gz -C dist/dk-agent-linux-${{ matrix.arch }}
+      - run: task release:smoke ARCHES=${{ matrix.arch }}
+
+  publish:
+    needs: smoke
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes dist/*.tar.gz dist/SHA256SUMS install.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
