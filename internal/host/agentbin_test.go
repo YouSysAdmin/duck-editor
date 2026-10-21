@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/YouSysAdmin/duck-editor/internal/update"
 )
 
 // serveRelease serves release v1.0.0 with archives holding a dk that
@@ -47,9 +49,9 @@ func serveRelease(t *testing.T, names ...string) {
 	}))
 	t.Cleanup(srv.Close)
 
-	old := releaseBase
-	releaseBase = srv.URL
-	t.Cleanup(func() { releaseBase = old })
+	old := update.ReleaseBase
+	update.ReleaseBase = srv.URL
+	t.Cleanup(func() { update.ReleaseBase = old })
 }
 
 func readAgent(t *testing.T, path string) string {

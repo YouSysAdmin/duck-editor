@@ -98,6 +98,7 @@ kubectl get pod -o yaml | dk -l yaml -   # read stdin into a buffer
 dk .                         # browse a directory
 dk host:/etc/nginx           # edit on another machine, see docs/remote.md
 dk @worker                   # a workspace of ~/.config/duck/workspaces.yaml
+dk update                    # install the latest release
 dk -w                        # pick a workspace or an ssh host
 ```
 

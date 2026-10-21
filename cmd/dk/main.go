@@ -76,6 +76,7 @@ const usage = `usage:
   dk docker://ctr/path      edit in a running container, kubectl://pod/path for a pod
   dk export <what>          copy the built in theme, config, queries or a language entry to edit
   dk grammar <command>      fetch, build or check tree-sitter grammars
+  dk update [-check]        install the latest release, or only tell whether there is one
   dk version                print the version
 `
 
@@ -92,6 +93,8 @@ func run(args []string) error {
 			return nil
 		case "agent":
 			return agent(args[1:])
+		case "update":
+			return updateCommand(args[1:])
 		}
 	}
 
@@ -479,6 +482,11 @@ func session(h host.Host, workDir, wsDir string, start sessionStart) error {
 	}
 
 	ed.SetStateDir(config.CacheDir())
+	ed.Version = version
+	if cfg.Editor.UpdateCheck {
+		ed.CheckUpdate()
+	}
+
 	if line > 0 {
 		// After the stored position, a line given on the command line wins.
 		ed.GotoPosition(line, col)

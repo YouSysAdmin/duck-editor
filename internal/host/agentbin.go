@@ -1,29 +1,19 @@
 package host
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
+
+	"github.com/YouSysAdmin/duck-editor/internal/update"
 )
 
-// releaseBase is where release archives are downloaded from, a variable
-// so tests can serve them.
-var releaseBase = "https://github.com/YouSysAdmin/duck-editor/releases/download"
-
 // errNoArchive reports a release without the archive asked for.
-var errNoArchive = errors.New("not in SHA256SUMS")
+var errNoArchive = update.ErrNoArchive
 
 // AgentBinary finds the dk binary to install on a remote system. A
 // development build uses dk-<os>-<arch> in cacheDir, built by task agent.
@@ -102,93 +92,19 @@ func downloadRelease(version, name, dest string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	base := releaseBase + "/v" + strings.TrimPrefix(version, "v") + "/"
-	archive := name + ".tar.gz"
-	sums, err := fetch(ctx, base+"SHA256SUMS")
+	data, err := update.Download(ctx, version, name)
 	if err != nil {
 		return err
 	}
 
-	want := ""
-	for line := range strings.Lines(string(sums)) {
-		if fields := strings.Fields(line); len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == archive {
-			want = fields[0]
-		}
-	}
-
-	if want == "" {
-		return fmt.Errorf("%s: %w", archive, errNoArchive)
-	}
-
-	data, err := fetch(ctx, base+archive)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return err
 	}
 
-	if sum := sha256.Sum256(data); hex.EncodeToString(sum[:]) != want {
-		return fmt.Errorf("%s does not match its checksum", archive)
-	}
-
-	gz, err := gzip.NewReader(bytes.NewReader(data))
-	if err != nil {
+	tmp := dest + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o755); err != nil {
 		return err
 	}
 
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			return fmt.Errorf("%s holds no dk binary", archive)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if hdr.Name != "dk" && hdr.Name != "./dk" {
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-			return err
-		}
-
-		tmp := dest + ".tmp"
-		f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
-		if err != nil {
-			return err
-		}
-
-		if _, err := io.Copy(f, tr); err != nil {
-			_ = f.Close()
-
-			return err
-		}
-
-		if err := f.Close(); err != nil {
-			return err
-		}
-
-		return os.Rename(tmp, dest)
-	}
-}
-
-func fetch(ctx context.Context, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
-	}
-
-	return io.ReadAll(resp.Body)
+	return os.Rename(tmp, dest)
 }

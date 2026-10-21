@@ -377,6 +377,10 @@ editor:
   # or none.
   remote-env: interactive
 
+  # Ask GitHub once a day whether a newer release exists and say so in
+  # the statusline at start, :self-update installs it.
+  update-check: true
+
   # Diagnostics below their line, lowest severity shown: disable, hint,
   # info, warning or error.
   inline-diagnostics:

@@ -30,8 +30,23 @@ takes these variables:
 curl -fsSL https://raw.githubusercontent.com/YouSysAdmin/duck-editor/master/install.sh | DUCK_VERSION=0.1.0 sh
 ```
 
-Running the script again updates `dk`. `dk version` prints the version and
-the embedded grammar set.
+`dk version` prints the version and the embedded grammar set.
+
+## Updating
+
+```sh
+dk update          # install the latest release over this binary
+dk update -check   # only tell whether a newer release exists
+```
+
+`dk update` downloads the archive for the machine, checks it against
+`SHA256SUMS` and replaces the running binary in place, keeping its
+permissions. Inside the editor `:self-update` does the same and asks for
+a restart afterwards. Once a day, when `dk` starts, it asks GitHub for
+the latest release and says in the statusline when there is a newer one,
+`update-check: false` in `config.yaml` turns that off. A development
+build neither asks nor updates. Running the install script again works
+as well.
 
 ### Linux
 

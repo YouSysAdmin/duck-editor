@@ -167,4 +167,4 @@ password from `ANSIBLE_VAULT_PASSWORD_FILE` or ansible.cfg, it cannot ask for on
 `~/.config/duck/config.yaml`, `languages.yaml` and `themes/<name>.yaml`. `dk export config`, `dk export theme NAME`,
 `dk export language LANG` and `dk export queries LANG` copy the built in ones to start from. A project `.duck/` directory adds its own `config.yaml` and
 `languages.yaml` on top. Grammars are built in, `dk grammar check` tests them, `dk grammar fetch` and `build` compile extra ones
-into `~/.config/duck/runtime`. Editor log: `~/.cache/duck/duck.log`.
+into `~/.config/duck/runtime`. Editor log: `~/.cache/duck/duck.log`. `:self-update` installs the latest release, `dk update` does it outside.

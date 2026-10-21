@@ -118,6 +118,10 @@ type Editor struct {
 	// user's shell environment: interactive, login or none.
 	RemoteEnv string `yaml:"remote-env"`
 
+	// UpdateCheck asks GitHub once a day whether a newer release exists
+	// and says so in the statusline when dk starts.
+	UpdateCheck bool `yaml:"update-check"`
+
 	// Diagnostics display.
 	InlineDiagnostics    InlineDiagnostics `yaml:"inline-diagnostics"`
 	EndOfLineDiagnostics string            `yaml:"end-of-line-diagnostics"`
@@ -379,6 +383,7 @@ func Default() Config {
 			PersistSession:       true,
 			TailLines:            10000,
 			RemoteEnv:            "interactive",
+			UpdateCheck:          true,
 			SoftWrap:             SoftWrap{MaxWrap: 20, MaxIndentRetain: 40, WrapIndicator: "↪"},
 			LSP: LSP{
 				Enable: true, DisplayMessages: true, AutoSignatureHelp: true,

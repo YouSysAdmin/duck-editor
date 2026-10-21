@@ -67,6 +67,10 @@ type Editor struct {
 	Host    host.Host
 	workDir string
 
+	// Version is the version of the running dk, dev for a development
+	// build, which the update check and :self-update leave alone.
+	Version string
+
 	// shellCancel stops the running shell job, shellGen tells its result
 	// from those of cancelled ones.
 	shellCancel context.CancelFunc
