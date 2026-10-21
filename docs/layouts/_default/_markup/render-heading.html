@@ -1,0 +1,5 @@
+{{- /* The page title comes from the front matter, the H1 the markdown
+       keeps for GitHub is dropped here. */ -}}
+{{- if gt .Level 1 -}}
+<h{{ .Level }} id="{{ .Anchor | safeURL }}">{{ .Text }}</h{{ .Level }}>
+{{- end -}}

@@ -155,11 +155,27 @@ tasks:
         OUT=docs/images/picker.svg START=5
         STEPS='[[" f",2],["host",1.5],["\u000e",1.5]]'
         python3 hack/screenshot.py ./{{.BIN}} internal/host/remote.go
+      # The hero of the documentation site sits in the frame of the theme,
+      # 120x28 cells match its 1320x680 shape.
+      - >-
+        OUT=docs/images/hero.svg START=5 FRAME=0 ROWS=28
+        STEPS='[["\u0017v",1],[":o cmd/dk/remote.go\r",3],["/func parseRemote\r",1],["zt",1],["\u0017h",1],["/func \\(r \\*Remote\\) read\r",1],["zt",0.5],["jx",0.3],["19x",0.5],["s",0.3],["resp\r",1.5]]'
+        python3 hack/screenshot.py ./{{.BIN}} internal/host/remote.go
 
   docs:
     desc: Regenerate the generated parts of docs/ from the code
     cmds:
       - go run ./hack/docs
+
+  site:
+    desc: Build the documentation site into docs/public
+    cmds:
+      - hugo --minify -s docs
+
+  site:serve:
+    desc: Serve the documentation site with live reload
+    cmds:
+      - hugo server -s docs
 
   install:
     desc: Install a self contained dk with embedded grammars into ~/.local/bin

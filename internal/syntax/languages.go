@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -760,6 +761,12 @@ func (l *Languages) Names() []string {
 	}
 
 	return out
+}
+
+// Servers lists the names of every server of the language-servers table,
+// sorted, the ones no language starts included.
+func (l *Languages) Servers() []string {
+	return slices.Sorted(maps.Keys(l.servers))
 }
 
 // decodeCommand reads a { command, args } table.

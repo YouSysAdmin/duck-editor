@@ -58,3 +58,38 @@ func TestLanguageExamples(t *testing.T) {
 		}
 	}
 }
+
+// TestToolsDocumented keeps docs/tools.md covering every server, formatter
+// and checker of the catalogue: each name has to appear as a whole word.
+func TestToolsDocumented(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile(filepath.Join("..", "..", "docs", "tools.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doc := string(data)
+	mentions := func(name string) bool {
+		return regexp.MustCompile(`(^|[^A-Za-z0-9_./@-])` + regexp.QuoteMeta(name) + `([^A-Za-z0-9_./@-]|$)`).MatchString(doc)
+	}
+	langs, err := syntax.LoadLanguages()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, name := range langs.Servers() {
+		if !mentions(name) {
+			t.Errorf("docs/tools.md does not mention server %s", name)
+		}
+	}
+
+	for _, name := range langs.Names() {
+		lang, _ := langs.Get(name)
+		for _, cmd := range []string{lang.Formatter.Command, lang.Check.Command} {
+			if cmd != "" && !mentions(cmd) {
+				t.Errorf("docs/tools.md does not mention %s of %s", cmd, name)
+			}
+		}
+	}
+}

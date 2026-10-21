@@ -1,3 +1,9 @@
+---
+title: Languages
+description: languages.yaml, language servers, the supported languages
+weight: 20
+---
+
 # Languages
 
 Every language Duck knows comes from the catalogue built into the binary:
@@ -9,7 +15,7 @@ catalogue in that order.
 ## Language servers
 
 A language starts every server it lists that is installed, the editor
-does not install servers. Features are combined: diagnostics of all
+does not install servers, [Tools](tools.md) tells how to. Features are combined: diagnostics of all
 servers are shown together, other requests go to the first server that
 offers them. `:lsp-restart` restarts the servers of the buffer, the log
 (`:log-open`) says why one did not start, `DUCK_LSP_LOG=file` records every
@@ -176,7 +182,8 @@ dk grammar check gleam
 This needs git and a C compiler. The grammar lands in
 `~/.config/duck/runtime/grammars`, highlighting and other queries go into
 `~/.config/duck/runtime/queries/<language>/` (`highlights.scm`,
-`indents.scm`, `textobjects.scm`, `injections.scm`, `locals.scm`).
+`indents.scm`, `textobjects.scm`, `injections.scm`, `rainbows.scm`,
+`tags.scm`), see [Grammars and queries](queries.md).
 A grammar shared by several languages is defined once in a top level
 `grammars` table and named in `grammar: { name: ... }`.
 

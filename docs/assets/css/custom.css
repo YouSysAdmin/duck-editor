@@ -1,0 +1,5 @@
+/* Key combinations such as `space f` stay on one line in tables. */
+td code,
+th code {
+  white-space: nowrap;
+}

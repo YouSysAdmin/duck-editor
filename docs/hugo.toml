@@ -1,0 +1,146 @@
+# The documentation site. The pages are the markdown files of this
+# directory, mounted into sections below, so they stay readable on GitHub
+# and the site shows the same text. Run from the repository root:
+# task site:serve.
+baseURL = "https://yousysadmin.github.io/duck-editor/"
+title = "Duck"
+theme = "hugo-docs-theme"
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term"]
+
+[module]
+[[module.mounts]]
+source = "_index.md"
+target = "content/_index.md"
+[[module.mounts]]
+source = "guide"
+target = "content/guide"
+[[module.mounts]]
+source = "configuration"
+target = "content/configuration"
+[[module.mounts]]
+source = "install.md"
+target = "content/guide/install.md"
+[[module.mounts]]
+source = "editing.md"
+target = "content/guide/editing.md"
+[[module.mounts]]
+source = "pickers.md"
+target = "content/guide/pickers.md"
+[[module.mounts]]
+source = "ops.md"
+target = "content/guide/ops.md"
+[[module.mounts]]
+source = "files.md"
+target = "content/guide/files.md"
+[[module.mounts]]
+source = "troubleshooting.md"
+target = "content/guide/troubleshooting.md"
+[[module.mounts]]
+source = "keys.md"
+target = "content/guide/keys.md"
+[[module.mounts]]
+source = "commands.md"
+target = "content/guide/commands.md"
+[[module.mounts]]
+source = "config.md"
+target = "content/configuration/config.md"
+[[module.mounts]]
+source = "languages.md"
+target = "content/configuration/languages.md"
+[[module.mounts]]
+source = "tools.md"
+target = "content/configuration/tools.md"
+[[module.mounts]]
+source = "queries.md"
+target = "content/configuration/queries.md"
+[[module.mounts]]
+source = "themes.md"
+target = "content/configuration/themes.md"
+[[module.mounts]]
+source = "remote.md"
+target = "content/remote/_index.md"
+[[module.mounts]]
+source = "images"
+target = "static/images"
+[[module.mounts]]
+source = "layouts"
+target = "layouts"
+
+[params]
+brand = "Duck"
+author = "YouSysAdmin"
+description = "Terminal code editor with selection first modal editing"
+repoURL = "https://github.com/YouSysAdmin/duck-editor"
+edit_base = "https://github.com/YouSysAdmin/duck-editor/edit/master/docs/"
+cta_url = "https://github.com/YouSysAdmin/duck-editor"
+cta_label = "GitHub"
+cta_icon = "github"
+externalLinksNewTab = true
+sidebarCollapsible = true
+sidebarCollapsed = false
+
+landing = true
+tagline = "Terminal Editor,"
+tagline_sub = "for DevOps."
+lead = "A terminal code editor in Go. Selection first modal editing, tree-sitter in the binary, language servers, and remote editing over ssh, docker and kubectl."
+get_started_url = "guide/install/"
+features_title = "What it does"
+trust_badges = ["# single binary", "# tree-sitter", "# language servers", "# remote editing"]
+hero_terminal_title = "dk internal/host/remote.go"
+hero_terminal_image = "images/hero.svg"
+hero_terminal_image_alt = "Duck with two splits and eight selections editing at once"
+
+[[params.features]]
+title = "Selections first"
+description = "Motions select, d c y and friends act on the selections. Split, filter, align and rotate many selections with a few keys."
+[[params.features]]
+title = "Tree-sitter everywhere"
+description = "Highlighting, indentation, text objects and syntax aware selection for well over a hundred languages. The grammars are built into the binary."
+[[params.features]]
+title = "Language servers"
+description = "Diagnostics, completion, hover, go to definition, rename, code actions, formatting and inlay hints. Several servers per language, features combined."
+[[params.features]]
+title = "Pickers"
+description = "Files, global search, buffers, symbols, diagnostics, changed files and a file explorer, all with fuzzy filtering and a preview."
+[[params.features]]
+title = "Remote editing"
+description = "dk host:path, ssh://, docker:// and kubectl:// open files where they are. The editor runs here, the tools run there."
+[[params.features]]
+title = "DevOps oriented"
+description = "The languages and tools of infrastructure work come first: YAML, Terraform, Helm, Docker, systemd, Ansible, Go and the shells."
+
+[[menu.main]]
+name = "Guide"
+url = "/guide/"
+weight = 10
+[menu.main.params]
+icon = "book-open"
+[[menu.main]]
+name = "Configuration"
+url = "/configuration/"
+weight = 20
+[menu.main.params]
+icon = "sliders"
+[[menu.main]]
+name = "Remote"
+url = "/remote/"
+weight = 30
+[menu.main.params]
+icon = "server"
+
+# Hugo does not take these two from a theme. The JSON output is the
+# search index.
+[outputs]
+home = ["HTML", "JSON"]
+
+[markup]
+[markup.tableOfContents]
+startLevel = 2
+endLevel = 3
+[markup.highlight]
+style = "github-dark"
+noClasses = true
+tabWidth = 2
+[markup.goldmark.renderer]
+unsafe = true

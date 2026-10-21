@@ -1,3 +1,9 @@
+---
+title: Configuration
+description: config.yaml, key bindings, project settings, every option
+weight: 10
+---
+
 # Configuration
 
 Duck reads `~/.config/duck/config.yaml` (`$XDG_CONFIG_HOME/duck` when set).

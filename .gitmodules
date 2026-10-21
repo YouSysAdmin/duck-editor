@@ -1,0 +1,3 @@
+[submodule "docs/themes/hugo-docs-theme"]
+	path = docs/themes/hugo-docs-theme
+	url = https://github.com/YouSysAdmin/hugo-docs-theme.git

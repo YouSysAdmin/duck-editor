@@ -1,3 +1,9 @@
+---
+title: Commands
+description: "The : command line"
+weight: 50
+---
+
 # Commands
 
 `:` opens the command line. `tab` completes command names, paths, options,

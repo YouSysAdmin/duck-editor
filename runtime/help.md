@@ -2,6 +2,7 @@
 
 Modal editor with selection first editing: select something, then act on it. `:bc` closes this buffer, `:w <path>` saves a copy.
 Keys in a pending menu (`space`, `g`, `z`, `m`, `[`, `]`, `C-w`) are listed in a box at the bottom right, so short reminders are enough here.
+The full documentation is at https://yousysadmin.github.io/duck-editor/
 
 ## Modes
 
@@ -40,7 +41,7 @@ Keys in a pending menu (`space`, `g`, `z`, `m`, `[`, `]`, `C-w`) are listed in a
 | ----------- | ------------------------------------------------- | ----------- | ------------------------------------------------ |
 | `d` `c`     | delete, change (both yank), `A-d` `A-c` don't     | `y` `p` `P` | yank, paste after / before                       |
 | `r` + char  | replace every char of the selection               | `R`         | replace with the yanked text                     |
-| `u` `U`     | undo, redo, `A-u` `A-U` walk history by time      | `.`         | repeat the last insert                           |
+| `u` `U`     | undo, redo, `A-u` `A-U` walk history by time      | `A-:`       | make every selection face forward                |
 | `>` `<`     | indent, unindent                                  | `J` `A-J`   | join lines, join keeping a space                 |
 | `~` `` ` `` | switch case, lowercase, `` A-` `` uppercase       | `C-a` `C-x` | increment / decrement numbers                    |
 | `C-c`       | toggle comments, `space c` / `space C` force kind | `=`         | format the selection or the file                 |

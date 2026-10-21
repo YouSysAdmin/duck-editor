@@ -1,3 +1,9 @@
+---
+title: Installation
+description: Install script, manual download, building from source, updating
+weight: 10
+---
+
 # Installation
 
 Duck runs on macOS and Linux. The release binaries are self contained: the
@@ -97,3 +103,6 @@ rm -r ~/.config/duck ~/.cache/duck
 ```
 
 Remote machines you edited on keep the agent in `~/.cache/duck/agent`.
+
+Language servers, formatters and checkers are installed separately, see
+[Tools](tools.md).

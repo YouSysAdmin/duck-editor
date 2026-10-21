@@ -53,15 +53,24 @@ curl -fsSL https://raw.githubusercontent.com/YouSysAdmin/duck-editor/master/inst
 
 ## Documentation
 
-|                                  |                                                             |
-| -------------------------------- | ----------------------------------------------------------- |
-| [Installation](docs/install.md)  | install script, building from source, updating              |
-| [Key bindings](docs/keys.md)     | every default key, by mode                                  |
-| [Commands](docs/commands.md)     | the `:` command line                                        |
-| [Configuration](docs/config.md)  | `config.yaml`, key bindings, project settings, every option |
-| [Languages](docs/languages.md)   | `languages.yaml`, language servers, the supported languages |
-| [Themes](docs/themes.md)         | theme files and scopes                                      |
-| [Remote editing](docs/remote.md) | ssh, containers, pods                                       |
+The same pages as a site: https://yousysadmin.github.io/duck-editor/
+
+|                                            |                                                             |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| [Installation](docs/install.md)            | install script, building from source, updating              |
+| [Editing](docs/editing.md)                 | selections, text objects, registers, macros, jumps, undo    |
+| [Pickers and search](docs/pickers.md)      | pickers, filter syntax, previews, global search, prompts    |
+| [Key bindings](docs/keys.md)               | every default key, by mode                                  |
+| [Commands](docs/commands.md)               | the `:` command line                                        |
+| [Ops tools](docs/ops.md)                   | shell, builds, checks, logs, Kubernetes, secrets, sudo      |
+| [Files and sessions](docs/files.md)        | buffers, windows, saving, editorconfig, sessions, recovery  |
+| [Troubleshooting](docs/troubleshooting.md) | servers, grammars, keys, clipboard, terminal                |
+| [Configuration](docs/config.md)            | `config.yaml`, key bindings, project settings, every option |
+| [Languages](docs/languages.md)             | `languages.yaml`, language servers, the supported languages |
+| [Tools](docs/tools.md)                     | installing language servers, formatters and checkers        |
+| [Grammars and queries](docs/queries.md)    | the runtime directory, building grammars, query captures    |
+| [Themes](docs/themes.md)                   | theme files and scopes                                      |
+| [Remote editing](docs/remote.md)           | ssh, containers, pods                                       |
 
 Inside the editor `:help` opens a short overview, `space ?` lists every
 command and pending keys show their menu.

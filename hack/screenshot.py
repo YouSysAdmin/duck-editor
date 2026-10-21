@@ -4,7 +4,9 @@
 #   OUT=docs/images/x.svg STEPS='[["keys", seconds], ...]' python3 hack/screenshot.py bin/dk file
 #
 # Needs the pyte package. COLS, ROWS and START (seconds before the first
-# key) are optional. task screenshots runs it with a clean config.
+# key) are optional, FRAME=0 leaves out the window chrome for a screen that
+# sits in a frame of its own, such as the hero of the documentation site.
+# task screenshots runs it with a clean config.
 import fcntl
 import html
 import json
@@ -115,16 +117,20 @@ def color(c, default):
 
 
 CW, CH, FS = 8.4, 18.0, 14
-PAD, TOP = 16, 36
+FRAME = os.environ.get("FRAME", "1") != "0"
+PAD, TOP = 16, 36 if FRAME else 16
 W = PAD * 2 + COLS * CW
 H = TOP + PAD + ROWS * CH
 parts = [
     f'<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="{W:.0f}" height="{H:.0f}" viewBox="0 0 {W:.0f} {H:.0f}">',
     '<style>text{font-family:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;font-size:%dpx;white-space:pre}</style>'
     % FS,
-    f'<rect width="{W:.0f}" height="{H:.0f}" rx="10" fill="#{BG}"/>',
-    '<circle cx="20" cy="18" r="6" fill="#f38ba8"/><circle cx="40" cy="18" r="6" fill="#f9e2af"/><circle cx="60" cy="18" r="6" fill="#a6e3a1"/>',
+    f'<rect width="{W:.0f}" height="{H:.0f}" rx="{10 if FRAME else 0}" fill="#{BG}"/>',
 ]
+if FRAME:
+    parts.append(
+        '<circle cx="20" cy="18" r="6" fill="#f38ba8"/><circle cx="40" cy="18" r="6" fill="#f9e2af"/><circle cx="60" cy="18" r="6" fill="#a6e3a1"/>'
+    )
 
 for y in range(ROWS):
     row = screen.buffer[y]

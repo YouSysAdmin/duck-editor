@@ -1,3 +1,10 @@
+---
+title: Remote editing
+description: ssh, containers, pods
+weight: 30
+icon: server
+---
+
 # Remote editing
 
 Duck edits files on another machine, in a container or in a pod while the

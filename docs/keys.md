@@ -1,3 +1,9 @@
+---
+title: Key bindings
+description: Every default key, by mode
+weight: 40
+---
+
 # Key bindings
 
 Duck edits selection first: a motion selects text and an action works on

@@ -1,3 +1,9 @@
+---
+title: Themes
+description: Theme files and scopes
+weight: 50
+---
+
 # Themes
 
 Duck has one built in theme. Your own go into
@@ -78,7 +84,7 @@ turns them on.
 Syntax scopes come from the tree-sitter queries: `keyword`, `function`,
 `type`, `string`, `comment`, `variable.parameter`, `markup.heading.1` and so
 on. The built in theme is a complete example:
-[`internal/theme/builtin/default.yaml`](../internal/theme/builtin/default.yaml).
+[`runtime/themes/default.yaml`](https://github.com/YouSysAdmin/duck-editor/blob/master/runtime/themes/default.yaml).
 
 The editor itself uses these:
 
