@@ -151,7 +151,7 @@ starts with a picker that lists the hosts of `~/.ssh/config` too, `:ws [name]` o
 `:dh host [path]` compares the buffer with the same file on a workspace or ssh host, the diff opens in a split.
 
 `:kedit deploy/api [-n ns]` edits a Kubernetes object, a save shows `kubectl diff` and replaces the object after a `y`. A secret opens
-with its data decoded as `stringData`. `:b64e` and `:b64d` encode and decode the selections as base64.
+with its data decoded as `stringData`. `dk k8s://deploy/api?ns=name` starts with one. `:b64e` and `:b64d` encode and decode the selections as base64.
 
 ## Checks and secrets
 

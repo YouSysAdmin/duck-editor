@@ -17,6 +17,7 @@ dk -- grammar                  # a file named like a subcommand
 dk @worker                     # a workspace, or a host of ~/.ssh/config
 dk -w                          # start with the workspace picker
 dk host:/etc/nginx             # another machine, see Remote editing
+dk k8s://secrets/app?ns=prod  # a Kubernetes object, see Ops tools
 ```
 
 Inside the editor `:o path` opens a file, `tab` completes the path,

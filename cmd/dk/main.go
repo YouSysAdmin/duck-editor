@@ -74,6 +74,7 @@ const usage = `usage:
   dk -w                     start with the workspace picker
   dk host:path              edit on another machine over ssh, also ssh://[user@]host[:port]/path
   dk docker://ctr/path      edit in a running container, kubectl://pod/path for a pod
+  dk k8s://deploy/api      edit a Kubernetes object as :kedit does, ?ns=name&context=ctx
   dk export <what>          copy the built in theme, config, queries or a language entry to edit
   dk grammar <command>      fetch, build or check tree-sitter grammars
   dk update [-check]        install the latest release, or only tell whether there is one
@@ -137,6 +138,19 @@ func firstSession(args []string, lang string, pick bool) error {
 
 	files := make([]fileArg, 0, len(args))
 	for _, arg := range args {
+		if strings.HasPrefix(arg, "k8s://") {
+			if len(args) > 1 {
+				return usageError(usage, "a Kubernetes object opens on its own")
+			}
+
+			t, err := parseKube(arg)
+			if err != nil {
+				return usageError(usage, "%v", err)
+			}
+
+			return editKube(t, lang)
+		}
+
 		file, target := classifyArg(arg)
 		if target != nil {
 			if len(args) > 1 {
@@ -436,6 +450,9 @@ type sessionStart struct {
 
 	// errs are the files that could not be opened, shown once running.
 	errs []string
+
+	// kube is a Kubernetes object to open instead of a file.
+	kube *kubeTarget
 }
 
 // openedDoc is a document with the position to go to.
@@ -527,6 +544,8 @@ func session(h host.Host, workDir, wsDir string, start sessionStart) error {
 		ed.Run("workspace_picker")
 	case explore:
 		ed.Run("file_explorer_in_current_directory")
+	case start.kube != nil:
+		ed.OpenKube(start.kube.resource, start.kube.opts)
 	}
 
 	ed.WatchFiles()

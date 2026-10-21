@@ -126,7 +126,9 @@ with the lines that come from then on, the lines in between are missing.
 
 `:kedit deploy/api -n prod` loads an object with `kubectl get -o yaml`
 into a YAML buffer, kubectl options such as `-n`, `--context` and
-`--kubeconfig` pass through. `:w` sends the buffer to `kubectl diff`,
+`--kubeconfig` pass through. From the shell `dk k8s://deploy/api?ns=prod`
+starts the editor on the object right away, `namespace` is the long form
+of `ns`, `context` and `kubeconfig` are the other query keys. `:w` sends the buffer to `kubectl diff`,
 shows the diff in a popup and asks `replace deploy/api in the cluster
 with these changes? y/n`. After a `y` the object is replaced with
 `kubectl replace`, then loaded again so the buffer carries the new

@@ -33,7 +33,7 @@ func init() {
 				return errArgument("kube-edit", "a resource such as deploy/api")
 			}
 
-			cx.Editor.openKube(args[0], args[1:])
+			cx.Editor.OpenKube(args[0], args[1:])
 
 			return nil
 		},
@@ -47,8 +47,8 @@ func kubectl(ctx context.Context, h host.Host, stdin string, args ...string) (st
 	return string(stdout), strings.TrimSpace(string(stderr)), err
 }
 
-// openKube loads an object into a new buffer.
-func (e *Editor) openKube(resource string, opts []string) {
+// OpenKube loads an object into a new buffer, dk k8s:// starts with one.
+func (e *Editor) OpenKube(resource string, opts []string) {
 	h := e.Host
 	e.SetStatus("loading %s", resource)
 	e.queueJob(context.Background(), func(ctx context.Context, emit func(JobResult)) {
