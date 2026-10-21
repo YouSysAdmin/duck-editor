@@ -1021,6 +1021,29 @@ func TestMouseWheelAndWordCompletion(t *testing.T) {
 	e.feed(t, "<esc>")
 }
 
+func TestEmptyCompletionReleasesArrows(t *testing.T) {
+	t.Parallel()
+
+	e := newTestEditor(t, "alphabetical alphabravo\none\n#[\n|]#")
+	e.feed(t, "ialphabe")
+	if e.Completion == nil {
+		t.Fatal("word completion menu expected")
+	}
+
+	// Typing past every candidate closes the menu, arrows move again.
+	e.feed(t, "z")
+	if e.Completion != nil {
+		t.Fatalf("empty menu stays open: %+v", e.Completion.Items())
+	}
+
+	e.feed(t, "<up>")
+	if line := e.Doc().Text().CharToLine(e.Doc().Selection().Primary().Cursor(e.Doc().Text())); line != 1 {
+		t.Fatalf("up moved to line %d", line)
+	}
+
+	e.feed(t, "<esc>")
+}
+
 func TestPathCompletion(t *testing.T) {
 	t.Parallel()
 

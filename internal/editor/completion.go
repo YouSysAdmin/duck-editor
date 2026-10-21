@@ -121,6 +121,12 @@ func sortKey(item lsp.CompletionItem) string {
 // handleKey processes menu keys and reports whether it consumed the key.
 func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 	e := cx.Editor
+	if len(m.filtered) == 0 {
+		e.Completion = nil
+
+		return false
+	}
+
 	switch {
 	case key == keymap.Ctrl('n') || key == (keymap.Key{Code: keymap.KeyTab}) || key == (keymap.Key{Code: keymap.KeyDown}):
 		if len(m.filtered) > 0 {
@@ -397,6 +403,11 @@ func (e *Editor) afterInsertKey(key keymap.Key) {
 			e.Completion = nil
 		} else {
 			m.filter(text.Slice(m.start, cursor))
+			if len(m.filtered) == 0 {
+				// An empty menu is not drawn and must not keep the keys.
+				e.Completion = nil
+			}
+
 			if m.incomplete {
 				e.requestCompletion(false)
 			}
