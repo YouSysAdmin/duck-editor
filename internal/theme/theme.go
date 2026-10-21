@@ -1,7 +1,6 @@
 package theme
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,13 +9,19 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
-// defaultThemeYAML is the built in theme. It answers to both names
-// themes inherit from.
-//
-//go:embed builtin/default.yaml
-var defaultThemeYAML string
+// defaultThemeYAML is the built in theme, runtime/themes/default.yaml.
+var defaultThemeYAML = func() string {
+	data, err := runtime.FS.ReadFile("themes/default.yaml")
+	if err != nil {
+		panic("embedded runtime/themes/default.yaml missing: " + err.Error())
+	}
+
+	return string(data)
+}()
 
 // DefaultYAML returns the source of the built in theme, comments
 // included, what dk export theme writes.

@@ -819,6 +819,7 @@ func (e *Editor) completeTyped(input string) []PromptCompletion {
 			value = unescapeArg(value)
 		}
 	}
+
 	switch tc.names[0] {
 	case "theme":
 		if e.ThemeNames != nil {

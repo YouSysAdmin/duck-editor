@@ -382,7 +382,7 @@ func TestDetectionIndependentOfOrder(t *testing.T) {
 func TestCatalogueServersShared(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("../../catalog/languages.yaml")
+	data, err := os.ReadFile("../../runtime/languages.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

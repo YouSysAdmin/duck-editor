@@ -324,6 +324,7 @@ func (c *Client) initialize() {
 			if res.ServerInfo != nil {
 				c.Version = strings.TrimSpace(res.ServerInfo.Name + " " + shortVersion(res.ServerInfo.Version))
 			}
+
 			c.initialized = c.failed == nil
 			pending := c.pending
 			c.pending = nil

@@ -42,7 +42,7 @@ func TestBuiltinThemeDefinesUIScopes(t *testing.T) {
 func TestBuiltinThemeStylesCaptures(t *testing.T) {
 	t.Parallel()
 
-	files, err := filepath.Glob("../../catalog/queries/*/highlights.scm")
+	files, err := filepath.Glob("../../runtime/queries/*/highlights.scm")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no queries: %v", err)
 	}

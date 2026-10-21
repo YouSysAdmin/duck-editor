@@ -10,7 +10,7 @@ vars:
   RUNTIME: runtime
   CONFIG_DIR: '{{.XDG_CONFIG_HOME | default (printf "%s/.config" .HOME)}}/duck'
   INSTALL_BIN: '{{.HOME}}/.local/bin'
-  GO_DIRS: cmd internal hack catalog/embed.go runtime/embed.go
+  GO_DIRS: cmd internal hack runtime/embed.go
   PACK_DIR: internal/grammarpack/lib
   VERSION: '{{.VERSION | default "dev"}}'
   # zig is the C cross compiler for the Linux release builds. It is
@@ -43,7 +43,7 @@ tasks:
 
   build:
     desc: Build bin/dk with a runtime link next to it
-    sources: ["**/*.go", go.mod, go.sum, catalog/languages.yaml, "catalog/queries/**/*.scm", runtime/help.md, "{{.PACK_DIR}}/*"]
+    sources: ["**/*.go", go.mod, go.sum, runtime/languages.yaml, "runtime/queries/**/*.scm", runtime/help.md, runtime/themes/default.yaml, internal/config/default.yaml, "{{.PACK_DIR}}/*"]
     generates: ["{{.BIN}}"]
     cmds:
       - go build -o {{.BIN}} ./cmd/dk
@@ -96,7 +96,7 @@ tasks:
       - rm -rf {{.RUNTIME}}/grammars/*.so {{.RUNTIME}}/grammars/*.dylib {{.RUNTIME}}/grammars/sources
 
   catalog:
-    desc: Sort catalog/languages.yaml, build its grammars and drop the ones it no longer names
+    desc: Sort runtime/languages.yaml, build its grammars and drop the ones it no longer names
     cmds:
       - go run ./hack/catalog
       - task: build

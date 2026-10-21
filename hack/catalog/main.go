@@ -1,4 +1,4 @@
-// Command catalog keeps catalog/languages.yaml in shape: sections in
+// Command catalog keeps runtime/languages.yaml in shape: sections in
 // a fixed order, entries sorted by name and every language server in the
 // language-servers table with languages referring to it by name. With
 // -prune DIR it also removes compiled grammars and sources in DIR that
@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	path := flag.String("catalog", "catalog/languages.yaml", "catalogue to rewrite")
+	path := flag.String("catalog", "runtime/languages.yaml", "catalogue to rewrite")
 	prune := flag.String("prune", "", "grammar directory to remove unused libraries and sources from")
 	flag.Parse()
 

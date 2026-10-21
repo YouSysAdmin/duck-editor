@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/YouSysAdmin/duck-editor/catalog"
+	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
 var inheritsRegex = regexp.MustCompile(`(?m)^;+\s*inherits\s*:?\s*([a-z_,() -]+)\s*$`)
@@ -37,7 +37,7 @@ func readQuery(runtimeDirs []string, lang, file string, visited map[string]bool)
 	}
 
 	if text == "" {
-		if data, err := catalog.FS.ReadFile(path.Join("queries", lang, file)); err == nil {
+		if data, err := runtime.FS.ReadFile(path.Join("queries", lang, file)); err == nil {
 			text = string(data)
 		}
 	}

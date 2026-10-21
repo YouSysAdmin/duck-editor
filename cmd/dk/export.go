@@ -13,9 +13,9 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/YouSysAdmin/duck-editor/catalog"
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
+	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
 const exportUsage = `usage:
@@ -113,7 +113,7 @@ func exportQueries(langs []string, force bool) error {
 	for _, lang := range langs {
 		// LANG/FILE exports one file, so only that one overrides.
 		if dir, file, ok := strings.Cut(lang, "/"); ok {
-			data, err := catalog.FS.ReadFile(path.Join("queries", dir, file))
+			data, err := runtime.FS.ReadFile(path.Join("queries", dir, file))
 			if err != nil {
 				return fmt.Errorf("no built in query %s", lang)
 			}
@@ -125,7 +125,7 @@ func exportQueries(langs []string, force bool) error {
 			continue
 		}
 
-		files, err := fs.ReadDir(catalog.FS, path.Join("queries", lang))
+		files, err := fs.ReadDir(runtime.FS, path.Join("queries", lang))
 		if errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("no built in queries for %q", lang)
 		}
@@ -135,7 +135,7 @@ func exportQueries(langs []string, force bool) error {
 		}
 
 		for _, f := range files {
-			data, err := catalog.FS.ReadFile(path.Join("queries", lang, f.Name()))
+			data, err := runtime.FS.ReadFile(path.Join("queries", lang, f.Name()))
 			if err != nil {
 				return err
 			}
@@ -153,7 +153,7 @@ func exportQueries(langs []string, force bool) error {
 // servers it starts, ready to go into languages.yaml. Entries there merge
 // with the catalogue field by field, so the copy only needs what changes.
 func exportLanguage(name string) error {
-	data, err := catalog.FS.ReadFile("languages.yaml")
+	data, err := runtime.FS.ReadFile("languages.yaml")
 	if err != nil {
 		return err
 	}

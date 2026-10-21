@@ -305,6 +305,7 @@ func TestPickerQAFixes(t *testing.T) {
 	removed := 0
 	b := NewPicker("Buffers", []PickerItem{{Label: "x", DocID: 1}, {Label: "y", DocID: 2}, {Label: "z", DocID: 3}}, nil)
 	b.remove = func(*Context, PickerItem) bool { removed++; return true }
+
 	e.openPicker(b)
 	e.feed(t, "<end><C-x><C-x><C-x><C-x>")
 	if removed != 3 || len(b.Matches()) != 0 {

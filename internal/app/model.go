@@ -347,6 +347,7 @@ func (m Model) View() tea.View {
 	} else {
 		root.AddLayers(lipgloss.NewLayer(ui.RenderCommandLine(cl, m.width, m.theme)).Y(m.height - 1).Z(1))
 	}
+
 	if ed.Prompt != nil && ed.Picker == nil {
 		root.AddLayers(m.renderPromptCompletions(ed.Prompt)...)
 	}

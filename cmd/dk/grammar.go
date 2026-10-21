@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -11,10 +12,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/YouSysAdmin/duck-editor/catalog"
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/grammar"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
+	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
 const grammarUsage = `usage:
@@ -162,14 +163,22 @@ func checkGrammars(names []string) error {
 	return nil
 }
 
-// reportOverrides lists local query files that replace built in ones.
-// They stay as they are when dk is updated, worth a look after one.
+// reportOverrides lists local query files that replace built in ones
+// with other text. They stay as they are when dk is updated, worth a look
+// after one. A copy equal to the embedded file, such as the project
+// runtime linked next to a development build, is not reported.
 func reportOverrides() {
 	for _, dir := range config.RuntimeDirs() {
 		files, _ := filepath.Glob(filepath.Join(dir, "queries", "*", "*.scm"))
 		for _, f := range files {
 			rel := path.Join("queries", filepath.Base(filepath.Dir(f)), filepath.Base(f))
-			if _, err := fs.Stat(catalog.FS, rel); err == nil {
+			builtin, err := fs.ReadFile(runtime.FS, rel)
+			if err != nil {
+				continue
+			}
+
+			local, err := os.ReadFile(f)
+			if err != nil || !bytes.Equal(local, builtin) {
 				fmt.Printf("overrides the built in %s: %s\n", rel, f)
 			}
 		}

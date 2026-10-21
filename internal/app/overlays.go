@@ -191,8 +191,10 @@ func (m Model) renderCompletion(menu *editor.CompletionMenu, cursor *tea.Cursor)
 	startCol := cursor.X - (primary - menu.Start())
 	layer, side := m.placeOverlay(overlayBox{
 		width: min(menuWidth, m.width), height: height, x: startCol, cursorY: cursor.Y, z: 6, kind: "menu",
-		sides:  []overlaySide{sideBelow, sideAbove},
-		render: func(w, h int) string { return ui.RenderMenu(rows, menu.Selected(), menuOffset(menu.Selected(), h), w, h, m.theme) },
+		sides: []overlaySide{sideBelow, sideAbove},
+		render: func(w, h int) string {
+			return ui.RenderMenu(rows, menu.Selected(), menuOffset(menu.Selected(), h), w, h, m.theme)
+		},
 	})
 
 	return layer, side
@@ -222,8 +224,10 @@ func (m Model) renderMenu(menu *editor.Menu, cursor *tea.Cursor) *lipgloss.Layer
 
 	layer, _ := m.placeOverlay(overlayBox{
 		width: width, height: height, x: cursor.X, cursorY: cursor.Y, z: 6, kind: "menu",
-		sides:  []overlaySide{sideBelow, sideAbove},
-		render: func(w, h int) string { return ui.RenderMenu(rows, menu.Selected(), menuOffset(menu.Selected(), h), w, h, m.theme) },
+		sides: []overlaySide{sideBelow, sideAbove},
+		render: func(w, h int) string {
+			return ui.RenderMenu(rows, menu.Selected(), menuOffset(menu.Selected(), h), w, h, m.theme)
+		},
 	})
 
 	return layer

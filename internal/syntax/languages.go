@@ -13,15 +13,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/YouSysAdmin/duck-editor/catalog"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
+	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
 // defaultLanguagesYAML is the catalogue embedded into the binary.
 var defaultLanguagesYAML = func() string {
-	data, err := catalog.FS.ReadFile("languages.yaml")
+	data, err := runtime.FS.ReadFile("languages.yaml")
 	if err != nil {
-		panic("embedded catalog/languages.yaml missing: " + err.Error())
+		panic("embedded runtime/languages.yaml missing: " + err.Error())
 	}
 
 	return string(data)
@@ -190,7 +190,7 @@ func LoadLanguages(paths ...string) (*Languages, error) {
 func LoadLanguageFiles(files ...host.File) (*Languages, error) {
 	langs, err := parseLanguages(defaultLanguagesYAML)
 	if err != nil {
-		return nil, fmt.Errorf("catalog/languages.yaml: %w", err)
+		return nil, fmt.Errorf("runtime/languages.yaml: %w", err)
 	}
 
 	for _, f := range files {
