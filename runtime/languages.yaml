@@ -69,6 +69,12 @@ language-servers:
     command: biome
     args: [lsp-proxy]
 
+  # Starlark build files of Buck2
+  # https://github.com/facebook/buck2
+  buck2:
+    command: buck2
+    args: [lsp]
+
   # Protocol Buffers through the buf CLI
   # https://github.com/bufbuild/buf
   buf:
@@ -515,6 +521,11 @@ language-servers:
   # https://github.com/swiftlang/sourcekit-lsp
   sourcekit-lsp:
     command: sourcekit-lsp
+
+  # Starlark, Bazel and Buck build files
+  # https://github.com/withered-magic/starpls
+  starpls:
+    command: starpls
 
   # HTML validator and formatter
   # https://github.com/kristoff-it/superhtml
@@ -2772,6 +2783,30 @@ languages:
     grammar:
       git: https://github.com/metio/tree-sitter-ssh-client-config
       rev: 4abd07dc3884124d60e37e1f2dd98a1676859ae0
+
+  # Starlark, the build language of Bazel and Buck
+  starlark:
+    scope: source.starlark
+    injection-regex: "(starlark|bzl|bazel|buck)"
+    file-types:
+      - bzl
+      - bazel
+      - star
+      - bxl
+      - { glob: BUILD }
+      - { glob: "BUILD.*" }
+      - { glob: BUCK }
+      - { glob: WORKSPACE }
+      - { glob: WORKSPACE.bzlmod }
+      - { glob: PACKAGE }
+      - { glob: Tiltfile }
+    roots: [MODULE.bazel, WORKSPACE, WORKSPACE.bazel, .buckconfig]
+    comment-token: "#"
+    indent:
+      tab-width: 4
+      unit: "    "
+    language-servers: [starpls, buck2]
+    grammar: python
 
   # strace output
   strace:

@@ -639,6 +639,32 @@ rustup component add rust-analyzer   # rust-analyzer
 
 The check runs `ssh -G`, which comes with OpenSSH.
 
+### Starlark
+
+`starpls` serves Bazel and Buck files, `buck2` only Buck2 projects.
+`starpls` runs `bazel info` when it starts, so it needs `bazel` on
+`PATH`, usually bazelisk. Without it, or outside a Bazel workspace, it
+reports "Failed to fetch Bazel configuration" and goes on without label
+completion and external repositories. A Bazel installed elsewhere is
+named with `--bazel_path` in your languages.yaml:
+
+```yaml
+language-servers:
+  starpls:
+    command: starpls
+    args: [server, --bazel_path, /opt/bazel/bin/bazel]
+```
+
+```sh
+# Brew
+brew install withered-magic/brew/starpls   # starpls
+brew install bazelisk                      # bazel
+
+# Release, unpack into a directory on PATH
+# https://github.com/withered-magic/starpls/releases   # starpls
+# https://github.com/facebook/buck2/releases           # buck2
+```
+
 ### Svelte
 
 ```sh
