@@ -49,7 +49,7 @@ func TestShellCommandExpandsOnce(t *testing.T) {
 	e := newTestEditor(t, "#[a|]#bc")
 	e.runTyped(&Context{Editor: e}, "sh printf '10%%%% of  %%s' x")
 	runJobs(e)
-	if e.Popup == nil || len(e.Popup.Lines) == 0 || e.Popup.Lines[0] != "10% of  x" {
+	if e.Popup == nil || len(e.Popup.Lines) == 0 || e.Popup.Lines[0].String() != "10% of  x" {
 		t.Fatalf("popup %+v status %+v", e.Popup, e.Status())
 	}
 }
@@ -62,7 +62,7 @@ func TestShellCommandFailingKeepsOutput(t *testing.T) {
 	e := newTestEditor(t, "#[a|]#bc")
 	e.runTyped(&Context{Editor: e}, "sh echo changed; exit 1")
 	runJobs(e)
-	if e.Popup == nil || e.Popup.Lines[0] != "changed" || !e.Status().IsError {
+	if e.Popup == nil || e.Popup.Lines[0].String() != "changed" || !e.Status().IsError {
 		t.Fatalf("popup %+v status %+v", e.Popup, e.Status())
 	}
 }

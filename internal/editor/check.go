@@ -10,6 +10,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // savedCheck is a check to run on a file just written, with the content
@@ -143,7 +144,7 @@ func (e *Editor) showCheckOutput(out string) {
 		return
 	}
 
-	e.Popup = &Popup{Lines: strings.Split(out, "\n")}
+	e.Popup = &Popup{Lines: ui.PlainLines(strings.Split(out, "\n"))}
 	var locs []location
 	for line := range strings.Lines(out) {
 		if loc, ok := findLocation(strings.TrimRight(line, "\r\n"), e.WorkingDir()); ok {

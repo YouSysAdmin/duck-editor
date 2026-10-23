@@ -72,53 +72,52 @@ func (dc docClient) allows(feature string) bool {
 	return !slices.Contains(dc.except, feature)
 }
 
-// supportsFeature checks the server capability behind a feature.
-func supportsFeature(c *lsp.Client, feature string) bool {
-	caps := c.Capabilities
-	switch feature {
-	case featFormat:
-		return lsp.Supports(caps.DocumentFormattingProvider)
-	case featGotoDeclaration:
-		return lsp.Supports(caps.DeclarationProvider)
-	case featGotoDefinition:
-		return lsp.Supports(caps.DefinitionProvider)
-	case featGotoType:
-		return lsp.Supports(caps.TypeDefinitionProvider)
-	case featGotoReference:
-		return lsp.Supports(caps.ReferencesProvider)
-	case featGotoImpl:
-		return lsp.Supports(caps.ImplementationProvider)
-	case featSignatureHelp:
-		return caps.SignatureHelpProvider != nil
-	case featHover:
-		return lsp.Supports(caps.HoverProvider)
-	case featDocumentHighlight:
-		return lsp.Supports(caps.DocumentHighlightProvider)
-	case featCompletion:
-		return caps.CompletionProvider != nil
-	case featCodeAction:
-		return lsp.Supports(caps.CodeActionProvider)
-	case featDocumentLinks:
-		return lsp.Supports(caps.DocumentLinkProvider)
-	case featWorkspaceCommand:
-		return caps.ExecuteCommandProvider != nil
-	case featDocumentSymbols:
-		return lsp.Supports(caps.DocumentSymbolProvider)
-	case featWorkspaceSymbols:
-		return lsp.Supports(caps.WorkspaceSymbolProvider)
-	case featRename:
-		return lsp.Supports(caps.RenameProvider)
-	case featInlayHints:
-		return lsp.Supports(caps.InlayHintProvider)
-	case featLinkedEditing:
-		return lsp.Supports(caps.LinkedEditingProvider)
-	case featCallHierarchy:
-		return lsp.Supports(caps.CallHierarchyProvider)
-	case featDiagnostics:
+// featureMethods maps a feature to the request its capability answers.
+var featureMethods = map[string]string{
+	featFormat:            "textDocument/formatting",
+	featGotoDeclaration:   "textDocument/declaration",
+	featGotoDefinition:    "textDocument/definition",
+	featGotoType:          "textDocument/typeDefinition",
+	featGotoReference:     "textDocument/references",
+	featGotoImpl:          "textDocument/implementation",
+	featSignatureHelp:     "textDocument/signatureHelp",
+	featHover:             "textDocument/hover",
+	featDocumentHighlight: "textDocument/documentHighlight",
+	featCompletion:        "textDocument/completion",
+	featCodeAction:        "textDocument/codeAction",
+	featDocumentLinks:     "textDocument/documentLink",
+	featWorkspaceCommand:  "workspace/executeCommand",
+	featDocumentSymbols:   "textDocument/documentSymbol",
+	featWorkspaceSymbols:  "workspace/symbol",
+	featRename:            "textDocument/rename",
+	featInlayHints:        "textDocument/inlayHint",
+	featLinkedEditing:     "textDocument/linkedEditingRange",
+	featCallHierarchy:     "textDocument/prepareCallHierarchy",
+}
+
+// supportsFeature checks the server capability behind a feature for a
+// document, static or registered for it.
+func supportsFeature(c *lsp.Client, feature string, doc *Document) bool {
+	if feature == featDiagnostics {
 		return true
 	}
 
-	return false
+	method, ok := featureMethods[feature]
+
+	return ok && c.Provides(method, doc.uri, doc.languageID())
+}
+
+// languageID is the document's language as a server knows it.
+func (d *Document) languageID() string {
+	if d.language == nil {
+		return ""
+	}
+
+	if d.language.LanguageID != "" {
+		return d.language.LanguageID
+	}
+
+	return lsp.LanguageID(d.language.Name)
 }
 
 // clientFor returns the first ready attached server that offers a
@@ -138,7 +137,7 @@ func (d *Document) clientsFor(feature string) []*lsp.Client {
 	for _, dc := range d.clients {
 		// Positions need the negotiated encoding, so only ready servers
 		// take requests.
-		if dc.allows(feature) && dc.client.Ready() && supportsFeature(dc.client, feature) {
+		if dc.allows(feature) && dc.client.Ready() && supportsFeature(dc.client, feature, d) {
 			out = append(out, dc.client)
 		}
 	}
@@ -258,10 +257,14 @@ func (e *Editor) startServer(h host.Host, name, root string) *lsp.Client {
 		return nil
 	}
 
-	if _, err := h.LookPath(srv.Command); err != nil {
-		e.logf("language server %s: %v", name, err)
+	start := e.lspStart
+	if start == nil {
+		start = lsp.Start
+		if _, err := h.LookPath(srv.Command); err != nil {
+			e.logf("language server %s: %v", name, err)
 
-		return nil
+			return nil
+		}
 	}
 
 	key := h.Name() + "\x00" + name + "\x00" + root
@@ -273,7 +276,7 @@ func (e *Editor) startServer(h host.Host, name, root string) *lsp.Client {
 		return client
 	}
 
-	client, err := lsp.Start(lsp.Options{
+	client, err := start(lsp.Options{
 		Name:        name,
 		Command:     srv.Command,
 		Args:        srv.Args,
@@ -311,8 +314,18 @@ func (e *Editor) registerClient(key string, client *lsp.Client) {
 			e.SetStatus("%s: %s", client.Name, text)
 		}
 	}
-	client.OnApplyEdit = func(we lsp.WorkspaceEdit) bool {
-		return e.applyWorkspaceEdit(client, we) == nil
+	client.OnMessageRequest = func(p lsp.ShowMessageRequestParams, answer func(*lsp.MessageActionItem)) {
+		e.askServerMessage(client, p, answer)
+	}
+	client.OnLogMessage = func(_ int, text string) { e.logf("%s: %s", client.Name, text) }
+	client.OnReopen = func() { e.reopenDocuments(client) }
+	client.OnApplyEdit = func(we lsp.WorkspaceEdit) (int, error) {
+		failed, err := e.applyWorkspaceEdit(client, we)
+		if err != nil {
+			e.logf("%s: edit not applied: %v", client.Name, err)
+		}
+
+		return failed, err
 	}
 	client.OnInlayHintRefresh = func() {
 		for _, doc := range e.Docs {
@@ -363,6 +376,39 @@ func (e *Editor) registerClient(key string, client *lsp.Client) {
 	}
 }
 
+// askServerMessage shows a question of a server in a menu of its
+// answers, closing the menu answers nothing. A question without answers
+// is only shown. With display-messages off the server gets no answer,
+// as if the user had closed it, and the question goes to the log.
+func (e *Editor) askServerMessage(client *lsp.Client, p lsp.ShowMessageRequestParams, answer func(*lsp.MessageActionItem)) {
+	titles := make([]string, 0, len(p.Actions))
+	for _, a := range p.Actions {
+		titles = append(titles, a.Title)
+	}
+
+	e.logf("%s asks: %s %v", client.Name, p.Message, titles)
+	if !e.Config.Editor.LSP.DisplayMessages {
+		answer(nil)
+
+		return
+	}
+
+	message := client.Name + ": " + p.Message
+	if len(titles) == 0 {
+		if p.Type <= 2 {
+			e.SetError("%s", message)
+		} else {
+			e.SetStatus("%s", message)
+		}
+
+		answer(nil)
+
+		return
+	}
+
+	e.openMenuWith(message, titles, func(_ *Context, i int) { answer(&p.Actions[i]) }, func() { answer(nil) })
+}
+
 // attachLSP starts every configured and available server of the
 // document language and opens the document on them.
 func (e *Editor) attachLSP(doc *Document) {
@@ -398,15 +444,18 @@ func (e *Editor) attachClient(doc *Document, dc docClient) {
 		doc.version = 1
 	}
 
-	langID := ""
-	if doc.language != nil {
-		langID = doc.language.LanguageID
-		if langID == "" {
-			langID = lsp.LanguageID(doc.language.Name)
+	dc.client.DidOpen(doc.uri, doc.languageID(), doc.version, doc.Text().String())
+}
+
+// reopenDocuments announces the documents of a server again after a
+// registration turned the open notification on, DidOpen skips the ones
+// the server already has.
+func (e *Editor) reopenDocuments(client *lsp.Client) {
+	for _, doc := range e.documentsByID() {
+		if slices.ContainsFunc(doc.clients, func(dc docClient) bool { return dc.client == client }) {
+			client.DidOpen(doc.uri, doc.languageID(), doc.version, doc.Text().String())
 		}
 	}
-
-	dc.client.DidOpen(doc.uri, langID, doc.version, doc.Text().String())
 }
 
 // removeClient forgets a server and its diagnostics.
@@ -517,11 +566,11 @@ func (e *Editor) syncChange(doc *Document, oldText buffer.Rope, changes *edit.Ch
 	}
 
 	doc.version++
+	newText := doc.Text()
 	for _, dc := range doc.clients {
-		newText := doc.Text()
 		dc.client.DidChange(doc.uri, doc.version, func(enc lsp.Encoding) []lsp.ContentChange {
 			return lsp.ChangesetToChanges(oldText, newText, changes, enc)
-		})
+		}, newText.String)
 	}
 }
 
@@ -536,8 +585,67 @@ func (e *Editor) lspPosition(doc *Document, client *lsp.Client) lsp.TextDocument
 	}
 }
 
-// applyWorkspaceEdit applies edits to open or loaded documents.
-func (e *Editor) applyWorkspaceEdit(client *lsp.Client, we lsp.WorkspaceEdit) error {
+// applyWorkspaceEdit applies edits to open or loaded documents. Every
+// document version is checked before anything changes, so an edit a
+// server computed for an older text leaves the documents alone. The
+// index of the document change that failed comes back, -1 for none.
+func (e *Editor) applyWorkspaceEdit(client *lsp.Client, we lsp.WorkspaceEdit) (int, error) {
+	// File creates, renames and deletes are not supported, the text
+	// edits still apply and the rest is reported.
+	type docEdit struct {
+		uri   string
+		edits []lsp.TextEdit
+	}
+
+	var docEdits []docEdit
+	skipped := 0
+	for i, raw := range we.DocumentChanges {
+		var tde lsp.TextDocumentEdit
+		if err := json.Unmarshal(raw, &tde); err != nil || tde.TextDocument.URI == "" {
+			skipped++
+
+			continue
+		}
+
+		if v := tde.TextDocument.Version; v != nil {
+			if doc, ok := e.DocumentByPath(lsp.URIToPath(tde.TextDocument.URI)); ok && doc.version > 0 && doc.version != *v {
+				return i, fmt.Errorf("%s changed since the edit of %s was made (version %d, now %d)", e.docName(doc), client.Name, *v, doc.version)
+			}
+		}
+
+		edits := make([]lsp.TextEdit, 0, len(tde.Edits))
+		for _, rawEdit := range tde.Edits {
+			var te lsp.TextEdit
+			if json.Unmarshal(rawEdit, &te) == nil {
+				edits = append(edits, te)
+			}
+		}
+
+		docEdits = append(docEdits, docEdit{uri: tde.TextDocument.URI, edits: edits})
+	}
+
+	for uri, edits := range we.Changes {
+		if err := e.applyTextEdits(client, uri, edits); err != nil {
+			return -1, err
+		}
+	}
+
+	for i, de := range docEdits {
+		if err := e.applyTextEdits(client, de.uri, de.edits); err != nil {
+			return i, err
+		}
+	}
+
+	if skipped > 0 {
+		return -1, fmt.Errorf("skipped %d unsupported file operations of the edit", skipped)
+	}
+
+	return -1, nil
+}
+
+// applyTextEdits applies the edits of one document, opening it when it
+// is not loaded.
+func (e *Editor) applyTextEdits(client *lsp.Client, uri string, edits []lsp.TextEdit) error {
 	apply := func(uri string, edits []lsp.TextEdit) error {
 		path := lsp.URIToPath(uri)
 		if path == "" {
@@ -569,41 +677,7 @@ func (e *Editor) applyWorkspaceEdit(client *lsp.Client, we lsp.WorkspaceEdit) er
 		return nil
 	}
 
-	for uri, edits := range we.Changes {
-		if err := apply(uri, edits); err != nil {
-			return err
-		}
-	}
-
-	// File creates, renames and deletes are not supported, the text
-	// edits still apply and the rest is reported.
-	skipped := 0
-	for _, raw := range we.DocumentChanges {
-		var tde lsp.TextDocumentEdit
-		if err := json.Unmarshal(raw, &tde); err != nil || tde.TextDocument.URI == "" {
-			skipped++
-
-			continue
-		}
-
-		edits := make([]lsp.TextEdit, 0, len(tde.Edits))
-		for _, rawEdit := range tde.Edits {
-			var te lsp.TextEdit
-			if json.Unmarshal(rawEdit, &te) == nil {
-				edits = append(edits, te)
-			}
-		}
-
-		if err := apply(tde.TextDocument.URI, edits); err != nil {
-			return err
-		}
-	}
-
-	if skipped > 0 {
-		return fmt.Errorf("skipped %d unsupported file operations of the edit", skipped)
-	}
-
-	return nil
+	return apply(uri, edits)
 }
 
 // closeLSP notifies every server that a document closed.

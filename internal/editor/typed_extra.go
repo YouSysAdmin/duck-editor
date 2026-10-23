@@ -20,6 +20,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 	rt "github.com/YouSysAdmin/duck-editor/runtime"
 )
 
@@ -313,7 +314,7 @@ func init() {
 			}
 
 			scopes := doc.syntax.Scopes(doc.Text(), doc.Selection().Primary().Cursor(doc.Text()))
-			e.Popup = &Popup{Lines: scopes}
+			e.Popup = &Popup{Lines: ui.PlainLines(scopes)}
 
 			return nil
 		}},
@@ -343,7 +344,7 @@ func init() {
 			}
 
 			sexp := doc.syntax.Subtree(doc.Text(), doc.Selection().Primary())
-			e.Popup = &Popup{Lines: strings.Split(prettySexp(sexp), "\n")}
+			e.Popup = &Popup{Lines: ui.PlainLines(strings.Split(prettySexp(sexp), "\n"))}
 
 			return nil
 		}},
@@ -354,7 +355,7 @@ func init() {
 				return cmdError("syntax tree is not available on this buffer")
 			}
 
-			e.Popup = &Popup{Lines: doc.syntax.Layers()}
+			e.Popup = &Popup{Lines: ui.PlainLines(doc.syntax.Layers())}
 
 			return nil
 		}},
@@ -1080,8 +1081,9 @@ func lspWorkspaceCommand(cx *Context, args []string) error {
 		return nil
 	}
 
-	provider := client.Capabilities.ExecuteCommandProvider
-	if provider == nil || len(provider.Commands) == 0 {
+	doc := e.Doc()
+	commands := client.WorkspaceCommands(doc.uri, doc.languageID())
+	if len(commands) == 0 {
 		return cmdError("the language server does not expose workspace commands")
 	}
 
@@ -1093,7 +1095,7 @@ func lspWorkspaceCommand(cx *Context, args []string) error {
 		})
 	}
 	if len(args) > 0 {
-		for _, c := range provider.Commands {
+		for _, c := range commands {
 			if c == args[0] {
 				run(c)
 
@@ -1104,7 +1106,7 @@ func lspWorkspaceCommand(cx *Context, args []string) error {
 		return cmdError("unknown workspace command " + args[0])
 	}
 
-	names := slices.Sorted(slices.Values(provider.Commands))
+	names := slices.Sorted(slices.Values(commands))
 	e.openMenu(names, func(cx *Context, index int) { run(names[index]) })
 
 	return nil

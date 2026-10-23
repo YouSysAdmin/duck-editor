@@ -15,6 +15,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // kubeState is a buffer holding a Kubernetes object: saves show the diff
@@ -207,7 +208,7 @@ func (e *Editor) applyKube(doc *Document, then func()) {
 				return
 			}
 
-			e.Popup = &Popup{Lines: strings.Split(strings.TrimRight(diff, "\n"), "\n")}
+			e.Popup = &Popup{Lines: ui.PlainLines(strings.Split(strings.TrimRight(diff, "\n"), "\n"))}
 			e.SetStatus("replace %s in the cluster with these changes? y/n", k.resource)
 			e.onNextKey = func(cx *Context, key keymap.Key) {
 				if ch, ok := key.Char(); !ok || ch != 'y' && ch != 'Y' {

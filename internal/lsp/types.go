@@ -290,6 +290,19 @@ type ShowMessageParams struct {
 	Message string `json:"message"`
 }
 
+// MessageActionItem is one answer a window/showMessageRequest offers.
+type MessageActionItem struct {
+	Title string `json:"title"`
+}
+
+// ShowMessageRequestParams is window/showMessageRequest, a message with
+// the answers the user may pick.
+type ShowMessageRequestParams struct {
+	Type    int                 `json:"type"`
+	Message string              `json:"message"`
+	Actions []MessageActionItem `json:"actions,omitempty"`
+}
+
 // ApplyWorkspaceEditParams is workspace/applyEdit.
 type ApplyWorkspaceEditParams struct {
 	Label string        `json:"label,omitempty"`
@@ -312,11 +325,9 @@ type WorkspaceFolder struct {
 
 // ServerCapabilities is the subset of initialize result we look at.
 type ServerCapabilities struct {
-	PositionEncoding   string         `json:"positionEncoding,omitempty"`
-	TextDocumentSync   jsontext.Value `json:"textDocumentSync,omitempty"`
-	CompletionProvider *struct {
-		TriggerCharacters []string `json:"triggerCharacters,omitempty"`
-	} `json:"completionProvider,omitempty"`
+	PositionEncoding           string         `json:"positionEncoding,omitempty"`
+	TextDocumentSync           jsontext.Value `json:"textDocumentSync,omitempty"`
+	CompletionProvider         jsontext.Value `json:"completionProvider,omitempty"`
 	HoverProvider              jsontext.Value `json:"hoverProvider,omitempty"`
 	DefinitionProvider         jsontext.Value `json:"definitionProvider,omitempty"`
 	DeclarationProvider        jsontext.Value `json:"declarationProvider,omitempty"`
@@ -328,18 +339,13 @@ type ServerCapabilities struct {
 	DocumentFormattingProvider jsontext.Value `json:"documentFormattingProvider,omitempty"`
 	DocumentSymbolProvider     jsontext.Value `json:"documentSymbolProvider,omitempty"`
 	WorkspaceSymbolProvider    jsontext.Value `json:"workspaceSymbolProvider,omitempty"`
-	ExecuteCommandProvider     *struct {
-		Commands []string `json:"commands"`
-	} `json:"executeCommandProvider,omitempty"`
-	DocumentHighlightProvider jsontext.Value `json:"documentHighlightProvider,omitempty"`
-	DocumentLinkProvider      jsontext.Value `json:"documentLinkProvider,omitempty"`
-	InlayHintProvider         jsontext.Value `json:"inlayHintProvider,omitempty"`
-	LinkedEditingProvider     jsontext.Value `json:"linkedEditingRangeProvider,omitempty"`
-	CallHierarchyProvider     jsontext.Value `json:"callHierarchyProvider,omitempty"`
-	SignatureHelpProvider     *struct {
-		TriggerCharacters   []string `json:"triggerCharacters,omitempty"`
-		RetriggerCharacters []string `json:"retriggerCharacters,omitempty"`
-	} `json:"signatureHelpProvider,omitempty"`
+	ExecuteCommandProvider     jsontext.Value `json:"executeCommandProvider,omitempty"`
+	DocumentHighlightProvider  jsontext.Value `json:"documentHighlightProvider,omitempty"`
+	DocumentLinkProvider       jsontext.Value `json:"documentLinkProvider,omitempty"`
+	InlayHintProvider          jsontext.Value `json:"inlayHintProvider,omitempty"`
+	LinkedEditingProvider      jsontext.Value `json:"linkedEditingRangeProvider,omitempty"`
+	CallHierarchyProvider      jsontext.Value `json:"callHierarchyProvider,omitempty"`
+	SignatureHelpProvider      jsontext.Value `json:"signatureHelpProvider,omitempty"`
 }
 
 // InitializeResult is the initialize response.

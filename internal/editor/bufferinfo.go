@@ -6,6 +6,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 func init() {
@@ -14,7 +15,7 @@ func init() {
 		doc:   "Show what handles the buffer: language, tree-sitter, language servers with their state and root, formatter, check and indentation",
 		run: func(cx *Context, _ []string) error {
 			e := cx.Editor
-			e.Popup = &Popup{Lines: e.bufferInfo(e.Doc())}
+			e.Popup = &Popup{Lines: ui.PlainLines(e.bufferInfo(e.Doc()))}
 
 			return nil
 		},

@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"cmp"
 	"context"
 	"encoding/json/v2"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/fuzzy"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // completionTriggerLen is how many word chars start automatic completion.
@@ -33,6 +35,112 @@ type CompletionMenu struct {
 	previewed       bool
 	previewOriginal string
 	previewEnd      int
+
+	// resolved and resolving track completionItem/resolve per item,
+	// accepting waits for the answer of the chosen one before inserting.
+	resolved  map[int]bool
+	resolving map[int]bool
+	accepting bool
+
+	// docs caches the rendered documentation per item.
+	docs map[int][]ui.Line
+}
+
+// Doc returns the documentation of the selected item for the popup
+// beside the menu: the detail, then the documentation text.
+func (m *CompletionMenu) Doc() []ui.Line {
+	if m.selected < 0 || m.selected >= len(m.filtered) {
+		return nil
+	}
+
+	idx := m.filtered[m.selected]
+	if lines, ok := m.docs[idx]; ok {
+		return lines
+	}
+
+	item := m.items[idx]
+	var lines []ui.Line
+	if item.Detail != "" {
+		lines = append(lines, ui.Code(item.Detail)...)
+	}
+
+	if body := markupLines(item.Documentation); len(body) > 0 {
+		if len(lines) > 0 {
+			lines = append(lines, ui.Line{})
+		}
+
+		lines = append(lines, body...)
+	}
+
+	if m.docs == nil {
+		m.docs = map[int][]ui.Line{}
+	}
+
+	m.docs[idx] = lines
+
+	return lines
+}
+
+// selectionChanged resolves the selected item when the server fills
+// items in on request, so its documentation and additional edits are
+// there before it is accepted.
+func (m *CompletionMenu) selectionChanged(e *Editor) {
+	m.accepting = false
+	if m.client == nil || m.selected < 0 || m.selected >= len(m.filtered) {
+		return
+	}
+
+	idx := m.filtered[m.selected]
+	if m.resolved[idx] || m.resolving[idx] {
+		return
+	}
+
+	doc := e.Doc()
+	if doc.ID != m.docID || !m.client.CompletionResolves(doc.uri, doc.languageID()) {
+		return
+	}
+
+	if m.resolving == nil {
+		m.resolving = map[int]bool{}
+		m.resolved = map[int]bool{}
+	}
+
+	m.resolving[idx] = true
+	m.client.ResolveCompletion(m.items[idx], func(item lsp.CompletionItem, err error) {
+		delete(m.resolving, idx)
+		m.resolved[idx] = true
+		if err != nil {
+			e.logf("%s: completion resolve: %v", m.client.Name, err)
+		} else {
+			m.merge(idx, item)
+		}
+
+		// The chosen item waited for this.
+		if e.Completion == m && m.accepting && m.selected >= 0 && m.selected < len(m.filtered) && m.filtered[m.selected] == idx {
+			m.accepting = false
+			m.apply(e, m.items[idx])
+			e.Completion = nil
+		}
+	})
+}
+
+// merge takes the resolved properties over, the ones announced in
+// resolveSupport.
+func (m *CompletionMenu) merge(idx int, item lsp.CompletionItem) {
+	cur := &m.items[idx]
+	if len(item.Documentation) > 0 {
+		cur.Documentation = item.Documentation
+	}
+
+	if item.Detail != "" {
+		cur.Detail = item.Detail
+	}
+
+	if len(item.AdditionalTextEdits) > 0 {
+		cur.AdditionalTextEdits = item.AdditionalTextEdits
+	}
+
+	delete(m.docs, idx)
 }
 
 // Items returns the filtered candidates in display order.
@@ -90,7 +198,10 @@ func (m *CompletionMenu) filter(prefix string) {
 	}
 
 	if !pattern.IsEmpty() {
-		slices.SortStableFunc(out, func(a, b scored) int { return b.score - a.score })
+		// The server's order settles equal matches.
+		slices.SortStableFunc(out, func(a, b scored) int {
+			return cmp.Or(b.score-a.score, strings.Compare(sortKey(m.items[a.idx]), sortKey(m.items[b.idx])))
+		})
 	} else {
 		slices.SortStableFunc(out, func(a, b scored) int {
 			return strings.Compare(sortKey(m.items[a.idx]), sortKey(m.items[b.idx]))
@@ -132,6 +243,7 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		if len(m.filtered) > 0 {
 			m.selected = (m.selected + 1) % len(m.filtered)
 			m.preview(e)
+			m.selectionChanged(e)
 		}
 
 		return true
@@ -139,6 +251,7 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		if len(m.filtered) > 0 {
 			m.selected = (max(m.selected, 0) - 1 + len(m.filtered)) % len(m.filtered)
 			m.preview(e)
+			m.selectionChanged(e)
 		}
 
 		return true
@@ -149,6 +262,14 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 			e.Completion = nil
 
 			return false
+		}
+
+		if idx := m.filtered[m.selected]; m.resolving[idx] {
+			// The server still fills the item in, it is inserted when
+			// the answer comes.
+			m.accepting = true
+
+			return true
 		}
 
 		m.apply(e, m.items[m.filtered[m.selected]])
@@ -406,6 +527,8 @@ func (e *Editor) afterInsertKey(key keymap.Key) {
 			if len(m.filtered) == 0 {
 				// An empty menu is not drawn and must not keep the keys.
 				e.Completion = nil
+			} else {
+				m.selectionChanged(e)
 			}
 
 			if m.incomplete {
@@ -427,7 +550,7 @@ func (e *Editor) afterInsertKey(key keymap.Key) {
 	}
 
 	client := doc.clientFor(featCompletion)
-	if client != nil && slices.Contains(client.CompletionTriggers(), string(ch)) {
+	if client != nil && slices.Contains(client.CompletionTriggers(doc.uri, doc.languageID()), string(ch)) {
 		e.scheduleTriggerCompletion()
 
 		return
@@ -739,6 +862,7 @@ func (e *Editor) requestCompletion(triggerChar bool) {
 		}
 
 		e.Completion = menu
+		menu.selectionChanged(e)
 	})
 }
 

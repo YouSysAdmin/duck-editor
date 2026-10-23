@@ -11,6 +11,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 	"github.com/YouSysAdmin/duck-editor/internal/vcs"
 )
 
@@ -427,7 +428,7 @@ func (e *Editor) runShellInBackground(cmd string) {
 		return []string{output}, err
 	}, func(e *Editor, results []string, err error) {
 		if output := results[0]; strings.TrimSpace(output) != "" {
-			e.Popup = &Popup{Lines: strings.Split(strings.TrimRight(output, "\n"), "\n")}
+			e.Popup = &Popup{Lines: ui.PlainLines(strings.Split(strings.TrimRight(output, "\n"), "\n"))}
 		}
 
 		if err != nil {

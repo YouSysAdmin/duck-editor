@@ -97,7 +97,7 @@ func TestSignatureHelpOffsets(t *testing.T) {
 		t.Fatalf("got %+v", sh)
 	}
 
-	if len(sh.Docs) != 2 || sh.Docs[0] != "the b" || sh.Docs[1] != "Does foo." {
+	if len(sh.Docs) != 2 || sh.Docs[0].String() != "the b" || sh.Docs[1].String() != "Does foo." {
 		t.Fatalf("docs = %q", sh.Docs)
 	}
 
@@ -350,7 +350,7 @@ func TestExpansion(t *testing.T) {
 	}
 
 	jobs[0].Run(jobs[0].Ctx, func(r JobResult) { e.ApplyResult(r) })
-	if e.Popup == nil || len(e.Popup.Lines) != 1 || e.Popup.Lines[0] != "line 2" {
+	if e.Popup == nil || len(e.Popup.Lines) != 1 || e.Popup.Lines[0].String() != "line 2" {
 		t.Fatalf("popup = %+v", e.Popup)
 	}
 }

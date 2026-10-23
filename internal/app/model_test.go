@@ -20,6 +20,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/editor"
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 func newSized(t *testing.T, text string, width, height int) Model {
@@ -219,7 +220,7 @@ func TestPopupBorder(t *testing.T) {
 
 	m := newSized(t, "hello\n", 40, 10)
 	m.Editor().Config.Editor.PopupBorder = "all"
-	m.Editor().Popup = &editor.Popup{Lines: []string{"doc text"}}
+	m.Editor().Popup = &editor.Popup{Lines: ui.PlainLines([]string{"doc text"})}
 	lines := plainLines(m)
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "┌") || !strings.Contains(joined, "doc text") {
@@ -464,7 +465,7 @@ func TestSignaturePlacement(t *testing.T) {
 			ed.Doc().SetSelection(edit.PointSelection(ed.Doc().Text().LineToChar(line) + 19))
 			ed.Mode = editor.Insert
 			ed.EnsureCursorInView()
-			ed.SignatureHelp = &editor.SignatureHelp{Label: "Println(a ...any) (n int, err error)", ParamStart: 8, ParamEnd: 16, Docs: []string{docs}}
+			ed.SignatureHelp = &editor.SignatureHelp{Label: "Println(a ...any) (n int, err error)", ParamStart: 8, ParamEnd: 16, Docs: ui.PlainLines([]string{docs})}
 			lines := plainLines(m)
 			want := fmt.Sprintf("line%02d fmt.Println(x)", line)
 			row := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, want) })
@@ -562,7 +563,7 @@ func TestSignatureBackgroundInsideFrame(t *testing.T) {
 	ed.Doc().SetSelection(edit.PointSelection(ed.Doc().Text().LineToChar(3) + 12))
 	ed.Mode = editor.Insert
 	ed.SignatureHelp = &editor.SignatureHelp{Label: "Println(a ...any) (n int, err error)", ParamStart: 8, ParamEnd: 16,
-		Docs: []string{"Println formats using the default formats for its operands and writes to standard output."}}
+		Docs: ui.PlainLines([]string{"Println formats using the default formats for its operands and writes to standard output."})}
 	view := m.View().Content
 	lines := strings.Split(ansi.Strip(view), "\n")
 	top := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "┌") })
@@ -661,7 +662,7 @@ func TestPopupScrolls(t *testing.T) {
 		lines[i] = fmt.Sprintf("doc line %02d", i)
 	}
 
-	m.Editor().Popup = &editor.Popup{Lines: lines}
+	m.Editor().Popup = &editor.Popup{Lines: ui.PlainLines(lines)}
 	m = press(t, m, tea.Key{Code: 'd', Mod: tea.ModCtrl})
 	got := strings.Join(plainLines(m), "\n")
 	if m.Editor().Popup == nil || !strings.Contains(got, "doc line 05") || strings.Contains(got, "doc line 00") {

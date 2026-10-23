@@ -170,6 +170,42 @@ func (m Model) placeOverlay(b overlayBox) (*lipgloss.Layer, overlaySide) {
 	return lipgloss.NewLayer(content).X(x).Y(y).Z(b.z), side
 }
 
+// renderCompletionDoc places the documentation of the selected item
+// beside the menu, on the side with more room.
+func (m Model) renderCompletionDoc(menu *editor.CompletionMenu, menuLayer *lipgloss.Layer) *lipgloss.Layer {
+	lines := menu.Doc()
+	if len(lines) == 0 || !m.editor.Config.Editor.LSP.DisplayCompletionDocs {
+		return nil
+	}
+
+	frame := 0
+	if border := m.editor.Config.Editor.PopupBorder; border == "all" || border == "popup" {
+		frame = 1
+	}
+
+	right := m.width - (menuLayer.GetX() + menuLayer.Width())
+	left := menuLayer.GetX()
+	room := max(right, left) - 2*frame
+	y := menuLayer.GetY()
+	maxHeight := m.height - 1 - y - 2*frame
+	if room < 12 || maxHeight < 1 {
+		return nil
+	}
+
+	width, height := ui.PopupSize(lines, min(maxPopupWidth, room), min(maxPopupHeight, maxHeight))
+	content := ui.RenderPopup(lines, 0, width, height, m.theme)
+	if frame == 1 {
+		content = ui.Bordered(content, m.theme, m.theme.Popup.Patch(m.theme.PickerBorder))
+	}
+
+	x := menuLayer.GetX() + menuLayer.Width()
+	if right < left && right < width+2*frame {
+		x = menuLayer.GetX() - width - 2*frame
+	}
+
+	return lipgloss.NewLayer(content).X(x).Y(y).Z(6)
+}
+
 // renderCompletion places the menu under the word being completed.
 func (m Model) renderCompletion(menu *editor.CompletionMenu, cursor *tea.Cursor) (*lipgloss.Layer, overlaySide) {
 	items := menu.Items()
@@ -203,15 +239,22 @@ func (m Model) renderCompletion(menu *editor.CompletionMenu, cursor *tea.Cursor)
 // renderMenu places a selection list under the cursor sized to its
 // longest entry.
 func (m Model) renderMenu(menu *editor.Menu, cursor *tea.Cursor) *lipgloss.Layer {
-	rows := make([]ui.MenuItem, len(menu.Items))
+	// The title takes the first row, the selection moves down by one.
+	var rows []ui.MenuItem
 	width, kindWidth := 0, 0
+	if menu.Title != "" {
+		rows = append(rows, ui.MenuItem{Label: menu.Title})
+		width = lipgloss.Width(menu.Title) + 2
+	}
+
 	for i, it := range menu.Items {
-		rows[i] = ui.MenuItem{Label: it}
+		row := ui.MenuItem{Label: it}
 		if i < len(menu.Kinds) {
-			rows[i].Kind = menu.Kinds[i]
+			row.Kind = menu.Kinds[i]
 			kindWidth = max(kindWidth, lipgloss.Width(menu.Kinds[i]))
 		}
 
+		rows = append(rows, row)
 		width = max(width, lipgloss.Width(it)+2)
 	}
 
@@ -221,12 +264,13 @@ func (m Model) renderMenu(menu *editor.Menu, cursor *tea.Cursor) *lipgloss.Layer
 
 	width = min(max(width, 20), m.width)
 	height := min(len(rows), maxMenuRows)
+	selected := menu.Selected() + len(rows) - len(menu.Items)
 
 	layer, _ := m.placeOverlay(overlayBox{
 		width: width, height: height, x: cursor.X, cursorY: cursor.Y, z: 6, kind: "menu",
 		sides: []overlaySide{sideBelow, sideAbove},
 		render: func(w, h int) string {
-			return ui.RenderMenu(rows, menu.Selected(), menuOffset(menu.Selected(), h), w, h, m.theme)
+			return ui.RenderMenu(rows, selected, menuOffset(selected, h), w, h, m.theme)
 		},
 	})
 
@@ -363,8 +407,8 @@ func (m Model) renderPromptCompletions(p *editor.Prompt) []*lipgloss.Layer {
 
 	if doc := p.Doc(); doc != "" && top > 0 {
 		lines := strings.Split(doc, "\n")
-		width, height := ui.PopupSize(lines, min(promptDocWidth, m.width), min(top, maxPopupHeight))
-		layers = append(layers, lipgloss.NewLayer(ui.RenderPopup(lines, 0, width, height, m.theme)).Y(top-height).Z(7))
+		width, height := ui.PopupSize(ui.PlainLines(lines), min(promptDocWidth, m.width), min(top, maxPopupHeight))
+		layers = append(layers, lipgloss.NewLayer(ui.RenderPopup(ui.PlainLines(lines), 0, width, height, m.theme)).Y(top-height).Z(7))
 	}
 
 	return layers

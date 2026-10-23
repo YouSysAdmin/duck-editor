@@ -37,6 +37,11 @@ type message struct {
 // ResponseHandler receives the result of a request.
 type ResponseHandler func(result jsontext.Value, err error)
 
+// AsyncResult is a result OnRequest returns to answer the request later,
+// the connection keeps reading meanwhile. It is called with the function
+// that sends the response, the first call wins.
+type AsyncResult func(reply func(result any, rerr *ResponseError))
+
 // Conn is a JSON-RPC connection with Content-Length framing.
 type Conn struct {
 	w       io.Writer
@@ -237,6 +242,16 @@ func (c *Conn) readLoop() error {
 				result, rerr = c.OnRequest(msg.Method, msg.Params)
 			} else {
 				rerr = &ResponseError{Code: -32601, Message: "method not found"}
+			}
+
+			if async, ok := result.(AsyncResult); ok && rerr == nil {
+				id := msg.ID
+				var once sync.Once
+				async(func(result any, rerr *ResponseError) {
+					once.Do(func() { _ = c.respond(id, result, rerr) })
+				})
+
+				continue
 			}
 
 			_ = c.respond(msg.ID, result, rerr)

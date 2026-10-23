@@ -230,7 +230,7 @@ func TestWholeFileEditKeepsCursor(t *testing.T) {
 		Range:   lsp.Range{Start: lsp.Position{}, End: lsp.Position{Line: 5}},
 		NewText: "def hello():\n    pass\n\n\nhello()\n",
 	}}}}
-	if err := e.applyWorkspaceEdit(&lsp.Client{}, we); err != nil {
+	if _, err := e.applyWorkspaceEdit(&lsp.Client{}, we); err != nil {
 		t.Fatal(err)
 	}
 

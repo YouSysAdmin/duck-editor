@@ -44,9 +44,19 @@ type Client struct {
 	config  any
 
 	// Capabilities and Encoding are set on the editor thread when the
-	// handshake completes and only read there.
+	// handshake completes and only read there. Dynamic registrations
+	// change Capabilities and sync later, on the same thread.
 	Capabilities ServerCapabilities
 	Encoding     Encoding
+	sync         SyncOptions
+
+	// registrations are the capabilities registered at run time, docs
+	// the documents the editor opened on this server. Editor thread.
+	registrations []registration
+	docs          map[string]docState
+
+	// stopped is set by Stop, so the exit it causes is no error.
+	stopped bool
 
 	// Version is what the server reported about itself, empty when it
 	// said nothing.
@@ -58,9 +68,22 @@ type Client struct {
 	// OnMessage receives window/showMessage, on the editor thread.
 	OnMessage func(kind int, text string)
 
+	// OnMessageRequest shows a window/showMessageRequest, on the editor
+	// thread, and calls answer with the chosen action, nil when the user
+	// dismissed it. Without it the request is answered with nothing.
+	OnMessageRequest func(p ShowMessageRequestParams, answer func(*MessageActionItem))
+
+	// OnLogMessage receives window/logMessage, on the editor thread.
+	OnLogMessage func(kind int, text string)
+
+	// OnReopen runs on the editor thread when a registration turned the
+	// open notification on, so documents opened before are announced.
+	OnReopen func()
+
 	// OnApplyEdit handles workspace/applyEdit, on the editor thread, and
-	// reports whether the edit was applied.
-	OnApplyEdit func(edit WorkspaceEdit) bool
+	// reports why the edit was not applied, with the index of the failed
+	// document change or -1.
+	OnApplyEdit func(edit WorkspaceEdit) (int, error)
 
 	// OnShowDocument handles window/showDocument, on the editor thread,
 	// and reports whether the document was shown.
@@ -157,10 +180,14 @@ func NewClient(name, root string, r io.Reader, w io.Writer, closer io.Closer, di
 		}
 
 		// A failed handshake reports itself, unless the process died with
-		// a reason of its own, as an rbenv shim missing its Ruby.
+		// a reason of its own, as an rbenv shim missing its Ruby. An exit
+		// Stop asked for is no error.
 		c.mu.Lock()
-		if c.initErr != nil && exited == nil {
+		switch {
+		case c.initErr != nil && exited == nil:
 			err = c.initErr
+		case c.stopped && exited == nil:
+			err = nil
 		}
 
 		c.mu.Unlock()
@@ -207,6 +234,8 @@ func (c *Client) initialize() {
 		pid = os.Getpid()
 	}
 
+	// Announced for exactly what registrable accepts.
+	dynamic := map[string]any{"dynamicRegistration": true}
 	params := map[string]any{
 		"processId": pid,
 		"rootUri":   PathToURI(c.Root),
@@ -231,13 +260,16 @@ func (c *Client) initialize() {
 					"failureHandling":       "abort",
 					"normalizesLineEndings": false,
 				},
-				"symbol":    map[string]any{"dynamicRegistration": false},
-				"inlayHint": map[string]any{"refreshSupport": true},
+				"symbol":                 dynamic,
+				"executeCommand":         dynamic,
+				"didChangeConfiguration": dynamic,
+				"inlayHint":              map[string]any{"refreshSupport": true},
 			},
 			"textDocument": map[string]any{
-				"synchronization":    map[string]any{"didSave": true},
-				"linkedEditingRange": map[string]any{"dynamicRegistration": false},
+				"synchronization":    map[string]any{"dynamicRegistration": true, "didSave": true},
+				"linkedEditingRange": dynamic,
 				"completion": map[string]any{
+					"dynamicRegistration": true,
 					"completionItem": map[string]any{
 						"snippetSupport":          !c.NoSnippets,
 						"insertReplaceSupport":    true,
@@ -252,8 +284,9 @@ func (c *Client) initialize() {
 					"completionItemKind": map[string]any{},
 					"contextSupport":     true,
 				},
-				"hover": map[string]any{"contentFormat": []string{"markdown", "plaintext"}},
+				"hover": map[string]any{"dynamicRegistration": true, "contentFormat": []string{"markdown", "plaintext"}},
 				"signatureHelp": map[string]any{
+					"dynamicRegistration": true,
 					"signatureInformation": map[string]any{
 						"documentationFormat":    []string{"markdown", "plaintext"},
 						"parameterInformation":   map[string]any{"labelOffsetSupport": true},
@@ -261,16 +294,18 @@ func (c *Client) initialize() {
 					},
 					"contextSupport": true,
 				},
-				"inlayHint":         map[string]any{"dynamicRegistration": false},
-				"definition":        map[string]any{"linkSupport": true},
-				"declaration":       map[string]any{"linkSupport": true},
-				"typeDefinition":    map[string]any{"linkSupport": true},
-				"implementation":    map[string]any{"linkSupport": true},
-				"callHierarchy":     map[string]any{"dynamicRegistration": false},
-				"references":        map[string]any{},
-				"documentHighlight": map[string]any{},
-				"rename":            map[string]any{"dynamicRegistration": false, "prepareSupport": false},
+				"inlayHint":         dynamic,
+				"definition":        map[string]any{"dynamicRegistration": true, "linkSupport": true},
+				"declaration":       map[string]any{"dynamicRegistration": true, "linkSupport": true},
+				"typeDefinition":    map[string]any{"dynamicRegistration": true, "linkSupport": true},
+				"implementation":    map[string]any{"dynamicRegistration": true, "linkSupport": true},
+				"callHierarchy":     dynamic,
+				"references":        dynamic,
+				"documentHighlight": dynamic,
+				"documentLink":      dynamic,
+				"rename":            map[string]any{"dynamicRegistration": true, "prepareSupport": true},
 				"codeAction": map[string]any{
+					"dynamicRegistration": true,
 					"codeActionLiteralSupport": map[string]any{
 						"codeActionKind": map[string]any{"valueSet": []string{
 							"", "quickfix", "refactor", "refactor.extract", "refactor.inline",
@@ -282,8 +317,8 @@ func (c *Client) initialize() {
 					"isPreferredSupport": true,
 					"disabledSupport":    true,
 				},
-				"formatting":     map[string]any{},
-				"documentSymbol": map[string]any{"hierarchicalDocumentSymbolSupport": true},
+				"formatting":     dynamic,
+				"documentSymbol": map[string]any{"dynamicRegistration": true, "hierarchicalDocumentSymbolSupport": true},
 				"publishDiagnostics": map[string]any{
 					"versionSupport": true,
 					"tagSupport":     map[string]any{"valueSet": []int{1, 2}},
@@ -321,6 +356,7 @@ func (c *Client) initialize() {
 			c.mu.Lock()
 			c.Capabilities = res.Capabilities
 			c.Encoding = ParseEncoding(res.Capabilities.PositionEncoding)
+			c.sync = parseSync(res.Capabilities.TextDocumentSync)
 			if res.ServerInfo != nil {
 				c.Version = strings.TrimSpace(res.ServerInfo.Name + " " + shortVersion(res.ServerInfo.Version))
 			}
@@ -393,6 +429,9 @@ func failTo[T any](c *Client, cb func(T, error)) func(error) {
 // Stop asks the server to shut down and kills it when it does not exit
 // within the grace period.
 func (c *Client) Stop() {
+	c.mu.Lock()
+	c.stopped = true
+	c.mu.Unlock()
 	c.conn.Request("shutdown", nil, func(jsontext.Value, error) {
 		_ = c.conn.Notify("exit", nil)
 		_ = c.conn.Close()
@@ -427,6 +466,17 @@ func (c *Client) handleNotify(method string, params jsontext.Value) {
 				c.OnMessage(p.Type, p.Message)
 			}
 		})
+	case "window/logMessage":
+		var p ShowMessageParams
+		if err := json.Unmarshal(params, &p); err != nil {
+			return
+		}
+
+		c.dispatch(func() {
+			if c.OnLogMessage != nil {
+				c.OnLogMessage(p.Type, p.Message)
+			}
+		})
 	case "$/progress":
 		var p ProgressParams
 		if err := json.Unmarshal(params, &p); err != nil {
@@ -453,7 +503,62 @@ func (c *Client) handleRequest(method string, params jsontext.Value) (any, *Resp
 		}
 
 		return out, nil
-	case "client/registerCapability", "client/unregisterCapability", "window/workDoneProgress/create":
+	case "client/registerCapability":
+		var p struct {
+			Registrations []Registration `json:"registrations"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, &ResponseError{Code: -32602, Message: err.Error()}
+		}
+
+		// All or nothing, so the server knows what it got.
+		for _, r := range p.Registrations {
+			if !registrable(r.Method) {
+				return nil, &ResponseError{Code: -32602, Message: "dynamic registration of " + r.Method + " is not supported"}
+			}
+		}
+
+		done := make(chan struct{})
+		c.dispatch(func() {
+			reopen := false
+			for _, r := range p.Registrations {
+				c.register(r)
+				reopen = reopen || r.Method == "textDocument/didOpen"
+			}
+
+			if reopen && c.OnReopen != nil {
+				c.OnReopen()
+			}
+
+			close(done)
+		})
+		<-done
+
+		return nil, nil
+	case "client/unregisterCapability":
+		// The protocol spells the field unregisterations.
+		var p struct {
+			Unregisterations []Unregistration `json:"unregisterations"`
+			Unregistrations  []Unregistration `json:"unregistrations"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, &ResponseError{Code: -32602, Message: err.Error()}
+		}
+
+		done := make(chan struct{})
+		c.dispatch(func() {
+			for _, u := range append(p.Unregisterations, p.Unregistrations...) {
+				c.unregister(u)
+			}
+
+			close(done)
+		})
+		<-done
+
+		return nil, nil
+	case "workspace/workspaceFolders":
+		return []WorkspaceFolder{{URI: PathToURI(c.Root), Name: c.Root}}, nil
+	case "window/workDoneProgress/create":
 		return nil, nil
 	case "workspace/applyEdit":
 		var p ApplyWorkspaceEditParams
@@ -461,12 +566,56 @@ func (c *Client) handleRequest(method string, params jsontext.Value) (any, *Resp
 			return map[string]any{"applied": false}, nil
 		}
 
-		done := make(chan bool, 1)
-		c.dispatch(func() { done <- c.OnApplyEdit != nil && c.OnApplyEdit(p.Edit) })
+		type outcome struct {
+			failed int
+			err    error
+		}
+		done := make(chan outcome, 1)
+		c.dispatch(func() {
+			if c.OnApplyEdit == nil {
+				done <- outcome{-1, errors.New("no editor")}
 
-		return map[string]any{"applied": <-done}, nil
+				return
+			}
+
+			failed, err := c.OnApplyEdit(p.Edit)
+			done <- outcome{failed, err}
+		})
+		if out := <-done; out.err != nil {
+			res := map[string]any{"applied": false, "failureReason": out.err.Error()}
+			if out.failed >= 0 {
+				res["failedChange"] = out.failed
+			}
+
+			return res, nil
+		}
+
+		return map[string]any{"applied": true}, nil
 	case "window/showMessageRequest":
-		return nil, nil
+		var p ShowMessageRequestParams
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, &ResponseError{Code: -32602, Message: err.Error()}
+		}
+
+		// The answer comes from the user, the connection keeps reading
+		// until then.
+		return AsyncResult(func(reply func(any, *ResponseError)) {
+			c.dispatch(func() {
+				if c.OnMessageRequest == nil {
+					reply(nil, nil)
+
+					return
+				}
+
+				c.OnMessageRequest(p, func(action *MessageActionItem) {
+					if action == nil {
+						reply(nil, nil)
+					} else {
+						reply(action, nil)
+					}
+				})
+			})
+		}), nil
 	case "window/showDocument":
 		var p ShowDocumentParams
 		if err := json.Unmarshal(params, &p); err != nil {
@@ -527,37 +676,83 @@ func request[T any](c *Client, method string, params any, cb func(result T, err 
 	}, failTo(c, cb))
 }
 
-// DidOpen announces a document.
+// DidOpen announces a document when the server takes open and close
+// notifications for it, once. The document is remembered either way, a
+// later registration may open it.
 func (c *Client) DidOpen(uri, languageID string, version int, text string) {
 	c.whenReady(func() {
-		_ = c.conn.Notify("textDocument/didOpen", map[string]any{
-			"textDocument": TextDocumentItem{URI: uri, LanguageID: languageID, Version: version, Text: text},
-		})
+		if c.docs == nil {
+			c.docs = map[string]docState{}
+		}
+
+		d := docState{languageID: languageID, opened: c.docs[uri].opened}
+		if !d.opened && c.syncFor(uri).OpenClose {
+			d.opened = true
+			_ = c.conn.Notify("textDocument/didOpen", map[string]any{
+				"textDocument": TextDocumentItem{URI: uri, LanguageID: languageID, Version: version, Text: text},
+			})
+		}
+
+		c.docs[uri] = d
 	}, nil)
 }
 
-// DidChange sends incremental changes. They are computed when sent, so
-// positions use the encoding the server negotiated.
-func (c *Client) DidChange(uri string, version int, changes func(Encoding) []ContentChange) {
+// Opened reports whether the server was told about a document.
+func (c *Client) Opened(uri string) bool {
+	return c.docs[uri].opened
+}
+
+// DidChange sends an edit of an opened document the way the server asked
+// for: the incremental changes, the whole text, or nothing. Both are
+// computed when sent, so positions use the encoding the server
+// negotiated.
+func (c *Client) DidChange(uri string, version int, changes func(Encoding) []ContentChange, text func() string) {
 	c.whenReady(func() {
+		var content []ContentChange
+		switch sync := c.syncFor(uri); {
+		case !c.docs[uri].opened:
+			return
+		case sync.Change == SyncFull:
+			content = []ContentChange{{Text: text()}}
+		case sync.Change == SyncIncremental:
+			content = changes(c.Encoding)
+		default:
+			return
+		}
+
 		_ = c.conn.Notify("textDocument/didChange", DidChangeParams{
 			TextDocument:   VersionedTextDocumentIdentifier{URI: uri, Version: version},
-			ContentChanges: changes(c.Encoding),
+			ContentChanges: content,
 		})
 	}, nil)
 }
 
-// DidSave notifies a save.
-func (c *Client) DidSave(uri string) {
+// DidSave notifies a save of an opened document when the server asked
+// for it, with the text when it wants that too.
+func (c *Client) DidSave(uri string, text func() string) {
 	c.whenReady(func() {
-		_ = c.conn.Notify("textDocument/didSave", map[string]any{"textDocument": TextDocumentIdentifier{URI: uri}})
+		sync := c.syncFor(uri)
+		if !c.docs[uri].opened || !sync.Save {
+			return
+		}
+
+		params := map[string]any{"textDocument": TextDocumentIdentifier{URI: uri}}
+		if sync.IncludeText {
+			params["text"] = text()
+		}
+
+		_ = c.conn.Notify("textDocument/didSave", params)
 	}, nil)
 }
 
-// DidClose notifies a close.
+// DidClose forgets a document, telling the server when it was opened.
 func (c *Client) DidClose(uri string) {
 	c.whenReady(func() {
-		_ = c.conn.Notify("textDocument/didClose", map[string]any{"textDocument": TextDocumentIdentifier{URI: uri}})
+		if c.docs[uri].opened {
+			_ = c.conn.Notify("textDocument/didClose", map[string]any{"textDocument": TextDocumentIdentifier{URI: uri}})
+		}
+
+		delete(c.docs, uri)
 	}, nil)
 }
 
@@ -765,42 +960,9 @@ func (c *Client) PrepareRename(params TextDocumentPositionParams, cb func(*Prepa
 	request(c, "textDocument/prepareRename", params, cb)
 }
 
-// PrepareRenameSupported reports the server capability.
-func (c *Client) PrepareRenameSupported() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	var obj struct {
-		PrepareProvider bool `json:"prepareProvider"`
-	}
-
-	return json.Unmarshal(c.Capabilities.RenameProvider, &obj) == nil && obj.PrepareProvider
-}
-
 // DocumentHighlights requests the occurrences of the symbol at a position.
 func (c *Client) DocumentHighlights(params TextDocumentPositionParams, cb func([]DocumentHighlight, error)) {
 	request(c, "textDocument/documentHighlight", params, cb)
-}
-
-// SignatureTriggers returns the chars that start signature help.
-func (c *Client) SignatureTriggers() (trigger, retrigger []string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.Capabilities.SignatureHelpProvider == nil {
-		return nil, nil
-	}
-
-	return c.Capabilities.SignatureHelpProvider.TriggerCharacters, c.Capabilities.SignatureHelpProvider.RetriggerCharacters
-}
-
-// CompletionTriggers returns the server's trigger characters.
-func (c *Client) CompletionTriggers() []string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.Capabilities.CompletionProvider == nil {
-		return nil
-	}
-
-	return c.Capabilities.CompletionProvider.TriggerCharacters
 }
 
 // LinkedEditingRanges asks for the ranges that change together with the
@@ -828,4 +990,10 @@ func shortVersion(v string) string {
 	}
 
 	return strings.TrimSpace(v)
+}
+
+// ResolveCompletion asks for the rest of a completion item, such as its
+// documentation and additional edits.
+func (c *Client) ResolveCompletion(item CompletionItem, cb func(CompletionItem, error)) {
+	request(c, "completionItem/resolve", item, cb)
 }

@@ -3,6 +3,7 @@ package ui
 import (
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -10,45 +11,117 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
 )
 
-// wrapPlain breaks plain text lines at spaces to fit width cells, words
-// longer than a line are cut. Tabs become four spaces.
-func wrapPlain(lines []string, width int) []string {
+// wrapLines breaks lines at spaces to fit width cells, words longer
+// than a line are cut. Tabs become four spaces, a rule stays one row.
+func wrapLines(lines []Line, width int) []Line {
 	width = max(width, 1)
-	var out []string
+	var out []Line
 	for _, line := range lines {
-		line = strings.ReplaceAll(line, "\t", "    ")
-		for lipgloss.Width(line) > width {
-			fit := ansi.Truncate(line, width, "")
+		if line.Rule {
+			out = append(out, line)
+
+			continue
+		}
+
+		runs := expandTabs(line.Runs)
+		text := Line{Runs: runs}.String()
+		for lipgloss.Width(text) > width {
+			fit := ansi.Truncate(text, width, "")
 			idx := strings.LastIndex(fit, " ")
 			if idx <= 0 {
 				idx = len(fit)
 			}
 
-			out = append(out, strings.TrimRight(line[:idx], " "))
-			line = strings.TrimLeft(line[idx:], " ")
+			if idx == 0 {
+				_, idx = utf8.DecodeRuneInString(text)
+			}
+
+			head := strings.TrimRight(text[:idx], " ")
+			rest := strings.TrimLeft(text[idx:], " ")
+			out = append(out, Line{Runs: cutRuns(runs, 0, len(head))})
+			runs = cutRuns(runs, len(text)-len(rest), len(text))
+			text = rest
 		}
 
-		out = append(out, line)
+		if text != "" || line.String() == "" {
+			out = append(out, Line{Runs: runs})
+		}
 	}
 
 	return out
 }
 
-// RenderPopup draws text lines in a box of the given size with the popup
+// expandTabs replaces tabs with four spaces in every run.
+func expandTabs(runs []Run) []Run {
+	out := make([]Run, len(runs))
+	for i, r := range runs {
+		out[i] = Run{Text: strings.ReplaceAll(r.Text, "\t", "    "), Scope: r.Scope}
+	}
+
+	return out
+}
+
+// cutRuns keeps the bytes [from, to) of the joined runs.
+func cutRuns(runs []Run, from, to int) []Run {
+	var out []Run
+	pos := 0
+	for _, r := range runs {
+		start, end := max(from-pos, 0), min(to-pos, len(r.Text))
+		if start < end {
+			out = append(out, Run{Text: r.Text[start:end], Scope: r.Scope})
+		}
+
+		pos += len(r.Text)
+	}
+
+	return out
+}
+
+// renderLine draws one wrapped line in a box of inner cells: the runs
+// in their scope styles over the base, or a rule.
+func renderLine(line Line, inner int, base theme.Style, th *Theme) (string, int) {
+	if line.Rule {
+		rule := base.Patch(theme.Style{Fg: th.PickerBorder.Fg})
+
+		return th.Render(rule, strings.Repeat("─", inner)), inner
+	}
+
+	var sb strings.Builder
+	cells := 0
+	for _, r := range line.Runs {
+		style := base
+		if r.Scope != "" {
+			style = base.Patch(th.Scope(r.Scope))
+		}
+
+		sb.WriteString(th.Render(style, r.Text))
+		cells += lipgloss.Width(r.Text)
+	}
+
+	return sb.String(), cells
+}
+
+// RenderPopup draws lines in a box of the given size with the popup
 // background, wrapping long lines.
-func RenderPopup(lines []string, scroll, width, height int, th *Theme) string {
+func RenderPopup(lines []Line, scroll, width, height int, th *Theme) string {
 	style := th.Popup.Patch(th.Text)
-	wrapped := wrapPlain(lines, width-2)
+	inner := max(width-2, 1)
+	wrapped := wrapLines(lines, inner)
 	wrapped = wrapped[max(min(scroll, len(wrapped)-height), 0):]
 	var sb strings.Builder
 	for row := range height {
-		text := ""
+		var line string
+		cells := 0
 		if row < len(wrapped) {
-			text = wrapped[row]
+			line, cells = renderLine(wrapped[row], inner, style, th)
 		}
 
-		text = " " + text
-		sb.WriteString(th.Render(style, text+strings.Repeat(" ", max(width-lipgloss.Width(text), 0))))
+		sb.WriteString(th.Render(style, " "))
+		sb.WriteString(line)
+		if pad := width - 1 - cells; pad > 0 {
+			sb.WriteString(th.Render(style, strings.Repeat(" ", pad)))
+		}
+
 		if row < height-1 {
 			sb.WriteByte('\n')
 		}
@@ -59,14 +132,14 @@ func RenderPopup(lines []string, scroll, width, height int, th *Theme) string {
 
 // PopupSize returns the box size for lines within the given limits, the
 // height counting the wrapped rows.
-func PopupSize(lines []string, maxWidth, maxHeight int) (int, int) {
+func PopupSize(lines []Line, maxWidth, maxHeight int) (int, int) {
 	width := 0
 	for _, l := range lines {
-		width = max(width, lipgloss.Width(strings.ReplaceAll(l, "\t", "    "))+2)
+		width = max(width, lipgloss.Width(Line{Runs: expandTabs(l.Runs)}.String())+2)
 	}
 
 	width = min(max(width, 10), maxWidth)
-	height := len(wrapPlain(lines, width-2))
+	height := len(wrapLines(lines, width-2))
 
 	return width, min(max(height, 1), maxHeight)
 }
@@ -126,7 +199,7 @@ type Signature struct {
 
 	// ActiveStart and ActiveEnd delimit the active parameter in chars.
 	ActiveStart, ActiveEnd int
-	Docs                   []string
+	Docs                   []Line
 
 	// Index and Count are shown as a counter when there are overloads.
 	Index, Count int
@@ -136,7 +209,7 @@ type Signature struct {
 func SignatureSize(sig Signature, maxWidth, maxHeight int) (int, int) {
 	width := lipgloss.Width(sig.Label+signatureCounter(sig)) + 2
 	for _, l := range sig.Docs {
-		width = max(width, lipgloss.Width(strings.ReplaceAll(l, "\t", "    "))+2)
+		width = max(width, lipgloss.Width(Line{Runs: expandTabs(l.Runs)}.String())+2)
 	}
 
 	width = min(max(width, 10), maxWidth)
@@ -153,11 +226,13 @@ func signatureCounter(sig Signature) string {
 }
 
 // sigRow is one row of the signature popup: a piece of the label with
-// the active parameter as rune offsets into it, the rule, or a doc line.
+// the active parameter as rune offsets into it, or a doc line, the rule
+// between them being one.
 type sigRow struct {
 	text   string
 	active [2]int
-	rule   bool
+	doc    bool
+	line   Line
 }
 
 // signatureRows lays the signature out in inner cells: the label cut
@@ -185,9 +260,9 @@ func signatureRows(sig Signature, inner int) []sigRow {
 	}
 
 	if len(sig.Docs) > 0 {
-		rows = append(rows, sigRow{rule: true})
-		for _, l := range wrapPlain(sig.Docs, inner) {
-			rows = append(rows, sigRow{text: l})
+		rows = append(rows, sigRow{doc: true, line: Line{Rule: true}})
+		for _, l := range wrapLines(sig.Docs, inner) {
+			rows = append(rows, sigRow{doc: true, line: l})
 		}
 	}
 
@@ -200,7 +275,6 @@ func signatureRows(sig Signature, inner int) []sigRow {
 func RenderSignatureHelp(sig Signature, width, height int, th *Theme) string {
 	style := th.Popup.Patch(th.Text)
 	active := style.Patch(theme.Style{Fg: th.Special.Fg, Add: theme.ModBold | theme.ModUnderlined})
-	rule := style.Patch(theme.Style{Fg: th.PickerBorder.Fg})
 	inner := max(width-2, 1)
 	rows := signatureRows(sig, inner)
 
@@ -211,8 +285,8 @@ func RenderSignatureHelp(sig Signature, width, height int, th *Theme) string {
 		if row < len(rows) {
 			r := rows[row]
 			switch {
-			case r.rule:
-				line, cells = th.Render(rule, strings.Repeat("─", inner)), inner
+			case r.doc:
+				line, cells = renderLine(r.line, inner, style, th)
 			default:
 				runes := []rune(r.text)
 				line = th.Render(style, string(runes[:r.active[0]])) + th.Render(active, string(runes[r.active[0]:r.active[1]])) +

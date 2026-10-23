@@ -558,7 +558,7 @@ func saveDocForce(e *Editor, doc *Document) error {
 	defer e.runCheck(doc, check)
 
 	for _, client := range doc.Clients() {
-		client.DidSave(doc.uri)
+		client.DidSave(doc.uri, doc.Text().String)
 	}
 
 	e.saveUndo(doc)

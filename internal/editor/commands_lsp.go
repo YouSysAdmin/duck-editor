@@ -15,6 +15,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // popupScrollStep is how many rows C-d and C-u scroll a popup.
@@ -22,7 +23,7 @@ const popupScrollStep = 5
 
 // Popup is a transient text box shown near the cursor.
 type Popup struct {
-	Lines []string
+	Lines []ui.Line
 
 	// Scroll is how many wrapped rows scrolled out at the top, C-d and
 	// C-u move it.
@@ -108,48 +109,33 @@ func init() {
 		doc:   "Stops the language servers that are used by the current doc",
 		run: func(cx *Context, _ []string) error {
 			e := cx.Editor
-			clients := e.Doc().Clients()
-			if len(clients) == 0 {
+			if _, stopped := e.stopDocServers(e.Doc()); !stopped {
 				return cmdError("no language server running for this buffer")
-			}
-
-			for _, client := range clients {
-				client.Stop()
-				for _, d := range e.Docs {
-					d.removeClient(client)
-				}
 			}
 
 			return nil
 		},
 	}, typedCommand{
 		names: []string{"lsp-restart"},
-		doc:   "Restarts the language servers used by the current doc",
+		doc:   "Restarts the language servers used by the current doc, also after they stopped or failed",
 		run: func(cx *Context, _ []string) error {
 			e := cx.Editor
 			doc := e.Doc()
-			clients := doc.Clients()
-			if len(clients) == 0 {
-				return cmdError("no language server running for this buffer")
+			if doc.language == nil || len(doc.language.LanguageServers) == 0 {
+				return cmdError("no language server configured for this buffer")
 			}
 
-			var affected []*Document
-			for _, old := range clients {
-				old.Stop()
-				for key, c := range e.lspClients {
-					if c == old {
-						delete(e.lspClients, key)
-					}
+			affected, _ := e.stopDocServers(doc)
+			// Documents of the language whose servers went away earlier
+			// get them back too.
+			for _, d := range e.documentsByID() {
+				if d.language == doc.language && len(d.clients) == 0 && !slices.Contains(affected, d) {
+					affected = append(affected, d)
 				}
+			}
 
-				for _, d := range e.Docs {
-					if slices.ContainsFunc(d.clients, func(dc docClient) bool { return dc.client == old }) {
-						d.removeClient(old)
-						if !slices.Contains(affected, d) {
-							affected = append(affected, d)
-						}
-					}
-				}
+			for _, name := range doc.language.LanguageServers {
+				delete(e.serverStops, name)
 			}
 
 			for _, d := range affected {
@@ -159,6 +145,40 @@ func init() {
 			return nil
 		},
 	})
+}
+
+// stopDocServers shuts down the servers of a document and detaches them
+// from every document, returning the documents that lost one and
+// whether there was any.
+func (e *Editor) stopDocServers(doc *Document) ([]*Document, bool) {
+	clients := doc.Clients()
+	var affected []*Document
+	for _, client := range clients {
+		for _, d := range e.documentsByID() {
+			if slices.ContainsFunc(d.clients, func(dc docClient) bool { return dc.client == client }) && !slices.Contains(affected, d) {
+				affected = append(affected, d)
+			}
+		}
+
+		found := false
+		for key, c := range e.lspClients {
+			if c == client {
+				e.stopClient(key, client)
+				found = true
+			}
+		}
+
+		if !found {
+			// A client the exit handler already forgot still has to go.
+			for _, d := range e.documentsByID() {
+				d.removeClient(client)
+			}
+
+			client.Stop()
+		}
+	}
+
+	return affected, len(clients) > 0
 }
 
 // requireClient returns the server offering a feature for the current
@@ -292,7 +312,7 @@ func hover(cx *Context) {
 	if client == nil {
 		// Without a server the diagnostics under the cursor still show.
 		if len(diags) > 0 {
-			e.Popup = &Popup{Lines: diags}
+			e.Popup = &Popup{Lines: ui.PlainLines(diags)}
 
 			return
 		}
@@ -309,18 +329,18 @@ func hover(cx *Context) {
 			return
 		}
 
-		var text string
+		var text []ui.Line
 		if h != nil {
-			text = strings.TrimRight(hoverText(h), "\n")
+			text = hoverLines(h)
 		}
 
-		lines := diags
-		if strings.TrimSpace(text) != "" {
+		lines := ui.PlainLines(diags)
+		if len(text) > 0 {
 			if len(lines) > 0 {
-				lines = append(lines, "")
+				lines = append(lines, ui.Line{})
 			}
 
-			lines = append(lines, strings.Split(text, "\n")...)
+			lines = append(lines, text...)
 		}
 
 		if len(lines) == 0 {
@@ -354,22 +374,22 @@ func diagnosticLines(doc *Document) []string {
 	return lines
 }
 
-// hoverText flattens hover contents, dropping markdown fences.
-func hoverText(h *lsp.Hover) string {
-	type part struct {
-		text     string
-		markdown bool
-	}
-
-	var parts []part
+// hoverLines lays the hover contents out for the popup: markdown is
+// rendered, plain text and marked code are shown as they are.
+func hoverLines(h *lsp.Hover) []ui.Line {
+	var out []ui.Line
 	var mc lsp.MarkupContent
 	var str string
 	var many []jsontext.Value
 	switch {
 	case json.Unmarshal(h.Contents, &mc) == nil && mc.Value != "":
-		parts = append(parts, part{mc.Value, mc.Kind != "plaintext"})
+		if mc.Kind == "plaintext" {
+			out = ui.PlainLines(strings.Split(mc.Value, "\n"))
+		} else {
+			out = ui.Markdown(mc.Value)
+		}
 	case json.Unmarshal(h.Contents, &str) == nil:
-		parts = append(parts, part{str, true})
+		out = ui.Markdown(str)
 	case json.Unmarshal(h.Contents, &many) == nil:
 		for _, raw := range many {
 			var s string
@@ -379,66 +399,18 @@ func hoverText(h *lsp.Hover) string {
 			}
 			switch {
 			case json.Unmarshal(raw, &s) == nil:
-				parts = append(parts, part{s, true})
+				out = append(out, ui.Markdown(s)...)
 			case json.Unmarshal(raw, &marked) == nil:
-				// A marked string is code, shown as it is.
-				parts = append(parts, part{marked.Value, false})
+				out = append(out, ui.Code(marked.Value)...)
 			}
 		}
 	}
 
-	var out []string
-	for _, p := range parts {
-		if p.markdown {
-			out = append(out, markdownLines(p.text)...)
-		} else {
-			out = append(out, strings.Split(p.text, "\n")...)
-		}
-	}
-
-	return strings.Join(out, "\n")
-}
-
-// markdownLines splits markdown into lines for a popup: code fence lines
-// are dropped and backslash escapes outside code are resolved, so
-// deploy\_to reads deploy_to.
-func markdownLines(text string) []string {
-	var out []string
-	inCode := false
-	for line := range strings.SplitSeq(text, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "```") {
-			inCode = !inCode
-
-			continue
-		}
-
-		if !inCode {
-			line = unescapeMarkdown(line)
-		}
-
-		out = append(out, line)
+	for len(out) > 0 && out[len(out)-1].String() == "" && !out[len(out)-1].Rule {
+		out = out[:len(out)-1]
 	}
 
 	return out
-}
-
-// unescapeMarkdown drops the backslash of an escaped ASCII punctuation
-// character.
-func unescapeMarkdown(line string) string {
-	if !strings.Contains(line, "\\") {
-		return line
-	}
-
-	var b strings.Builder
-	for i := 0; i < len(line); i++ {
-		if line[i] == '\\' && i+1 < len(line) && strings.IndexByte("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", line[i+1]) >= 0 {
-			i++
-		}
-
-		b.WriteByte(line[i])
-	}
-
-	return b.String()
 }
 
 func renameSymbol(cx *Context) {
@@ -452,7 +424,7 @@ func renameSymbol(cx *Context) {
 	word := edit.TextObjectWord(text, doc.Selection().Primary(), edit.Inside, false)
 	current := word.Fragment(text)
 	position := e.lspPosition(doc, client)
-	if client.PrepareRenameSupported() {
+	if client.PrepareRenameSupported(doc.uri, doc.languageID()) {
 		// Let the server say what is being renamed before asking.
 		client.PrepareRename(position, func(pr *lsp.PrepareRename, err error) {
 			if err != nil {
@@ -507,7 +479,7 @@ func renamePrompt(e *Editor, client *lsp.Client, position lsp.TextDocumentPositi
 				return
 			}
 
-			if err := e.applyWorkspaceEdit(client, *we); err != nil {
+			if _, err := e.applyWorkspaceEdit(client, *we); err != nil {
 				e.SetError("%v", err)
 			}
 		})
@@ -615,7 +587,7 @@ func actionRank(a lsp.CodeAction) int {
 func applyCodeAction(e *Editor, client *lsp.Client, action lsp.CodeAction) {
 	run := func(action lsp.CodeAction) {
 		if action.Edit != nil {
-			if err := e.applyWorkspaceEdit(client, *action.Edit); err != nil {
+			if _, err := e.applyWorkspaceEdit(client, *action.Edit); err != nil {
 				e.SetError("%v", err)
 
 				return

@@ -243,7 +243,7 @@ func sudoTee(e *Editor, doc *Document, path string) error {
 		doc.markSaved()
 		doc.rememberDiskTime()
 		for _, client := range doc.Clients() {
-			client.DidSave(doc.uri)
+			client.DidSave(doc.uri, doc.Text().String)
 		}
 
 		e.saveUndo(doc)

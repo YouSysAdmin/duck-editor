@@ -17,6 +17,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // fakeServer answers a few LSP requests over in process pipes.
@@ -24,18 +25,42 @@ type fakeServer struct {
 	conn     *lsp.Conn
 	opened   chan string
 	changes  chan lsp.DidChangeParams
+	saves    chan fakeSave
+	closed   chan string
 	requests chan string
+
+	// sync is the textDocumentSync capability, incremental with save
+	// and text when nil.
+	sync any
 
 	// format answers textDocument/formatting when set.
 	format func() []lsp.TextEdit
+
+	// resolve advertises resolveProvider and answers completionItem/resolve
+	// with documentation and an import edit.
+	resolve bool
 }
 
-func startFakeServer(t *testing.T) (*fakeServer, io.Reader, io.Writer, io.Closer) {
+// fakeSave is a didSave the fake server received.
+type fakeSave struct {
+	URI  string
+	Text *string
+}
+
+func startFakeServer(t *testing.T, opts ...func(*fakeServer)) (*fakeServer, io.Reader, io.Writer, io.Closer) {
 	t.Helper()
 
 	clientIn, serverOut := io.Pipe()
 	serverIn, clientOut := io.Pipe()
-	fs := &fakeServer{opened: make(chan string, 8), changes: make(chan lsp.DidChangeParams, 64), requests: make(chan string, 64)}
+	fs := &fakeServer{
+		opened: make(chan string, 8), changes: make(chan lsp.DidChangeParams, 64),
+		saves: make(chan fakeSave, 8), closed: make(chan string, 8), requests: make(chan string, 64),
+		sync: map[string]any{"openClose": true, "change": lsp.SyncIncremental, "save": map[string]any{"includeText": true}},
+	}
+	for _, opt := range opts {
+		opt(fs)
+	}
+
 	fs.conn = lsp.NewConn(serverIn, serverOut, nil)
 	fs.conn.OnNotify = func(method string, params jsontext.Value) {
 		switch method {
@@ -49,6 +74,19 @@ func startFakeServer(t *testing.T) (*fakeServer, io.Reader, io.Writer, io.Closer
 			var p lsp.DidChangeParams
 			_ = json.Unmarshal(params, &p)
 			fs.changes <- p
+		case "textDocument/didSave":
+			var p struct {
+				TextDocument lsp.TextDocumentIdentifier `json:"textDocument"`
+				Text         *string                    `json:"text"`
+			}
+			_ = json.Unmarshal(params, &p)
+			fs.saves <- fakeSave{URI: p.TextDocument.URI, Text: p.Text}
+		case "textDocument/didClose":
+			var p struct {
+				TextDocument lsp.TextDocumentIdentifier `json:"textDocument"`
+			}
+			_ = json.Unmarshal(params, &p)
+			fs.closed <- p.TextDocument.URI
 		}
 	}
 	fs.conn.OnRequest = func(method string, params jsontext.Value) (any, *lsp.ResponseError) {
@@ -57,7 +95,8 @@ func startFakeServer(t *testing.T) (*fakeServer, io.Reader, io.Writer, io.Closer
 		case "initialize":
 			return map[string]any{"capabilities": map[string]any{
 				"positionEncoding":           "utf-8",
-				"completionProvider":         map[string]any{"triggerCharacters": []string{"."}},
+				"textDocumentSync":           fs.sync,
+				"completionProvider":         map[string]any{"triggerCharacters": []string{"."}, "resolveProvider": fs.resolve},
 				"definitionProvider":         true,
 				"hoverProvider":              true,
 				"documentFormattingProvider": true,
@@ -85,6 +124,13 @@ func startFakeServer(t *testing.T) (*fakeServer, io.Reader, io.Writer, io.Closer
 				{Label: "other"},
 				{Label: "run", Command: &lsp.Command{Command: "fake.after"}},
 			}}, nil
+		case "completionItem/resolve":
+			var item lsp.CompletionItem
+			_ = json.Unmarshal(params, &item)
+			item.Documentation = jsontext.Value(`{"kind":"markdown","value":"Does **` + item.Label + `**."}`)
+			item.AdditionalTextEdits = []lsp.TextEdit{{Range: lsp.Range{}, NewText: "// import " + item.Label + "\n"}}
+
+			return item, nil
 		case "workspace/executeCommand":
 			return nil, nil
 		case "textDocument/linkedEditingRange":
@@ -170,7 +216,7 @@ func pump(t *testing.T, e *Editor, cond func() bool) {
 	}
 }
 
-func newLSPEditor(t *testing.T, text string) (*Editor, *fakeServer, string) {
+func newLSPEditor(t *testing.T, text string, opts ...func(*fakeServer)) (*Editor, *fakeServer, string) {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -191,7 +237,7 @@ func newLSPEditor(t *testing.T, text string) (*Editor, *fakeServer, string) {
 	e.Syntax = syntax.NewLoader(nil, langs)
 	e.lspDisabled = true
 
-	fs, in, out, closer := startFakeServer(t)
+	fs, in, out, closer := startFakeServer(t, opts...)
 	client := lsp.NewClient("fake", dir, in, out, closer, e.dispatch)
 	client.Initialize(nil)
 	if e.lspClients == nil {
@@ -207,13 +253,15 @@ func newLSPEditor(t *testing.T, text string) (*Editor, *fakeServer, string) {
 
 	pump(t, e, client.Ready)
 	e.attachClient(doc, docClient{client: client})
-	select {
-	case uri := <-fs.opened:
-		if uri != doc.uri {
-			t.Fatalf("opened %q want %q", uri, doc.uri)
+	if client.SyncFor(doc.uri).OpenClose {
+		select {
+		case uri := <-fs.opened:
+			if uri != doc.uri {
+				t.Fatalf("opened %q want %q", uri, doc.uri)
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatal("didOpen not received")
 		}
-	case <-time.After(3 * time.Second):
-		t.Fatal("didOpen not received")
 	}
 
 	t.Cleanup(func() { client.Stop() })
@@ -287,7 +335,7 @@ func TestLSPGotoDefinitionHoverRename(t *testing.T) {
 
 	e.feed(t, " k")
 	pump(t, e, func() bool { return e.Popup != nil })
-	if len(e.Popup.Lines) != 2 || e.Popup.Lines[0] != "func foo()" {
+	if len(e.Popup.Lines) != 2 || e.Popup.Lines[0].String() != "func foo()" {
 		t.Fatalf("popup %v", e.Popup.Lines)
 	}
 
@@ -481,12 +529,12 @@ func TestHoverMarkdownEscapes(t *testing.T) {
 	t.Parallel()
 
 	md := lsp.Hover{Contents: jsontext.Value(`{"kind":"markdown","value":"name, deploy\\_to, keep\\_releases \\*\n` + "```go\\nx := `a\\\\_b`\\n```" + `"}`)}
-	if got := hoverText(&md); got != "name, deploy_to, keep_releases *\nx := `a\\_b`" {
+	if got := strings.Join(ui.Strings(hoverLines(&md)), "\n"); got != "name, deploy_to, keep_releases *\nx := `a\\_b`" {
 		t.Fatalf("markdown hover = %q", got)
 	}
 
 	plain := lsp.Hover{Contents: jsontext.Value(`{"kind":"plaintext","value":"C:\\_dir"}`)}
-	if got := hoverText(&plain); got != `C:\_dir` {
+	if got := strings.Join(ui.Strings(hoverLines(&plain)), "\n"); got != `C:\_dir` {
 		t.Fatalf("plain hover = %q", got)
 	}
 }
@@ -604,14 +652,14 @@ func TestHoverShowsDiagnostics(t *testing.T) {
 	e.feed(t, " k")
 	pump(t, e, func() bool { return e.Popup != nil })
 	want := []string{"warning: watch out (vet)", "", "func foo()", "Docs here"}
-	if !slices.Equal(e.Popup.Lines, want) {
+	if !slices.Equal(ui.Strings(e.Popup.Lines), want) {
 		t.Fatalf("popup %q", e.Popup.Lines)
 	}
 
 	plain := newTestEditor(t, "#[a|]#bc")
 	plain.Doc().diagnostics = []Diagnostic{{Range: edit.NewRange(0, 1), Severity: lsp.SeverityError, Message: "bad"}}
 	plain.feed(t, " k")
-	if plain.Popup == nil || !slices.Equal(plain.Popup.Lines, []string{"error: bad"}) {
+	if plain.Popup == nil || !slices.Equal(ui.Strings(plain.Popup.Lines), []string{"error: bad"}) {
 		t.Fatalf("popup without a server %+v status %+v", plain.Popup, plain.Status())
 	}
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // SignatureHelp is the signature popup shown while typing a call.
@@ -23,7 +24,7 @@ type SignatureHelp struct {
 	ParamEnd   int
 
 	// Docs holds the documentation lines of the signature or parameter.
-	Docs []string
+	Docs []ui.Line
 
 	// Index and Count locate the active signature among the overloads.
 	Index int
@@ -58,7 +59,7 @@ func (e *Editor) afterInsertSignature(key keymap.Key) {
 
 	ch, ok := key.Char()
 	ok = ok && key.Mods == 0
-	triggers, retriggers := client.SignatureTriggers()
+	triggers, retriggers := client.SignatureTriggers(doc.uri, doc.languageID())
 	switch {
 	case e.SignatureHelp != nil:
 		// Any key asks again, the server closes the popup once the cursor
@@ -217,7 +218,7 @@ func parameterOffsets(label string, param jsontext.Value) (int, int) {
 }
 
 // markupLines flattens a string or MarkupContent documentation value.
-func markupLines(raw jsontext.Value) []string {
+func markupLines(raw jsontext.Value) []ui.Line {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
 	}
@@ -237,8 +238,8 @@ func markupLines(raw jsontext.Value) []string {
 	}
 
 	if !markdown {
-		return strings.Split(text, "\n")
+		return ui.PlainLines(strings.Split(text, "\n"))
 	}
 
-	return markdownLines(text)
+	return ui.Markdown(text)
 }

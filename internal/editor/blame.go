@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 	"github.com/YouSysAdmin/duck-editor/internal/vcs"
 )
 
@@ -128,7 +129,7 @@ func blameLine(cx *Context) {
 				return
 			}
 
-			e.Popup = &Popup{Lines: blameLines(info)}
+			e.Popup = &Popup{Lines: ui.PlainLines(blameLines(info))}
 		})
 	})
 }

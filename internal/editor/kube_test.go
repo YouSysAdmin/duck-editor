@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // fakeKubectl keeps one object in $KSTATE: get prints it, diff compares
@@ -46,7 +48,7 @@ func TestKubeEdit(t *testing.T) {
 	replaceByLines(doc, strings.Replace(text, "password: s3cret", "password: n3w", 1))
 	e.runTyped(&Context{Editor: e}, "w")
 	runJobs(e)
-	if e.Popup == nil || !strings.Contains(strings.Join(e.Popup.Lines, "\n"), "+  password: n3w") {
+	if e.Popup == nil || !strings.Contains(strings.Join(ui.Strings(e.Popup.Lines), "\n"), "+  password: n3w") {
 		t.Fatalf("no diff shown: %+v, status %+v", e.Popup, e.Status())
 	}
 

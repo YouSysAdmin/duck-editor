@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // TestBufferInfo names the language, the configured servers and why a
@@ -36,7 +37,7 @@ func TestBufferInfo(t *testing.T) {
 		t.Fatal("no popup")
 	}
 
-	text := strings.Join(e.Popup.Lines, "\n")
+	text := strings.Join(ui.Strings(e.Popup.Lines), "\n")
 	for _, want := range []string{"language    go", "gopls  off", "formatter", "indent      tabs"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %q in:\n%s", want, text)

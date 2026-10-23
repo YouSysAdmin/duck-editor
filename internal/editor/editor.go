@@ -125,7 +125,11 @@ type Editor struct {
 	previews      map[string]*Preview
 	previewGen    int
 
-	lspClients  map[string]*lsp.Client
+	lspClients map[string]*lsp.Client
+
+	// lspStart starts a server process, tests replace it with an in
+	// process one.
+	lspStart    func(lsp.Options, lsp.Dispatcher) (*lsp.Client, error)
 	lspDisabled bool
 	progress    map[progressKey]progressItem
 	clipboard   clipboard.Provider

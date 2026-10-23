@@ -173,11 +173,12 @@ editor:
   # Language servers.
   lsp:
     enable: true
-    display-messages: true # server messages in the command line
+    display-messages: true # server messages and questions in the command line
     display-progress-messages: false # progress reports in the command line
     auto-signature-help: true # signature help while typing call arguments
     display-inlay-hints: false # type and parameter hints in the text
     display-signature-help-docs: true # documentation under the signature
+    display-completion-docs: true # documentation of the selected completion beside the menu
     snippets: true # expand snippet completions
 
   # Shell for :sh, pipes and %sh{}, the command text is its last argument.

@@ -363,6 +363,10 @@ func (m Model) View() tea.View {
 	if ed.Completion != nil && cursor != nil {
 		if layer, side := m.renderCompletion(ed.Completion, cursor); layer != nil {
 			root.AddLayers(layer)
+			if doc := m.renderCompletionDoc(ed.Completion, layer); doc != nil {
+				root.AddLayers(doc)
+			}
+
 			sigSides = []overlaySide{sideAbove}
 			if side == sideAbove {
 				sigSides = []overlaySide{sideBelow}

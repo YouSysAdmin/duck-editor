@@ -116,3 +116,54 @@ func TestShortVersion(t *testing.T) {
 		}
 	}
 }
+
+// TestStopExitIsNoError reports the exit Stop asked for without an
+// error, a crash with one.
+func TestStopExitIsNoError(t *testing.T) {
+	t.Parallel()
+
+	for _, crash := range []bool{false, true} {
+		clientIn, serverOut := io.Pipe()
+		serverIn, clientOut := io.Pipe()
+		server := NewConn(serverIn, serverOut, nil)
+		server.OnRequest = func(method string, _ jsontext.Value) (any, *ResponseError) {
+			if method == "initialize" {
+				return map[string]any{"capabilities": map[string]any{}}, nil
+			}
+
+			return nil, nil
+		}
+		initialized := make(chan struct{}, 1)
+		server.OnNotify = func(method string, _ jsontext.Value) {
+			switch method {
+			case "initialized":
+				initialized <- struct{}{}
+			case "exit":
+				_ = serverOut.Close()
+			}
+		}
+		go server.Serve()
+
+		exits := make(chan error, 1)
+		c := NewClient("fake", "/", clientIn, clientOut, clientOut, func(fn func()) { fn() })
+		c.OnExit = func(err error) { exits <- err }
+		c.Initialize(nil)
+		// The pipes have no buffer, so the handshake ends before either
+		// side writes again.
+		<-initialized
+		if crash {
+			_ = serverOut.Close()
+		} else {
+			c.Stop()
+		}
+
+		select {
+		case err := <-exits:
+			if (err != nil) != crash {
+				t.Fatalf("crash %v: exit reported %v", crash, err)
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatal("no exit reported")
+		}
+	}
+}
