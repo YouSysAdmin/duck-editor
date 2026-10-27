@@ -84,7 +84,8 @@ func parsePattern(line string) (pattern, bool) {
 
 // globToRegexp converts a gitignore glob to a regexp over the slash
 // separated path relative to the ignore file. Unanchored patterns match
-// any path segment.
+// any path segment. A pattern matches the path itself, not what lies
+// below it, so a walk started inside an ignored directory lists it.
 func globToRegexp(glob string, anchored bool) (*regexp.Regexp, error) {
 	var sb strings.Builder
 	if anchored {
@@ -132,7 +133,7 @@ func globToRegexp(glob string, anchored bool) (*regexp.Regexp, error) {
 		}
 	}
 
-	sb.WriteString("(/|$)")
+	sb.WriteString("$")
 
 	return regexp.Compile(sb.String())
 }

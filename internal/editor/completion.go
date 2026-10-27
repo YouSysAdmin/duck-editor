@@ -238,8 +238,9 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		return false
 	}
 
-	switch {
-	case key == keymap.Ctrl('n') || key == (keymap.Key{Code: keymap.KeyTab}) || key == (keymap.Key{Code: keymap.KeyDown}):
+	action, _ := e.Keymaps.Action(keymap.Completion, key)
+	switch action {
+	case "completion_next":
 		if len(m.filtered) > 0 {
 			m.selected = (m.selected + 1) % len(m.filtered)
 			m.preview(e)
@@ -247,7 +248,7 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		}
 
 		return true
-	case key == keymap.Ctrl('p') || key == (keymap.Key{Code: keymap.KeyTab, Mods: keymap.ModShift}) || key == (keymap.Key{Code: keymap.KeyUp}):
+	case "completion_prev":
 		if len(m.filtered) > 0 {
 			m.selected = (max(m.selected, 0) - 1 + len(m.filtered)) % len(m.filtered)
 			m.preview(e)
@@ -255,7 +256,7 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		}
 
 		return true
-	case key == (keymap.Key{Code: keymap.KeyEnter}) || key == keymap.Ctrl('y'):
+	case "completion_accept":
 		m.revertPreview(e)
 		if m.selected < 0 || m.selected >= len(m.filtered) {
 			// Without a chosen item Enter is a line break.
@@ -276,13 +277,15 @@ func (m *CompletionMenu) handleKey(cx *Context, key keymap.Key) bool {
 		e.Completion = nil
 
 		return true
-	case key == (keymap.Key{Code: keymap.KeyEsc}):
-		// Escape closes the menu and still leaves insert mode.
+	case "completion_close":
+		// The key still acts in insert mode, escape leaves it.
 		m.revertPreview(e)
 		e.Completion = nil
 
 		return false
-	case key == keymap.Ctrl('c'):
+	case "no_op":
+		return true
+	case "completion_cancel":
 		m.revertPreview(e)
 		e.Completion = nil
 

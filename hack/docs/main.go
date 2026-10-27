@@ -35,9 +35,17 @@ func main() {
 // files maps every documentation file to its generated parts.
 var files = map[string]map[string]func() (string, error){
 	"docs/keys.md": {
-		"normal": func() (string, error) { return modeKeys(keymap.Normal), nil },
-		"select": func() (string, error) { return selectKeys(), nil },
-		"insert": func() (string, error) { return modeKeys(keymap.Insert), nil },
+		"normal":     func() (string, error) { return modeKeys(keymap.Normal), nil },
+		"select":     func() (string, error) { return selectKeys(), nil },
+		"insert":     func() (string, error) { return modeKeys(keymap.Insert), nil },
+		"picker":     func() (string, error) { return overlayKeys(keymap.Picker), nil },
+		"prompt":     func() (string, error) { return overlayKeys(keymap.Prompt), nil },
+		"menu":       func() (string, error) { return overlayKeys(keymap.Menu), nil },
+		"completion": func() (string, error) { return overlayKeys(keymap.Completion), nil },
+		"popup":      func() (string, error) { return overlayKeys(keymap.Popup), nil },
+	},
+	"docs/pickers.md": {
+		"picker": func() (string, error) { return overlayKeys(keymap.Picker), nil },
 	},
 	"docs/commands.md": {
 		"commands": func() (string, error) { return typedCommands(), nil },
@@ -215,6 +223,21 @@ func table(b *strings.Builder, n *keymap.Node) {
 	}
 
 	writeTable(b, []string{"Keys", "Action"}, rows)
+}
+
+// overlayKeys lists the actions of an overlay mode with their default
+// keys, the action names are what config.yaml binds.
+func overlayKeys(mode keymap.Mode) string {
+	bound := keymap.Default()[mode].Bindings()
+	var rows [][]string
+	for _, a := range keymap.Actions(mode) {
+		rows = append(rows, []string{keyCell(bound[a.Name]), "`" + a.Name + "`", cell(a.Doc)})
+	}
+
+	var b strings.Builder
+	writeTable(&b, []string{"Keys", "Action", "Does"}, rows)
+
+	return b.String()
 }
 
 // selectKeys lists the bindings of select mode that differ from normal

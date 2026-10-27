@@ -243,49 +243,73 @@ func (p *Prompt) handleKey(cx *Context, key keymap.Key) {
 		return
 	}
 
+	action, bound := e.Keymaps.Action(keymap.Prompt, key)
 	switch {
-	case key == keymap.Ctrl('r'):
+	case !bound && isChar && key.Mods&(keymap.ModCtrl|keymap.ModAlt|keymap.ModSuper) == 0:
+		p.input = append(p.input[:p.cursor], append([]rune{ch}, p.input[p.cursor:]...)...)
+		p.cursor++
+	case !bound:
+		return
+	default:
+		if !p.runAction(cx, action) {
+			return
+		}
+	}
+
+	// Editing starts a new history walk from the edited text.
+	p.history = -1
+	p.recalculate()
+	p.callback(cx, p.Input(), PromptUpdate)
+}
+
+// runAction runs a prompt action and reports whether it edited the
+// input.
+func (p *Prompt) runAction(cx *Context, action string) bool {
+	e := cx.Editor
+	switch action {
+	case "prompt_insert_register":
 		p.readRegister = true
+	case "prompt_delete_char_backward":
+		if len(p.input) == 0 {
+			// Backspace on an empty prompt leaves it.
+			e.Prompt = nil
+			p.callback(cx, "", PromptAbort)
 
-		return
-	case key == (keymap.Key{Code: keymap.KeyBackspace}) && len(p.input) == 0:
-		// Backspace on an empty prompt leaves it, as in Helix.
-		e.Prompt = nil
-		p.callback(cx, "", PromptAbort)
+			return false
+		}
 
-		return
-	case key == (keymap.Key{Code: keymap.KeyEsc}) || key == keymap.Ctrl('c'):
+		if p.cursor > 0 {
+			p.input = append(p.input[:p.cursor-1], p.input[p.cursor:]...)
+			p.cursor--
+		}
+
+		return true
+	case "prompt_close":
 		e.Prompt = nil
 		p.callback(cx, p.Input(), PromptAbort)
+	case "prompt_accept":
+		if p.selected >= 0 && p.selected < len(p.completions) && p.completions[p.selected].Descend {
+			p.recalculate()
+			p.callback(cx, p.Input(), PromptUpdate)
 
-		return
-	case key == (keymap.Key{Code: keymap.KeyEnter}) && p.selected >= 0 && p.selected < len(p.completions) && p.completions[p.selected].Descend:
-		p.recalculate()
-		p.callback(cx, p.Input(), PromptUpdate)
+			return false
+		}
 
-		return
-	case key == (keymap.Key{Code: keymap.KeyEnter}):
 		e.Prompt = nil
 		p.callback(cx, p.Input(), PromptValidate)
-
-		return
-	case key == (keymap.Key{Code: keymap.KeyUp}) || key == keymap.Ctrl('p'):
-		if p.recall(e, 1) {
-			p.recalculate()
-			p.callback(cx, p.Input(), PromptUpdate)
-		}
-
-		return
-	case key == (keymap.Key{Code: keymap.KeyDown}) || key == keymap.Ctrl('n'):
-		if p.recall(e, -1) {
-			p.recalculate()
-			p.callback(cx, p.Input(), PromptUpdate)
-		}
-
-		return
-	case key == (keymap.Key{Code: keymap.KeyTab}) || key == (keymap.Key{Code: keymap.KeyTab, Mods: keymap.ModShift}):
+	case "prompt_history_prev", "prompt_history_next":
 		dir := 1
-		if key.Mods == keymap.ModShift {
+		if action == "prompt_history_next" {
+			dir = -1
+		}
+
+		if p.recall(e, dir) {
+			p.recalculate()
+			p.callback(cx, p.Input(), PromptUpdate)
+		}
+	case "prompt_complete_next", "prompt_complete_prev":
+		dir := 1
+		if action == "prompt_complete_prev" {
 			dir = -1
 		}
 
@@ -299,56 +323,55 @@ func (p *Prompt) handleKey(cx *Context, key keymap.Key) {
 
 			p.callback(cx, p.Input(), PromptUpdate)
 		}
-
-		return
-	case key == (keymap.Key{Code: keymap.KeyBackspace}) || key == keymap.Ctrl('h'):
-		if p.cursor > 0 {
-			p.input = append(p.input[:p.cursor-1], p.input[p.cursor:]...)
-			p.cursor--
-		}
-	case key == (keymap.Key{Code: keymap.KeyDelete}) || key == keymap.Ctrl('d'):
+	case "prompt_delete_char_forward":
 		if p.cursor < len(p.input) {
 			p.input = append(p.input[:p.cursor], p.input[p.cursor+1:]...)
 		}
-	case key == (keymap.Key{Code: keymap.KeyLeft}) || key == keymap.Ctrl('b'):
+
+		return true
+	case "prompt_move_left":
 		p.cursor = max(p.cursor-1, 0)
-	case key == (keymap.Key{Code: keymap.KeyRight}) || key == keymap.Ctrl('f'):
+
+		return true
+	case "prompt_move_right":
 		p.cursor = min(p.cursor+1, len(p.input))
-	case key == (keymap.Key{Code: keymap.KeyHome}) || key == keymap.Ctrl('a'):
+
+		return true
+	case "prompt_line_start":
 		p.cursor = 0
-	case key == (keymap.Key{Code: keymap.KeyEnd}) || key == keymap.Ctrl('e'):
+
+		return true
+	case "prompt_line_end":
 		p.cursor = len(p.input)
-	case key == keymap.Ctrl('w') || key == keymap.Alt(keymap.KeyBackspace):
+
+		return true
+	case "prompt_delete_word_backward":
 		start := p.wordStartBefore(p.cursor)
 		p.input = append(p.input[:start], p.input[p.cursor:]...)
 		p.cursor = start
-	case key == keymap.Alt('d'):
+
+		return true
+	case "prompt_delete_word_forward":
 		end := p.wordEndAfter(p.cursor)
 		p.input = append(p.input[:p.cursor], p.input[end:]...)
-	case key == keymap.Alt('b') || key == (keymap.Key{Code: keymap.KeyLeft, Mods: keymap.ModCtrl}):
+
+		return true
+	case "prompt_word_left":
 		p.cursor = p.wordStartBefore(p.cursor)
-
-		return
-	case key == keymap.Alt('f') || key == (keymap.Key{Code: keymap.KeyRight, Mods: keymap.ModCtrl}):
+	case "prompt_word_right":
 		p.cursor = p.wordEndAfter(p.cursor)
-
-		return
-	case key == keymap.Ctrl('u'):
+	case "prompt_kill_to_line_start":
 		p.input = p.input[p.cursor:]
 		p.cursor = 0
-	case key == keymap.Ctrl('k'):
+
+		return true
+	case "prompt_kill_to_line_end":
 		p.input = p.input[:p.cursor]
-	case isChar && key.Mods&(keymap.ModCtrl|keymap.ModAlt|keymap.ModSuper) == 0:
-		p.input = append(p.input[:p.cursor], append([]rune{ch}, p.input[p.cursor:]...)...)
-		p.cursor++
-	default:
-		return
+
+		return true
 	}
 
-	// Editing starts a new history walk from the edited text.
-	p.history = -1
-	p.recalculate()
-	p.callback(cx, p.Input(), PromptUpdate)
+	return false
 }
 
 // insert puts text at the cursor as if it was typed.

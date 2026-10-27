@@ -500,6 +500,10 @@ func parseOnto(cfg Config, text string) (Config, error) {
 		}
 
 		trie, err := keymap.FromValue(bindings)
+		if err == nil && mode.Overlay() {
+			err = keymap.CheckOverlay(mode, trie)
+		}
+
 		if err != nil {
 			return cfg, fmt.Errorf("parse config: keys.%s: %w", modeName, err)
 		}

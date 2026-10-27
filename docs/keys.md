@@ -406,26 +406,127 @@ Any other key inserts its character.
 
 <!-- END insert -->
 
-## Pickers
+## Pickers and other overlays
 
-Typing filters the list. These keys work in every picker.
+Pickers, the command line, menus such as code actions, the completion
+menu and popups such as hover have key maps of their own: `picker`,
+`prompt`, `menu`, `completion` and `popup` under `keys` in
+`config.yaml`. A key there takes one action of its overlay, `no_op`
+removes a default key:
 
-| Keys                            | Action                                 |
-| ------------------------------- | -------------------------------------- |
-| `enter`                         | Open the selected item                 |
-| `C-s` `C-v`                     | Open in a horizontal or vertical split |
-| `up` `down` `C-p` `C-n` `tab`   | Move the selection                     |
-| `pageup` `pagedown` `C-u` `C-d` | Move the selection by a page           |
-| `home` `end`                    | First or last item                     |
-| `C-t`                           | Toggle the preview                     |
-| `A-u` `A-d`                     | Scroll the preview                     |
-| `C-w` `A-backspace`             | Delete a word of the filter            |
-| `esc` `C-c`                     | Close                                  |
+```yaml
+keys:
+  picker:
+    A-a: picker_toggle_all
+    C-i: no_op
+  prompt:
+    C-g: prompt_close
+```
 
-The file explorer adds these, it leaves out the files that the
-`file-picker` options hide.
+A key bound to nothing types into the filter of a picker or into the
+command line. In a menu, the completion menu and a popup it closes the
+overlay and then acts as usual.
 
-| Keys                               | Action                  |
-| ---------------------------------- | ----------------------- |
-| `A-h`, `backspace` on empty filter | Go up a directory       |
-| `A-l`                              | Open the selected entry |
+### Picker
+
+The explorer actions go up and open in the file explorer only,
+`picker_toggle_all` works in the file picker and the explorer,
+`picker_remove` in the buffer picker.
+
+<!-- BEGIN picker -->
+
+| Keys                     | Action                        | Does                                                                         |
+| ------------------------ | ----------------------------- | ---------------------------------------------------------------------------- |
+| `ret`                    | `picker_accept`               | Open the selected item                                                       |
+| `C-s`                    | `picker_accept_hsplit`        | Open the selected item in a horizontal split                                 |
+| `C-v`                    | `picker_accept_vsplit`        | Open the selected item in a vertical split                                   |
+| `esc` `C-c`              | `picker_close`                | Close the picker                                                             |
+| `tab` `down` `C-n` `C-j` | `picker_next`                 | Select the next item                                                         |
+| `S-tab` `up` `C-p` `C-k` | `picker_prev`                 | Select the previous item                                                     |
+| `pagedown` `C-d`         | `picker_page_down`            | Move the selection a page down                                               |
+| `pageup` `C-u`           | `picker_page_up`              | Move the selection a page up                                                 |
+| `home`                   | `picker_first`                | Select the first item                                                        |
+| `end`                    | `picker_last`                 | Select the last item                                                         |
+| `C-t`                    | `picker_toggle_preview`       | Show or hide the preview                                                     |
+| `A-d`                    | `picker_preview_down`         | Scroll the preview half a page down                                          |
+| `A-u`                    | `picker_preview_up`           | Scroll the preview half a page up                                            |
+| `A-h`                    | `picker_parent`               | Go up a directory in the explorer                                            |
+| `A-l`                    | `picker_descend`              | Open the selected entry of the explorer                                      |
+| `C-i`                    | `picker_toggle_all`           | Show or hide the files the file-picker options leave out                     |
+| `C-x`                    | `picker_remove`               | Close the selected buffer in the buffer picker                               |
+| `backspace` `C-h`        | `picker_delete_char_backward` | Delete a character of the filter, go up from an empty filter in the explorer |
+| `del`                    | `picker_delete_char_forward`  | Delete the character ahead                                                   |
+| `C-w` `A-backspace`      | `picker_delete_word_backward` | Delete a word of the filter                                                  |
+| `left` `C-b`             | `picker_move_left`            | Move left in the filter                                                      |
+| `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                     |
+| `C-a`                    | `picker_line_start`           | Move to the start of the filter                                              |
+| `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                |
+
+<!-- END picker -->
+
+### Command line
+
+<!-- BEGIN prompt -->
+
+| Keys                | Action                        | Does                                            |
+| ------------------- | ----------------------------- | ----------------------------------------------- |
+| `ret`               | `prompt_accept`               | Run the command line                            |
+| `esc` `C-c`         | `prompt_close`                | Close the command line                          |
+| `up` `C-p`          | `prompt_history_prev`         | Previous history entry                          |
+| `down` `C-n`        | `prompt_history_next`         | Next history entry                              |
+| `tab`               | `prompt_complete_next`        | Next completion                                 |
+| `S-tab`             | `prompt_complete_prev`        | Previous completion                             |
+| `C-r`               | `prompt_insert_register`      | Insert the contents of a register               |
+| `backspace` `C-h`   | `prompt_delete_char_backward` | Delete a character, close an empty command line |
+| `del` `C-d`         | `prompt_delete_char_forward`  | Delete the character ahead                      |
+| `C-w` `A-backspace` | `prompt_delete_word_backward` | Delete a word before the cursor                 |
+| `A-d`               | `prompt_delete_word_forward`  | Delete a word after the cursor                  |
+| `C-u`               | `prompt_kill_to_line_start`   | Delete to the start of the line                 |
+| `C-k`               | `prompt_kill_to_line_end`     | Delete to the end of the line                   |
+| `left` `C-b`        | `prompt_move_left`            | Move left                                       |
+| `right` `C-f`       | `prompt_move_right`           | Move right                                      |
+| `A-b` `C-left`      | `prompt_word_left`            | Move a word left                                |
+| `A-f` `C-right`     | `prompt_word_right`           | Move a word right                               |
+| `home` `C-a`        | `prompt_line_start`           | Move to the start of the line                   |
+| `end` `C-e`         | `prompt_line_end`             | Move to the end of the line                     |
+
+<!-- END prompt -->
+
+### Menu
+
+<!-- BEGIN menu -->
+
+| Keys                   | Action        | Does                     |
+| ---------------------- | ------------- | ------------------------ |
+| `ret`                  | `menu_accept` | Choose the selected item |
+| `esc` `C-c`            | `menu_close`  | Close the menu           |
+| `tab` `down` `C-n` `j` | `menu_next`   | Select the next item     |
+| `S-tab` `up` `C-p` `k` | `menu_prev`   | Select the previous item |
+
+<!-- END menu -->
+
+### Completion
+
+<!-- BEGIN completion -->
+
+| Keys               | Action              | Does                                                |
+| ------------------ | ------------------- | --------------------------------------------------- |
+| `ret` `C-y`        | `completion_accept` | Insert the selected item                            |
+| `tab` `down` `C-n` | `completion_next`   | Select the next item                                |
+| `S-tab` `up` `C-p` | `completion_prev`   | Select the previous item                            |
+| `esc`              | `completion_close`  | Close the menu, the key then acts as in insert mode |
+| `C-c`              | `completion_cancel` | Close the menu                                      |
+
+<!-- END completion -->
+
+### Popup
+
+<!-- BEGIN popup -->
+
+| Keys  | Action              | Does            |
+| ----- | ------------------- | --------------- |
+| `esc` | `popup_close`       | Close the popup |
+| `C-d` | `popup_scroll_down` | Scroll down     |
+| `C-u` | `popup_scroll_up`   | Scroll up       |
+
+<!-- END popup -->

@@ -403,21 +403,24 @@ func (e *Editor) HandleKey(key keymap.Key) {
 
 	cx := &Context{Editor: e}
 	if e.Popup != nil {
-		// C-d and C-u scroll a long popup, any other key closes it.
-		// Escape is consumed by it.
-		switch key {
-		case keymap.Ctrl('d'):
+		// A long popup scrolls, popup_close takes the key, any other key
+		// closes it and acts as usual.
+		action, _ := e.Keymaps.Action(keymap.Popup, key)
+		switch action {
+		case "popup_scroll_down":
 			e.Popup.Scroll = min(e.Popup.Scroll+popupScrollStep, max(len(e.Popup.Lines)-1, 0))
 
 			return
-		case keymap.Ctrl('u'):
+		case "popup_scroll_up":
 			e.Popup.Scroll = max(e.Popup.Scroll-popupScrollStep, 0)
 
+			return
+		case "no_op":
 			return
 		}
 
 		e.Popup = nil
-		if key == (keymap.Key{Code: keymap.KeyEsc}) {
+		if action == "popup_close" {
 			return
 		}
 	}

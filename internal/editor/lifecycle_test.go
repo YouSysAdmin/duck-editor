@@ -178,7 +178,10 @@ func TestCloseBufferShowsAnother(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e.CloseDocument(1, true)
+	if err := e.CloseDocument(1, true); err != nil {
+		t.Fatal(err)
+	}
+
 	e.feed(t, ":bc<ret>")
 	if e.Doc() != b {
 		t.Fatalf("after :bc the window shows %q", e.Doc().displayName())

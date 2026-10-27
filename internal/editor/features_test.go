@@ -2111,3 +2111,51 @@ type homeHost struct {
 }
 
 func (h homeHost) Home() (string, error) { return h.home, nil }
+
+// TestExplorerShowAll lists hidden and ignored entries after C-i, keeps
+// that in a subdirectory and hides them again on the next C-i.
+func TestExplorerShowAll(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	for _, d := range []string{".git", "build", "src"} {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for name, text := range map[string]string{".gitignore": "build/\n*.log\n", ".env": "x", "src/a.go": "", "src/a.log": ""} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	labels := func(e *Editor) []string {
+		var out []string
+		for _, item := range e.Picker.Items() {
+			out = append(out, item.Label)
+		}
+
+		return out
+	}
+	e := newTestEditor(t, "#[a|]#")
+	fileExplorer(&Context{Editor: e}, dir)
+	e.feed(t, "<down><C-i>")
+	if got := labels(e); !slices.Equal(got, []string{"../", "build/", "src/", ".env", ".gitignore"}) {
+		t.Fatalf("with everything shown %q", got)
+	}
+
+	if sel, _ := e.Picker.Selected(); sel.Label != "src/" || !strings.HasSuffix(e.Picker.Title, "(all)") {
+		t.Fatalf("selected %q title %q", sel.Label, e.Picker.Title)
+	}
+
+	e.feed(t, "<A-l>")
+	if got := labels(e); !slices.Equal(got, []string{"../", "a.go", "a.log"}) {
+		t.Fatalf("inside src %q", got)
+	}
+
+	e.feed(t, "<C-i>")
+	if got := labels(e); !slices.Equal(got, []string{"../", "a.go"}) {
+		t.Fatalf("filtered again %q", got)
+	}
+}

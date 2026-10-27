@@ -35,6 +35,22 @@ func TestDefaultKeymapCommandsExist(t *testing.T) {
 	}
 
 	for mode, tr := range keymap.Default() {
-		check(mode.String(), tr)
+		if !mode.Overlay() {
+			check(mode.String(), tr)
+
+			continue
+		}
+
+		if err := keymap.CheckOverlay(mode, tr); err != nil {
+			t.Errorf("%s: %v", mode, err)
+		}
+
+		// Every action has a default key.
+		bound := tr.Bindings()
+		for _, a := range keymap.Actions(mode) {
+			if len(bound[a.Name]) == 0 {
+				t.Errorf("%s action %s has no key", mode, a.Name)
+			}
+		}
 	}
 }

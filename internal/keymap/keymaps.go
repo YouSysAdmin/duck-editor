@@ -1,39 +1,47 @@
 package keymap
 
+import "slices"
+
 // Mode selects which keymap is active.
 type Mode int
 
-// Editor modes.
+// Editor modes, then the overlays that take keys while they are open.
 const (
 	Normal Mode = iota
 	Select
 	Insert
+	Picker
+	Prompt
+	Menu
+	Completion
+	Popup
 )
+
+// modeNames are the config names of the modes.
+var modeNames = []string{"normal", "select", "insert", "picker", "prompt", "menu", "completion", "popup"}
 
 // String returns the config name of the mode.
 func (m Mode) String() string {
-	switch m {
-	case Select:
-		return "select"
-	case Insert:
-		return "insert"
-	default:
-		return "normal"
+	if int(m) < len(modeNames) {
+		return modeNames[m]
 	}
+
+	return "normal"
 }
 
 // ParseMode reads a mode name from config.
 func ParseMode(s string) (Mode, bool) {
-	switch s {
-	case "normal":
-		return Normal, true
-	case "select":
-		return Select, true
-	case "insert":
-		return Insert, true
+	if i := slices.Index(modeNames, s); i >= 0 {
+		return Mode(i), true
 	}
 
 	return 0, false
+}
+
+// Overlay reports whether the mode belongs to an overlay, whose keys are
+// single keys bound to its actions.
+func (m Mode) Overlay() bool {
+	return m >= Picker
 }
 
 // ResultKind tells what a key lookup produced.
@@ -166,6 +174,21 @@ func (k *Keymaps) Get(mode Mode, key Key) Result {
 
 		return Result{Kind: Matched, Command: found.Command}
 	}
+}
+
+// Action returns the action an overlay mode binds to key.
+func (k *Keymaps) Action(mode Mode, key Key) (string, bool) {
+	km := k.maps[mode]
+	if km == nil || km.Node == nil {
+		return "", false
+	}
+
+	t, ok := km.Node.Get(key)
+	if !ok {
+		return "", false
+	}
+
+	return t.Command, true
 }
 
 // MergeUser overlays user bindings per mode onto the defaults.

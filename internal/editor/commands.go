@@ -27,6 +27,10 @@ func describe(name string) string {
 		return d
 	}
 
+	if d, ok := keymap.ActionDoc(name); ok {
+		return d
+	}
+
 	return name
 }
 

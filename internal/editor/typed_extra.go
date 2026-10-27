@@ -42,7 +42,7 @@ func init() {
 				opts.onFail = restore
 			}
 
-			return forceWriteWith(e, e.Doc(), opts, nil)
+			return forceWrite(e, e.Doc(), opts, nil)
 		}},
 		typedCommand{names: []string{"write-all!", "wa!"}, doc: "Forcefully write changes from all buffers to disk creating necessary subdirectories", run: func(cx *Context, _ []string) error {
 			return forceSaveAll(cx.Editor)
@@ -65,7 +65,7 @@ func init() {
 
 			view := e.Focus
 
-			return forceWriteWith(e, e.Doc(), opts, func() { e.CloseView(view) })
+			return forceWrite(e, e.Doc(), opts, func() { e.CloseView(view) })
 		}},
 		typedCommand{names: []string{"write-quit-all!", "wqa!", "xa!"}, doc: "Write changes from all buffers to disk and close all views forcefully", run: func(cx *Context, _ []string) error {
 			if err := forceSaveAll(cx.Editor); err != nil {
@@ -441,12 +441,7 @@ func prepareForceWrite(doc *Document) error {
 }
 
 // forceWrite writes like :w! and runs then once the file is on disk.
-func forceWrite(e *Editor, doc *Document, then func()) error {
-	return forceWriteWith(e, doc, writeOptions{}, then)
-}
-
-// forceWriteWith is forceWrite with write options.
-func forceWriteWith(e *Editor, doc *Document, opts writeOptions, then func()) error {
+func forceWrite(e *Editor, doc *Document, opts writeOptions, then func()) error {
 	if err := prepareForceWrite(doc); err != nil {
 		if opts.onFail != nil {
 			opts.onFail()
@@ -501,7 +496,7 @@ func writeBufferClose(cx *Context, args []string, force bool) error {
 		}
 	}
 	if force {
-		return forceWriteWith(e, doc, opts, closeDoc)
+		return forceWrite(e, doc, opts, closeDoc)
 	}
 
 	if err := saveDoc(e, doc); err != nil {

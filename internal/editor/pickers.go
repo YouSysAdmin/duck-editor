@@ -203,27 +203,40 @@ func filePicker(cx *Context, root string) {
 	})
 	p.previewBase = root
 	p.Paths = true
-	opts := walkOptions(e)
-	p.load = func(ctx context.Context, gen int, emit func(JobResult)) {
-		batch := make([]PickerItem, 0, itemBatchSize)
-		flush := func() {
-			if len(batch) == 0 {
-				return
-			}
-
-			emit(p.emitItems(gen, batch))
-			batch = make([]PickerItem, 0, itemBatchSize)
+	list := func() {
+		opts := walkOptions(e)
+		p.Title = title
+		if p.showAll {
+			opts = unfiltered(opts)
+			p.Title += " (all)"
 		}
-		err := h.Walk(ctx, root, opts, func(rel string) bool {
-			batch = append(batch, PickerItem{Label: rel, Line: -1})
-			if len(batch) >= itemBatchSize {
-				flush()
-			}
 
-			return true
-		})
-		flush()
-		reportJobError(emit, "listing files", err)
+		p.load = func(ctx context.Context, gen int, emit func(JobResult)) {
+			batch := make([]PickerItem, 0, itemBatchSize)
+			flush := func() {
+				if len(batch) == 0 {
+					return
+				}
+
+				emit(p.emitItems(gen, batch))
+				batch = make([]PickerItem, 0, itemBatchSize)
+			}
+			err := h.Walk(ctx, root, opts, func(rel string) bool {
+				batch = append(batch, PickerItem{Label: rel, Line: -1})
+				if len(batch) >= itemBatchSize {
+					flush()
+				}
+
+				return true
+			})
+			flush()
+			reportJobError(emit, "listing files", err)
+		}
+	}
+	list()
+	p.relist = func(cx *Context) {
+		list()
+		cx.Editor.openPicker(p)
 	}
 	e.openPicker(p)
 }
@@ -239,6 +252,12 @@ func walkOptions(e *Editor) walk.Options {
 	opts.MaxDepth = fp.MaxDepth
 
 	return opts
+}
+
+// unfiltered keeps the symlink and depth settings of opts and drops the
+// rules that hide files.
+func unfiltered(opts walk.Options) walk.Options {
+	return walk.Options{FollowSymlinks: opts.FollowSymlinks, MaxDepth: opts.MaxDepth}
 }
 
 func bufferPicker(cx *Context) {

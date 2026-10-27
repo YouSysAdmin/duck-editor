@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 )
 
@@ -338,5 +340,67 @@ func TestPickerQAFixes(t *testing.T) {
 
 	if got := s.PreviewScroll(); got != 5 {
 		t.Fatalf("scrolled back to %d", got)
+	}
+}
+
+// TestFilePickerShowAll lists hidden and ignored files after C-i and
+// keeps the filter text.
+func TestFilePickerShowAll(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	for name, text := range map[string]string{".git/HEAD": "", ".gitignore": "*.log\n", "a.go": "", "a.log": "", ".env": ""} {
+		p := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.WriteFile(p, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	e := newTestEditor(t, "#[a|]#")
+	filePicker(&Context{Editor: e}, dir)
+	runJobs(e)
+	title := e.Picker.Title
+	if n := len(e.Picker.Items()); n != 1 {
+		t.Fatalf("filtered list has %d items", n)
+	}
+
+	e.feed(t, "a<C-i>")
+	runJobs(e)
+	if n, m := len(e.Picker.Items()), len(e.Picker.Matches()); n != 4 || m != 2 || !strings.HasSuffix(e.Picker.Title, "(all)") {
+		t.Fatalf("all lists %d items, %d match, title %q", n, m, e.Picker.Title)
+	}
+
+	e.feed(t, "<C-i>")
+	runJobs(e)
+	if n := len(e.Picker.Items()); n != 1 || e.Picker.Title != title {
+		t.Fatalf("filtered again %d items, title %q", n, e.Picker.Title)
+	}
+}
+
+// TestOverlayKeysFromConfig runs picker and prompt keys as the config
+// binds them.
+func TestOverlayKeysFromConfig(t *testing.T) {
+	t.Parallel()
+
+	e := newTestEditor(t, "#[a|]#")
+	cfg, err := config.Parse("keys:\n  picker:\n    A-j: picker_next\n    C-n: no_op\n  prompt:\n    C-g: prompt_close\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e.Keymaps = keymap.New(cfg.Keys)
+	e.openPicker(NewPicker("Items", []PickerItem{{Label: "a"}, {Label: "b"}, {Label: "c"}}, nil))
+	e.feed(t, "<C-n><A-j>")
+	if item, _ := e.Picker.Selected(); item.Label != "b" {
+		t.Fatalf("selected %q", item.Label)
+	}
+
+	e.feed(t, "<esc>:<C-g>")
+	if e.Prompt != nil {
+		t.Fatal("C-g left the command line open")
 	}
 }

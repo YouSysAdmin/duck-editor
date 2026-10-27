@@ -116,17 +116,6 @@ func init() {
 	})
 }
 
-// otherViewShows reports whether another view shows the document.
-func (e *Editor) otherViewShows(id DocID) bool {
-	for vid, v := range e.Views {
-		if vid != e.Focus && v.DocID == id {
-			return true
-		}
-	}
-
-	return false
-}
-
 func gotoBuffer(cx *Context, dir edit.Direction) {
 	e := cx.Editor
 	docs := e.documentsByID()

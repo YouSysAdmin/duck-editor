@@ -60,16 +60,18 @@ func (e *Editor) closeMenu() {
 // then handled normally.
 func (m *Menu) handleKey(cx *Context, key keymap.Key) bool {
 	e := cx.Editor
-	switch {
-	case key == keymap.Ctrl('n') || key == (keymap.Key{Code: keymap.KeyTab}) || key == (keymap.Key{Code: keymap.KeyDown}) || key == (keymap.Key{Code: 'j'}):
+	action, _ := e.Keymaps.Action(keymap.Menu, key)
+	switch action {
+	case "menu_next":
 		m.selected = (m.selected + 1) % len(m.Items)
-	case key == keymap.Ctrl('p') || key == (keymap.Key{Code: keymap.KeyTab, Mods: keymap.ModShift}) || key == (keymap.Key{Code: keymap.KeyUp}) || key == (keymap.Key{Code: 'k'}):
+	case "menu_prev":
 		m.selected = (m.selected - 1 + len(m.Items)) % len(m.Items)
-	case key == (keymap.Key{Code: keymap.KeyEnter}):
+	case "menu_accept":
 		e.Menu = nil
 		m.onSelect(cx, m.selected)
-	case key == (keymap.Key{Code: keymap.KeyEsc}) || key == keymap.Ctrl('c'):
+	case "menu_close":
 		e.closeMenu()
+	case "no_op":
 	default:
 		e.closeMenu()
 

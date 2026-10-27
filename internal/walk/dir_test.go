@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -85,6 +86,59 @@ func TestDirFilterMatchesFiles(t *testing.T) {
 	for name := range files {
 		if shown := !f.Skip(name, false); shown != walked[name] {
 			t.Errorf("%s: explorer shows %v, the walk lists %v", name, shown, walked[name])
+		}
+	}
+}
+
+// TestInsideIgnoredDir lists a directory that a parent rule ignores when
+// the walk or the explorer starts inside it.
+func TestInsideIgnoredDir(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	for _, d := range []string{".git", "build/sub", "out/sub"} {
+		if err := os.MkdirAll(filepath.Join(root, d), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	files := map[string]string{".gitignore": "build\nout/\n*.log\n", "build/main.go": "", "build/a.log": "", "build/sub/x.go": "", "out/main.go": ""}
+	for name, text := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var walked []string
+	if err := Files(context.Background(), filepath.Join(root, "build"), DefaultOptions(), func(rel string) bool {
+		walked = append(walked, rel)
+
+		return true
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if want := []string{"main.go", "sub/x.go"}; !slices.Equal(walked, want) {
+		t.Errorf("walk inside an ignored directory = %v want %v", walked, want)
+	}
+
+	exists := func(paths []string) []bool {
+		out := make([]bool, len(paths))
+		for i, p := range paths {
+			_, err := os.Stat(p)
+			out[i] = err == nil
+		}
+
+		return out
+	}
+	for _, dir := range []string{"build", "out"} {
+		f := NewDirFilter(filepath.Join(root, dir), DefaultOptions(), exists, os.ReadFile)
+		if f.Skip("main.go", false) || f.Skip("sub", true) {
+			t.Errorf("%s: entries of the opened directory are hidden", dir)
+		}
+
+		if !f.Skip("a.log", false) {
+			t.Errorf("%s: other rules still apply", dir)
 		}
 	}
 }

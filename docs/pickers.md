@@ -30,22 +30,46 @@ the chosen entry. Most pickers open from `space`:
 
 ## Keys in a picker
 
-| Keys                                  | Does                                                    |
-| ------------------------------------- | ------------------------------------------------------- |
-| `ret`                                 | opens the entry, `C-s` in a horizontal split, `C-v` in a vertical one |
-| `tab` `down` `C-n` `C-j`              | next entry                                              |
-| `S-tab` `up` `C-p` `C-k`              | previous entry                                          |
-| `pagedown` `C-d`, `pageup` `C-u`      | a page down and up                                      |
-| `home` `end`                          | first and last entry                                    |
-| `C-t`                                 | shows or hides the preview                              |
-| `A-d` `A-u`                           | scroll the preview half a page                          |
-| `esc` `C-c`                           | closes the picker                                       |
-| `left` `right` `C-b` `C-f` `C-a` `C-e`| move in the filter text                                 |
-| `backspace` `C-h` `del` `C-w`         | delete a character, a character ahead, a word           |
+Keys are rebound under `keys.picker` in `config.yaml`, see
+[Key bindings](keys.md#pickers-and-other-overlays).
 
-In the explorer `A-l` opens the entry and `A-h`, or `backspace` with an
-empty filter, goes up a directory. `../` is the first entry. In the
-buffer picker `C-x` closes the chosen buffer and keeps the picker open.
+<!-- BEGIN picker -->
+
+| Keys                     | Action                        | Does                                                                         |
+| ------------------------ | ----------------------------- | ---------------------------------------------------------------------------- |
+| `ret`                    | `picker_accept`               | Open the selected item                                                       |
+| `C-s`                    | `picker_accept_hsplit`        | Open the selected item in a horizontal split                                 |
+| `C-v`                    | `picker_accept_vsplit`        | Open the selected item in a vertical split                                   |
+| `esc` `C-c`              | `picker_close`                | Close the picker                                                             |
+| `tab` `down` `C-n` `C-j` | `picker_next`                 | Select the next item                                                         |
+| `S-tab` `up` `C-p` `C-k` | `picker_prev`                 | Select the previous item                                                     |
+| `pagedown` `C-d`         | `picker_page_down`            | Move the selection a page down                                               |
+| `pageup` `C-u`           | `picker_page_up`              | Move the selection a page up                                                 |
+| `home`                   | `picker_first`                | Select the first item                                                        |
+| `end`                    | `picker_last`                 | Select the last item                                                         |
+| `C-t`                    | `picker_toggle_preview`       | Show or hide the preview                                                     |
+| `A-d`                    | `picker_preview_down`         | Scroll the preview half a page down                                          |
+| `A-u`                    | `picker_preview_up`           | Scroll the preview half a page up                                            |
+| `A-h`                    | `picker_parent`               | Go up a directory in the explorer                                            |
+| `A-l`                    | `picker_descend`              | Open the selected entry of the explorer                                      |
+| `C-i`                    | `picker_toggle_all`           | Show or hide the files the file-picker options leave out                     |
+| `C-x`                    | `picker_remove`               | Close the selected buffer in the buffer picker                               |
+| `backspace` `C-h`        | `picker_delete_char_backward` | Delete a character of the filter, go up from an empty filter in the explorer |
+| `del`                    | `picker_delete_char_forward`  | Delete the character ahead                                                   |
+| `C-w` `A-backspace`      | `picker_delete_word_backward` | Delete a word of the filter                                                  |
+| `left` `C-b`             | `picker_move_left`            | Move left in the filter                                                      |
+| `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                     |
+| `C-a`                    | `picker_line_start`           | Move to the start of the filter                                              |
+| `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                |
+
+<!-- END picker -->
+
+`picker_parent` and `picker_descend` move through the file explorer,
+`backspace` with an empty filter goes up there too. `../` is the first
+entry. `picker_toggle_all` in the file picker and the explorer shows or
+hides the files the `file-picker` options leave out. `picker_remove`
+closes the chosen buffer in the buffer picker and keeps the picker
+open.
 
 ## Filter syntax
 
@@ -80,7 +104,11 @@ working directory always wins.
 The files listed follow the `file-picker` options: hidden files, the
 `.gitignore`, `.ignore` and `.git/info/exclude` rules, symlinks and a
 depth limit. `:set file-picker.hidden false` shows the dot files for
-this session.
+this session. `C-i` (`picker_toggle_all`) in the file picker or the
+explorer lists everything these rules hide, the title then ends in
+`(all)`, another `C-i` filters again. The explorer keeps it while moving
+between directories. A terminal without the kitty keyboard protocol
+sends `C-i` as `tab`, there bind another key to `picker_toggle_all`.
 
 ## Previews
 

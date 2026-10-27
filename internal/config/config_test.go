@@ -163,3 +163,39 @@ func TestValidate(t *testing.T) {
 		t.Fatal("negative scrolloff passed")
 	}
 }
+
+// TestOverlayKeys rebinds and removes picker keys and rejects what an
+// overlay cannot run.
+func TestOverlayKeys(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := Parse("keys:\n  picker:\n    A-a: picker_toggle_all\n    C-i: no_op\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	km := keymap.New(cfg.Keys)
+	if action, _ := km.Action(keymap.Picker, keymap.Alt('a')); action != "picker_toggle_all" {
+		t.Fatalf("A-a runs %q", action)
+	}
+
+	if action, _ := km.Action(keymap.Picker, keymap.Ctrl('i')); action != "no_op" {
+		t.Fatalf("C-i runs %q", action)
+	}
+
+	if action, _ := km.Action(keymap.Picker, keymap.Ctrl('t')); action != "picker_toggle_preview" {
+		t.Fatalf("defaults must stay, C-t runs %q", action)
+	}
+
+	for _, text := range []string{
+		"keys:\n  picker:\n    A-a: move_char_left\n",
+		"keys:\n  picker:\n    A-a: prompt_accept\n",
+		"keys:\n  picker:\n    A-a: [picker_next, picker_next]\n",
+		"keys:\n  picker:\n    A-a:\n      b: picker_next\n",
+		"keys:\n  prompt: prompt_accept\n",
+	} {
+		if _, err := Parse(text); err == nil {
+			t.Errorf("%q should be rejected", text)
+		}
+	}
+}

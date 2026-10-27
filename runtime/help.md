@@ -72,7 +72,8 @@ Pickers, `space /` and `space e` start in the project of the working directory. 
 such as `go.mod`, `Gemfile` or the `REVISION` of a deployed release. `space f` project files, `space F` files next to the current buffer, `space b` buffers, `space j` jumps, `space s` / `space S` symbols,
 `space d` / `space D` diagnostics, `space g` changed files, `space e` explorer, `space '` last picker. In a picker type to filter,
 `C-s` / `C-v` open in a split, `C-t` toggles the preview, `A-u` / `A-d` scroll it. In the explorer `A-h`, or backspace with an empty
-filter, goes up and `A-l` opens, files hidden by the `file-picker` options stay out. `C-x` in the buffer picker closes a buffer. `:retab` rewrites indentation in the buffer style, `:delete-file` deletes the file
+filter, goes up and `A-l` opens, files hidden by the `file-picker` options stay out. `C-i` in the file picker and the explorer shows them. Keys of pickers, the command line, menus and popups are rebound under
+`keys.picker`, `keys.prompt`, `keys.menu`, `keys.completion` and `keys.popup`. `C-x` in the buffer picker closes a buffer. `:retab` rewrites indentation in the buffer style, `:delete-file` deletes the file
 after a `y`. `ga` returns to the last file, `gn` `gp` cycle
 buffers. `:bc` closes a buffer, `:reopen` brings the last closed one back. Undo history and cursor position survive restarts,
 `:session-restore` reopens the files of the last session here, `restore-session: true` does it when `dk` starts without a file.

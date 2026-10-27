@@ -49,8 +49,9 @@ Nested options are written with dots. `tab` completes option names.
 
 ## Key bindings
 
-`keys` maps a mode (`normal`, `select`, `insert`) to bindings, merged over
-the defaults. A binding is one of:
+`keys` maps a mode (`normal`, `select`, `insert`) or an overlay
+(`picker`, `prompt`, `menu`, `completion`, `popup`) to bindings, merged
+over the defaults. A binding is one of:
 
 ```yaml
 keys:
@@ -82,6 +83,17 @@ keys:
   normal:
     space:
       U: ":sh git-url %{buffer_name} %{cursor_line} | xargs open"
+```
+
+An overlay binds a single key to one of its actions, such as
+`picker_toggle_all`, listed in
+[Key bindings](keys.md#pickers-and-other-overlays):
+
+```yaml
+keys:
+  picker:
+    A-a: picker_toggle_all
+    C-i: no_op
 ```
 
 ## Notable options
@@ -404,6 +416,8 @@ editor:
 # Key bindings per mode (normal, select, insert), merged over the defaults.
 # A binding is a command, a list of commands, a menu of further keys, or
 # { name, command } with a name for the key menu. no_op removes a binding.
+# The overlays picker, prompt, menu, completion and popup bind single keys
+# to their actions, such as picker: { A-a: picker_toggle_all }.
 # keys:
 #   normal:
 #     C-s: ":w"

@@ -399,11 +399,12 @@ func Default() map[Mode]*Trie {
 		b("end", "goto_line_end_newline"),
 	)
 
-	return map[Mode]*Trie{
-		Normal: {Node: normal},
-		Select: {Node: selectNode},
-		Insert: {Node: insert},
-	}
+	maps := overlays()
+	maps[Normal] = &Trie{Node: normal}
+	maps[Select] = &Trie{Node: selectNode}
+	maps[Insert] = &Trie{Node: insert}
+
+	return maps
 }
 
 // cloneNode deep copies a node so the select map can diverge from normal.

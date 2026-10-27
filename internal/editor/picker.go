@@ -108,13 +108,20 @@ type Picker struct {
 	// parent goes one directory up in pickers that browse directories.
 	parent func(cx *Context)
 
-	// remove takes the selected item away, C-x in the buffer picker,
-	// and reports whether it went.
+	// remove takes the selected item away, picker_remove in the buffer
+	// picker, and reports whether it went.
 	remove func(cx *Context, item PickerItem) bool
 
 	// rerun builds the picker again from the current state for
 	// last_picker, for lists such as the open buffers that go stale.
 	rerun func(cx *Context)
+
+	// showAll lists what the file-picker options hide,
+	// picker_toggle_all flips it in pickers that set relist.
+	showAll bool
+
+	// relist lists the entries again after showAll changed.
+	relist func(cx *Context)
 }
 
 // NewPicker creates a picker over static items.
@@ -327,29 +334,37 @@ func (p *Picker) move(delta int) {
 
 func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 	e := cx.Editor
-	ch, isChar := key.Char()
-	plain := key.Mods&(keymap.ModCtrl|keymap.ModAlt|keymap.ModSuper) == 0
+	action, bound := e.Keymaps.Action(keymap.Picker, key)
+	if !bound {
+		if ch, isChar := key.Char(); isChar && key.Mods&(keymap.ModCtrl|keymap.ModAlt|keymap.ModSuper) == 0 {
+			p.query = slices.Insert(p.query, p.cursor, ch)
+			p.cursor++
+			p.filter()
+		}
 
-	switch {
-	case key == (keymap.Key{Code: keymap.KeyEsc}) || key == keymap.Ctrl('c'):
+		return
+	}
+
+	switch action {
+	case "picker_close":
 		e.closePicker()
-	case key == (keymap.Key{Code: keymap.KeyEnter}):
+	case "picker_accept":
 		p.accept(cx, PickerOpen)
-	case key == keymap.Ctrl('s'):
+	case "picker_accept_hsplit":
 		p.accept(cx, PickerHSplit)
-	case key == keymap.Ctrl('v'):
+	case "picker_accept_vsplit":
 		p.accept(cx, PickerVSplit)
-	case key == (keymap.Key{Code: keymap.KeyTab, Mods: keymap.ModShift}) || key == (keymap.Key{Code: keymap.KeyUp}) || key == keymap.Ctrl('p') || key == keymap.Ctrl('k'):
+	case "picker_prev":
 		p.move(-1)
-	case key == (keymap.Key{Code: keymap.KeyTab}) || key == (keymap.Key{Code: keymap.KeyDown}) || key == keymap.Ctrl('n') || key == keymap.Ctrl('j'):
+	case "picker_next":
 		p.move(1)
-	case key == (keymap.Key{Code: keymap.KeyPageUp}) || key == keymap.Ctrl('u'):
+	case "picker_page_up":
 		p.selected = max(p.selected-max(pageSize, 1), 0)
-	case key == (keymap.Key{Code: keymap.KeyPageDown}) || key == keymap.Ctrl('d'):
+	case "picker_page_down":
 		p.selected = min(p.selected+max(pageSize, 1), max(len(p.matches)-1, 0))
-	case key == keymap.Alt('d') || key == keymap.Alt('u'):
+	case "picker_preview_down", "picker_preview_up":
 		rows := max(pageSize/2, 1)
-		if key == keymap.Alt('u') {
+		if action == "picker_preview_up" {
 			rows = -rows
 		}
 
@@ -357,43 +372,55 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 		item, _ := p.Selected()
 		start := max(item.Line, 0) - pageSize/2
 		p.scrollPreview(rows, -start, e.previewLineCount(p, item)-1-start)
-	case key == (keymap.Key{Code: keymap.KeyHome}):
+	case "picker_first":
 		p.selected = 0
-	case key == (keymap.Key{Code: keymap.KeyEnd}):
+	case "picker_last":
 		p.selected = max(len(p.matches)-1, 0)
-	case key == keymap.Ctrl('t'):
+	case "picker_toggle_preview":
 		p.ShowPreview = !p.ShowPreview
-	case p.parent != nil && (key == keymap.Alt('h') || key == (keymap.Key{Code: keymap.KeyBackspace}) && len(p.query) == 0):
-		p.parent(cx)
-	case p.parent != nil && key == keymap.Alt('l'):
-		p.accept(cx, PickerOpen)
-	case p.remove != nil && key == keymap.Ctrl('x'):
-		if item, ok := p.Selected(); ok && p.remove(cx, item) {
+	case "picker_parent":
+		if p.parent != nil {
+			p.parent(cx)
+		}
+	case "picker_descend":
+		if p.parent != nil {
+			p.accept(cx, PickerOpen)
+		}
+	case "picker_toggle_all":
+		if p.relist != nil {
+			p.showAll = !p.showAll
+			p.relist(cx)
+		}
+	case "picker_remove":
+		if item, ok := p.Selected(); ok && p.remove != nil && p.remove(cx, item) {
 			row := p.selected
 			p.items = slices.DeleteFunc(p.items, func(it PickerItem) bool { return it.DocID == item.DocID && it.Path == item.Path })
 			p.filter()
 			p.selected = max(min(row, len(p.matches)-1), 0)
 		}
-	case key == (keymap.Key{Code: keymap.KeyBackspace}) || key == keymap.Ctrl('h'):
-		if p.cursor > 0 {
+	case "picker_delete_char_backward":
+		switch {
+		case len(p.query) == 0 && p.parent != nil:
+			p.parent(cx)
+		case p.cursor > 0:
 			p.query = slices.Delete(p.query, p.cursor-1, p.cursor)
 			p.cursor--
 			p.filter()
 		}
-	case key == (keymap.Key{Code: keymap.KeyDelete}):
+	case "picker_delete_char_forward":
 		if p.cursor < len(p.query) {
 			p.query = slices.Delete(p.query, p.cursor, p.cursor+1)
 			p.filter()
 		}
-	case key == (keymap.Key{Code: keymap.KeyLeft}) || key == keymap.Ctrl('b'):
+	case "picker_move_left":
 		p.cursor = max(p.cursor-1, 0)
-	case key == (keymap.Key{Code: keymap.KeyRight}) || key == keymap.Ctrl('f'):
+	case "picker_move_right":
 		p.cursor = min(p.cursor+1, len(p.query))
-	case key == keymap.Ctrl('a'):
+	case "picker_line_start":
 		p.cursor = 0
-	case key == keymap.Ctrl('e'):
+	case "picker_line_end":
 		p.cursor = len(p.query)
-	case key == keymap.Ctrl('w') || key == keymap.Alt(keymap.KeyBackspace):
+	case "picker_delete_word_backward":
 		start := p.cursor
 		for start > 0 && unicode.IsSpace(p.query[start-1]) {
 			start--
@@ -405,10 +432,6 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 
 		p.query = slices.Delete(p.query, start, p.cursor)
 		p.cursor = start
-		p.filter()
-	case isChar && plain:
-		p.query = slices.Insert(p.query, p.cursor, ch)
-		p.cursor++
 		p.filter()
 	}
 }
