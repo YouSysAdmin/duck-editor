@@ -1,6 +1,6 @@
 # Duck
 
-![Duck](https://github.com/ops-ducks/.github/raw/main/doc/ops-duck-wide-890px.png)
+![Duck Editor](docs/logo/banner.svg)
 
 Duck is a modal terminal editor.
 

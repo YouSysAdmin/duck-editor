@@ -64,6 +64,9 @@ target = "content/remote/_index.md"
 source = "images"
 target = "static/images"
 [[module.mounts]]
+source = "logo"
+target = "static/assets/logo"
+[[module.mounts]]
 source = "layouts"
 target = "layouts"
 
