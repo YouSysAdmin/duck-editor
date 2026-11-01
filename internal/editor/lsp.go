@@ -54,6 +54,7 @@ const (
 	featInlayHints        = "inlay-hints"
 	featLinkedEditing     = "linked-editing"
 	featCallHierarchy     = "call-hierarchy"
+	featSemanticTokens    = "semantic-tokens"
 )
 
 // docClient is one language server attached to a document with the
@@ -93,6 +94,7 @@ var featureMethods = map[string]string{
 	featInlayHints:        "textDocument/inlayHint",
 	featLinkedEditing:     "textDocument/linkedEditingRange",
 	featCallHierarchy:     "textDocument/prepareCallHierarchy",
+	featSemanticTokens:    "textDocument/semanticTokens",
 }
 
 // supportsFeature checks the server capability behind a feature for a
@@ -336,6 +338,15 @@ func (e *Editor) registerClient(key string, client *lsp.Client) {
 
 		e.refreshInlayHints()
 	}
+	client.OnSemanticTokensRefresh = func() {
+		for _, doc := range e.Docs {
+			if doc.clientFor(featSemanticTokens) == client {
+				doc.invalidateSemanticTokens()
+			}
+		}
+
+		e.refreshSemanticTokens()
+	}
 	client.OnProgress = func(token string, p lsp.WorkDoneProgress) { e.handleProgress(client, token, p) }
 	client.OnExit = func(err error) {
 		for _, doc := range e.Docs {
@@ -445,6 +456,7 @@ func (e *Editor) attachClient(doc *Document, dc docClient) {
 	}
 
 	dc.client.DidOpen(doc.uri, doc.languageID(), doc.version, doc.Text().String())
+	doc.invalidateSemanticTokens()
 }
 
 // reopenDocuments announces the documents of a server again after a

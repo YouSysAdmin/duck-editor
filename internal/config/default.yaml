@@ -41,6 +41,7 @@ editor:
     display-progress-messages: false # progress reports in the command line
     auto-signature-help: true # signature help while typing call arguments
     display-inlay-hints: false # type and parameter hints in the text
+    semantic-tokens: true # color what the server knows the meaning of, over the syntax colors
     display-signature-help-docs: true # documentation under the signature
     display-completion-docs: true # documentation of the selected completion beside the menu
     snippets: true # expand snippet completions

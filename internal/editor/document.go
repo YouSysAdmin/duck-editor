@@ -132,6 +132,7 @@ type Document struct {
 	// in the current insert session.
 	autoClosed []int
 	hints      inlayHintState
+	semantic   semanticState
 
 	// Version control state for the diff gutter.
 	diff  diffState

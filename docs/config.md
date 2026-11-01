@@ -127,6 +127,7 @@ All options are under `editor`. The full list with defaults follows below.
 | `shell`                     | shell for `:sh` and pipes, `[sh, -c]` by default                                                                                                                                                                    |
 | `file-picker`               | `hidden`, `git-ignore`, `ignore`, `follow-symlinks`, `max-depth` for pickers and search                                                                                                                             |
 | `lsp.display-inlay-hints`   | show type and parameter hints from the server                                                                                                                                                                       |
+| `lsp.semantic-tokens`       | color the words the server knows the meaning of (a type, a builtin, a property) over the syntax colors, on by default                                                                                               |
 | `statusline`                | elements of the `left`, `center` and `right` parts                                                                                                                                                                  |
 
 Statusline elements: `mode`, `spinner`, `file-name`, `file-base-name`,
@@ -189,6 +190,7 @@ editor:
     display-progress-messages: false # progress reports in the command line
     auto-signature-help: true # signature help while typing call arguments
     display-inlay-hints: false # type and parameter hints in the text
+    semantic-tokens: true # color what the server knows the meaning of, over the syntax colors
     display-signature-help-docs: true # documentation under the signature
     display-completion-docs: true # documentation of the selected completion beside the menu
     snippets: true # expand snippet completions

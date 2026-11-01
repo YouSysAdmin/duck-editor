@@ -500,6 +500,7 @@ func (e *Editor) afterCommand() {
 	}
 
 	e.refreshInlayHints()
+	e.refreshSemanticTokens()
 	e.refreshBlame()
 	e.requestLinkedEditing()
 }

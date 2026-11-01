@@ -147,6 +147,7 @@ func (e *Editor) onDocumentChange(doc *Document, oldText buffer.Rope, changes *e
 	}
 
 	doc.mapInlayHints(changes)
+	doc.mapSemanticTokens(changes)
 	doc.mapAutoClosed(changes)
 	e.syncChange(doc, oldText, changes)
 	e.scheduleDiff(doc)

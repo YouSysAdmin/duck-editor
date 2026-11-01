@@ -39,6 +39,10 @@ type fakeServer struct {
 	// resolve advertises resolveProvider and answers completionItem/resolve
 	// with documentation and an import edit.
 	resolve bool
+
+	// semantic, when set, advertises semantic tokens with a small legend and
+	// answers semanticTokens/full with what it returns.
+	semantic func() []int
 }
 
 // fakeSave is a didSave the fake server received.
@@ -93,7 +97,7 @@ func startFakeServer(t *testing.T, opts ...func(*fakeServer)) (*fakeServer, io.R
 		fs.requests <- method
 		switch method {
 		case "initialize":
-			return map[string]any{"capabilities": map[string]any{
+			caps := map[string]any{
 				"positionEncoding":           "utf-8",
 				"textDocumentSync":           fs.sync,
 				"completionProvider":         map[string]any{"triggerCharacters": []string{"."}, "resolveProvider": fs.resolve},
@@ -105,7 +109,17 @@ func startFakeServer(t *testing.T, opts ...func(*fakeServer)) (*fakeServer, io.R
 				"referencesProvider":         true,
 				"linkedEditingRangeProvider": true,
 				"callHierarchyProvider":      true,
-			}}, nil
+			}
+			if fs.semantic != nil {
+				caps["semanticTokensProvider"] = map[string]any{
+					"legend": map[string]any{"tokenTypes": []string{"type", "function", "variable"}, "tokenModifiers": []string{"readonly", "defaultLibrary"}},
+					"full":   true,
+				}
+			}
+
+			return map[string]any{"capabilities": caps}, nil
+		case "textDocument/semanticTokens/full":
+			return map[string]any{"data": fs.semantic()}, nil
 		case "textDocument/definition":
 			var p lsp.TextDocumentPositionParams
 			_ = json.Unmarshal(params, &p)

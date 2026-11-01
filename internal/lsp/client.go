@@ -96,6 +96,10 @@ type Client struct {
 	// editor thread.
 	OnInlayHintRefresh func()
 
+	// OnSemanticTokensRefresh handles workspace/semanticTokens/refresh, on
+	// the editor thread.
+	OnSemanticTokensRefresh func()
+
 	// OnProgress receives $/progress reports, on the editor thread.
 	OnProgress func(token string, p WorkDoneProgress)
 }
@@ -264,6 +268,7 @@ func (c *Client) initialize() {
 				"executeCommand":         dynamic,
 				"didChangeConfiguration": dynamic,
 				"inlayHint":              map[string]any{"refreshSupport": true},
+				"semanticTokens":         map[string]any{"refreshSupport": true},
 			},
 			"textDocument": map[string]any{
 				"synchronization":    map[string]any{"dynamicRegistration": true, "didSave": true},
@@ -294,7 +299,16 @@ func (c *Client) initialize() {
 					},
 					"contextSupport": true,
 				},
-				"inlayHint":         dynamic,
+				"inlayHint": dynamic,
+				"semanticTokens": map[string]any{
+					"dynamicRegistration":     true,
+					"requests":                map[string]any{"full": true},
+					"tokenTypes":              SemanticTokenTypes,
+					"tokenModifiers":          SemanticTokenModifiers,
+					"formats":                 []string{"relative"},
+					"overlappingTokenSupport": false,
+					"multilineTokenSupport":   false,
+				},
 				"definition":        map[string]any{"dynamicRegistration": true, "linkSupport": true},
 				"declaration":       map[string]any{"dynamicRegistration": true, "linkSupport": true},
 				"typeDefinition":    map[string]any{"dynamicRegistration": true, "linkSupport": true},
@@ -626,6 +640,14 @@ func (c *Client) handleRequest(method string, params jsontext.Value) (any, *Resp
 		c.dispatch(func() { done <- c.OnShowDocument != nil && c.OnShowDocument(p) })
 
 		return map[string]any{"success": <-done}, nil
+	case "workspace/semanticTokens/refresh":
+		c.dispatch(func() {
+			if c.OnSemanticTokensRefresh != nil {
+				c.OnSemanticTokensRefresh()
+			}
+		})
+
+		return nil, nil
 	case "workspace/inlayHint/refresh":
 		c.dispatch(func() {
 			if c.OnInlayHintRefresh != nil {
@@ -942,6 +964,11 @@ func (c *Client) WorkspaceSymbols(query string, cb func([]SymbolInformation, err
 // SignatureHelp requests the signatures at a position.
 func (c *Client) SignatureHelp(params SignatureHelpParams, cb func(*SignatureHelp, error)) {
 	request(c, "textDocument/signatureHelp", params, cb)
+}
+
+// SemanticTokensFull requests the semantic tokens of a whole document.
+func (c *Client) SemanticTokensFull(uri string, cb func(*SemanticTokens, error)) {
+	request(c, "textDocument/semanticTokens/full", map[string]any{"textDocument": TextDocumentIdentifier{URI: uri}}, cb)
 }
 
 // InlayHints requests the hints of a range.

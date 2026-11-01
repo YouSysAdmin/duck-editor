@@ -193,7 +193,8 @@ func (d *Document) Highlights(startChar, endChar int) []HighlightSpan {
 			return d.windowHighlights(startChar, endChar)
 		}
 
-		return nil
+		// A language without a grammar still gets the server's colors.
+		return d.semanticHighlights(startChar, endChar)
 	}
 
 	text := d.text
@@ -213,7 +214,31 @@ func (d *Document) Highlights(startChar, endChar int) []HighlightSpan {
 		})
 	}
 
-	return out
+	return mergeHighlights(out, d.semanticHighlights(startChar, endChar))
+}
+
+// mergeHighlights adds the server's token spans to the syntax spans in
+// start order, which the renderer walks the spans in. A token goes after
+// the syntax spans starting where it does or before: within the syntax
+// layer the later span wins, so what the server knows a word to be colors
+// over the query.
+func mergeHighlights(syntax, tokens []HighlightSpan) []HighlightSpan {
+	if len(tokens) == 0 {
+		return syntax
+	}
+
+	out := make([]HighlightSpan, 0, len(syntax)+len(tokens))
+	i := 0
+	for _, t := range tokens {
+		for i < len(syntax) && syntax[i].Start <= t.Start {
+			out = append(out, syntax[i])
+			i++
+		}
+
+		out = append(out, t)
+	}
+
+	return append(out, syntax[i:]...)
 }
 
 // bracketMatcher adapts the document syntax to edit.BracketMatcher, or

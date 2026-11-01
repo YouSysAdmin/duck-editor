@@ -299,6 +299,7 @@ type LSP struct {
 	DisplayProgressMessages  bool `yaml:"display-progress-messages"`
 	AutoSignatureHelp        bool `yaml:"auto-signature-help"`
 	DisplayInlayHints        bool `yaml:"display-inlay-hints"`
+	SemanticTokens           bool `yaml:"semantic-tokens"`
 	DisplaySignatureHelpDocs bool `yaml:"display-signature-help-docs"`
 	DisplayCompletionDocs    bool `yaml:"display-completion-docs"`
 	Snippets                 bool `yaml:"snippets"`
@@ -388,7 +389,7 @@ func Default() Config {
 			SoftWrap:             SoftWrap{MaxWrap: 20, MaxIndentRetain: 40, WrapIndicator: "↪"},
 			LSP: LSP{
 				Enable: true, DisplayMessages: true, AutoSignatureHelp: true,
-				DisplaySignatureHelpDocs: true, DisplayCompletionDocs: true, Snippets: true,
+				DisplaySignatureHelpDocs: true, DisplayCompletionDocs: true, Snippets: true, SemanticTokens: true,
 			},
 			FilePicker: FilePicker{
 				Hidden: true, FollowSymlinks: true, Ignore: true,

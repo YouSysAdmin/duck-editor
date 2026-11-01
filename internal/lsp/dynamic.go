@@ -49,6 +49,7 @@ var providerFields = map[string]func(*ServerCapabilities) *jsontext.Value{
 	"textDocument/inlayHint":            func(c *ServerCapabilities) *jsontext.Value { return &c.InlayHintProvider },
 	"textDocument/linkedEditingRange":   func(c *ServerCapabilities) *jsontext.Value { return &c.LinkedEditingProvider },
 	"textDocument/prepareCallHierarchy": func(c *ServerCapabilities) *jsontext.Value { return &c.CallHierarchyProvider },
+	"textDocument/semanticTokens":       func(c *ServerCapabilities) *jsontext.Value { return &c.SemanticTokensProvider },
 }
 
 // syncMethods are the document notifications a registration turns on.
@@ -130,6 +131,19 @@ func providerOption[T any](c *Client, method, uri, languageID string, out *T) {
 	if ok && len(v) > 0 && v[0] == '{' {
 		_ = json.Unmarshal(v, out)
 	}
+}
+
+// SemanticTokensLegend returns the legend of a server's semantic tokens for
+// a document, and whether it answers semanticTokens/full there, the only
+// request the editor makes.
+func (c *Client) SemanticTokensLegend(uri, languageID string) (SemanticTokensLegend, bool) {
+	var obj struct {
+		Legend SemanticTokensLegend `json:"legend"`
+		Full   jsontext.Value       `json:"full"`
+	}
+	providerOption(c, "textDocument/semanticTokens", uri, languageID, &obj)
+
+	return obj.Legend, Supports(obj.Full) && len(obj.Legend.TokenTypes) > 0
 }
 
 // PrepareRenameSupported reports whether the server answers

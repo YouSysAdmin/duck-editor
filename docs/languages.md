@@ -137,7 +137,7 @@ Features for `only-features` and `except-features`: `format`,
 `document-highlight`, `completion`, `code-action`, `document-links`,
 `workspace-command`, `document-symbols`, `workspace-symbols`,
 `diagnostics`, `rename-symbol`, `inlay-hints`, `linked-editing`,
-`call-hierarchy`.
+`call-hierarchy`, `semantic-tokens`.
 
 ```yaml
 languages:

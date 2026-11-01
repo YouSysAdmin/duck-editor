@@ -346,6 +346,21 @@ type ServerCapabilities struct {
 	LinkedEditingProvider      jsontext.Value `json:"linkedEditingRangeProvider,omitempty"`
 	CallHierarchyProvider      jsontext.Value `json:"callHierarchyProvider,omitempty"`
 	SignatureHelpProvider      jsontext.Value `json:"signatureHelpProvider,omitempty"`
+	SemanticTokensProvider     jsontext.Value `json:"semanticTokensProvider,omitempty"`
+}
+
+// SemanticTokensLegend names the token types and modifiers a server's
+// token data indexes.
+type SemanticTokensLegend struct {
+	TokenTypes     []string `json:"tokenTypes"`
+	TokenModifiers []string `json:"tokenModifiers"`
+}
+
+// SemanticTokens is a semanticTokens/full answer: five numbers per token,
+// line and start relative to the token before, length, type, modifiers.
+type SemanticTokens struct {
+	ResultID string `json:"resultId,omitempty"`
+	Data     []int  `json:"data"`
 }
 
 // InitializeResult is the initialize response.
