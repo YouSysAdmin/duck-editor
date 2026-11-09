@@ -21,6 +21,25 @@ func TestRunTimesOut(t *testing.T) {
 	}
 }
 
+// TestRunForkedCopy covers copy tools that leave a child holding stderr.
+func TestRunForkedCopy(t *testing.T) {
+	start := time.Now()
+	if _, err := run(Command{"sh", []string{"-c", "sleep 5 & exit 0"}}, "text", false); err != nil {
+		t.Fatalf("forked copy error = %v", err)
+	}
+
+	if time.Since(start) >= waitDelay {
+		t.Fatal("run waited for the forked child")
+	}
+}
+
+func TestRunReportsStderr(t *testing.T) {
+	_, err := run(Command{"sh", []string{"-c", "echo broken >&2\nexit 1"}}, "", false)
+	if err == nil || !strings.Contains(err.Error(), "broken") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
 // TestDetectOverSSH prefers the terminal escape in an ssh session even
 // when local clipboard tools exist.
 func TestDetectOverSSH(t *testing.T) {

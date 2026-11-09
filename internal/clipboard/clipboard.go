@@ -94,9 +94,10 @@ const waitDelay = time.Second
 // runTimeout bounds a clipboard command.
 var runTimeout = 3 * time.Second
 
-// run executes a clipboard command. Copy commands like xclip fork a
-// process that keeps serving the selection, so their output is not
-// captured, which would wait for that process.
+// run executes a clipboard command. Copy commands like xclip and wl-copy
+// fork a process that keeps serving the selection and inherits stdout and
+// stderr. A pipe there would make Wait wait for that process, so stdout is
+// not captured for them and stderr goes to a file.
 func run(c Command, input string, capture bool) (string, error) {
 	// A hung provider, such as xclip without a display, must not hang
 	// the editor.
@@ -106,18 +107,32 @@ func run(c Command, input string, capture bool) (string, error) {
 	proc := exec.CommandContext(ctx, c.Command, c.Args...)
 	proc.Stdin = strings.NewReader(input)
 	proc.WaitDelay = waitDelay
-	var stdout, stderr bytes.Buffer
+	var stdout bytes.Buffer
 	if capture {
 		proc.Stdout = &stdout
 	}
 
-	proc.Stderr = &stderr
+	stderr, err := os.CreateTemp("", "duck-clipboard-*")
+	if err == nil {
+		defer func() {
+			_ = stderr.Close()
+			_ = os.Remove(stderr.Name())
+		}()
+
+		proc.Stderr = stderr
+	}
+
 	if err := proc.Run(); err != nil {
 		if ctx.Err() != nil {
 			return "", fmt.Errorf("%s: no answer within %s", c.Command, runTimeout)
 		}
 
-		msg := strings.TrimSpace(stderr.String())
+		msg := ""
+		if stderr != nil {
+			data, _ := os.ReadFile(stderr.Name())
+			msg = strings.TrimSpace(string(data))
+		}
+
 		if msg == "" {
 			msg = err.Error()
 		}
