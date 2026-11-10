@@ -3,6 +3,7 @@ package editor
 import (
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/rivo/uniseg"
 
@@ -94,7 +95,8 @@ func insertChar(cx *Context, ch rune) {
 	pairs := cx.Editor.autoPairs(doc)
 	replace := doc.takePlaceholder()
 	isAutoClosed := func(pos int) bool { return slices.Contains(doc.autoClosed, pos) }
-	var closed []int
+	type closer struct{ from, back int }
+	var closed []closer
 	tx := edit.ChangeByAndWithSelection(text, doc.Selection(), func(r edit.Range) (edit.Change, edit.Range, bool) {
 		if replace && !r.IsEmpty() {
 			// The new cursor sits after the typed char, with a following
@@ -110,7 +112,10 @@ func insertChar(cx *Context, ch rune) {
 		if pairs != nil {
 			if change, next, ok := pairs.HookInsert(text, r, ch, isAutoClosed); ok {
 				if p, _ := pairs.Get(ch); p.Open == p.Close && change.Text != "" {
-					closed = append(closed, change.From)
+					// Every char after the typed one is a closer.
+					for back := range utf8.RuneCountInString(change.Text) - 1 {
+						closed = append(closed, closer{change.From, back})
+					}
 				}
 
 				return change, next, true
@@ -122,9 +127,9 @@ func insertChar(cx *Context, ch rune) {
 		return edit.Change{From: cursor, To: cursor, Text: s}, edit.Range{}, false
 	})
 	doc.Apply(&tx)
-	// The closing quote is the last char of each inserted pair.
-	for _, pos := range closed {
-		doc.autoClosed = append(doc.autoClosed, tx.Changes().MapPos(pos, edit.After)-1)
+	// The closing quotes are the last chars of each inserted pair.
+	for _, c := range closed {
+		doc.autoClosed = append(doc.autoClosed, tx.Changes().MapPos(c.from, edit.After)-1-c.back)
 	}
 }
 
@@ -187,12 +192,15 @@ func insertNewline(cx *Context) {
 			case commentToken != "":
 				newText = lineEnding + indent + commentToken + " "
 				localOffs = charCount(newText)
-			case pairs != nil && pos > 0 && pos < text.Len() && isAutoPairGap(pairs, text.Char(pos-1), text.Char(pos)):
+			case pairs != nil && pos > 0 && pos < text.Len() && (pairs.IsFenceGap(text, pos) || isAutoPairGap(pairs, text.Char(pos-1), text.Char(pos))):
 				// The closer stays at the indentation of the line that
 				// opened the pair, the cursor goes one level deeper.
 				outer := leadingWhitespace(text.Line(line))
 				inner := indent
-				if indentWidth(inner, doc.TabWidth()) <= indentWidth(outer, doc.TabWidth()) {
+				if pairs.IsFenceGap(text, pos) {
+					// A fence body starts at the fence indentation.
+					inner = outer
+				} else if indentWidth(inner, doc.TabWidth()) <= indentWidth(outer, doc.TabWidth()) {
 					inner = outer + doc.Indent().String()
 				}
 

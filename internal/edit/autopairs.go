@@ -1,6 +1,7 @@
 package edit
 
 import (
+	"strings"
 	"unicode"
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
@@ -242,6 +243,12 @@ func handleInsertSame(text buffer.Rope, r Range, p Pair, autoClosed func(pos int
 		return Change{From: cursor, To: cursor}, nextRange(text, r, 0), true
 	}
 
+	if opensFence(text, cursor, p.Open) {
+		change := Change{From: cursor, To: cursor, Text: strings.Repeat(string(p.Open), 4)}
+
+		return change, nextRange(text, r, 2), true
+	}
+
 	if !p.shouldClose(text, r) {
 		return Change{}, Range{}, false
 	}
@@ -249,4 +256,52 @@ func handleInsertSame(text buffer.Rope, r Range, p Pair, autoClosed func(pos int
 	change := Change{From: cursor, To: cursor, Text: string([]rune{p.Open, p.Close})}
 
 	return change, nextRange(text, r, 2), true
+}
+
+// opensFence reports a third quote typed after two at the end of a line,
+// such as a markdown code fence or a python docstring.
+func opensFence(text buffer.Rope, cursor int, q rune) bool {
+	for i := 1; i <= 2; i++ {
+		if ch, ok := charAt(text, cursor-i); !ok || ch != q {
+			return false
+		}
+	}
+
+	if ch, ok := charAt(text, cursor-3); ok && ch == q {
+		return false
+	}
+
+	next, ok := charAt(text, cursor)
+
+	return !ok || next == '\n' || next == '\r'
+}
+
+// IsFenceGap reports a cursor before a closing fence of three same quotes
+// at the end of a line that starts with the opening fence, optionally
+// followed by an info string, such as ```sh|```.
+func (ap *AutoPairs) IsFenceGap(text buffer.Rope, pos int) bool {
+	q, ok := charAt(text, pos)
+	if !ok {
+		return false
+	}
+
+	if p, ok := ap.Get(q); !ok || !p.same() {
+		return false
+	}
+
+	for i := 1; i <= 2; i++ {
+		if ch, ok := charAt(text, pos+i); !ok || ch != q {
+			return false
+		}
+	}
+
+	if next, ok := charAt(text, pos+3); ok && next != '\n' && next != '\r' {
+		return false
+	}
+
+	before := strings.TrimLeft(text.Slice(text.LineToChar(text.CharToLine(pos)), pos), " \t")
+	fence := strings.Repeat(string(q), 3)
+	info, ok := strings.CutPrefix(before, fence)
+
+	return ok && !strings.ContainsRune(info, q)
 }

@@ -83,6 +83,20 @@ func TestNewlineBetweenPair(t *testing.T) {
 	check(t, "{#[}|]#", "i<ret>", "{\n\t#[|\n]#}")
 }
 
+func TestAutoPairsFence(t *testing.T) {
+	t.Parallel()
+
+	for _, q := range []string{"`", "\"", "'"} {
+		fence := strings.Repeat(q, 3)
+		checkNL(t, "#[\n|]#", "i"+fence, fence+"#[|"+q+"]#"+q+q+"\n")
+		checkNL(t, "#[\n|]#", "i"+fence+"<ret>", fence+"\n#[|\n]#"+fence+"\n")
+		checkNL(t, "#[\n|]#", "i"+fence+fence, fence+fence+"#[|\n]#")
+		checkNL(t, "  #[\n|]#", "i"+fence+"<ret>", "  "+fence+"\n  #[|\n]#  "+fence+"\n")
+		checkNL(t, "#[\n|]#", "i"+fence+"sh<ret>", fence+"sh\n#[|\n]#"+fence+"\n")
+		checkNL(t, "#[\n|]#", "i"+fence+"js title<ret>", fence+"js title\n#[|\n]#"+fence+"\n")
+	}
+}
+
 func TestToggleCommentsCommand(t *testing.T) {
 	t.Parallel()
 
