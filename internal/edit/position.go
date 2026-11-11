@@ -24,18 +24,6 @@ func GraphemeWidth(g string) int {
 	return max(uniseg.StringWidth(g), 1)
 }
 
-// graphemes iterates the clusters of s with their char counts.
-func graphemes(s string, yield func(cluster string, chars int) bool) {
-	state := -1
-	for len(s) > 0 {
-		var cluster string
-		cluster, s, _, state = uniseg.FirstGraphemeClusterInString(s, state)
-		if !yield(cluster, utf8.RuneCountInString(cluster)) {
-			return
-		}
-	}
-}
-
 // CoordsAtPos converts a char index to a line and grapheme column.
 func CoordsAtPos(text buffer.Rope, pos int) Position {
 	line := text.CharToLine(pos)
@@ -43,11 +31,9 @@ func CoordsAtPos(text buffer.Rope, pos int) Position {
 	pos = text.EnsureGraphemeBoundaryPrev(pos)
 
 	col := 0
-	graphemes(text.Slice(lineStart, pos), func(string, int) bool {
+	for range buffer.Graphemes(text.Slice(lineStart, pos)) {
 		col++
-
-		return true
-	})
+	}
 
 	return Position{Row: line, Col: col}
 }
@@ -60,15 +46,13 @@ func VisualCoordsAtPos(text buffer.Rope, pos, tabWidth int) Position {
 	pos = text.EnsureGraphemeBoundaryPrev(pos)
 
 	col := 0
-	graphemes(text.Slice(lineStart, pos), func(g string, _ int) bool {
+	for g := range buffer.Graphemes(text.Slice(lineStart, pos)) {
 		if g == "\t" {
 			col += tabWidth - col%tabWidth
 		} else {
 			col += GraphemeWidth(g)
 		}
-
-		return true
-	})
+	}
 
 	return Position{Row: line, Col: col}
 }
@@ -82,21 +66,19 @@ func PosAtVisualCoords(text buffer.Rope, coords Position, tabWidth int) int {
 
 	offset := 0
 	remaining := coords.Col
-	graphemes(text.Slice(lineStart, lineEnd), func(g string, chars int) bool {
+	for g := range buffer.Graphemes(text.Slice(lineStart, lineEnd)) {
 		width := GraphemeWidth(g)
 		if g == "\t" {
 			width = tabWidth - (coords.Col-remaining)%tabWidth
 		}
 
 		if width > remaining {
-			return false
+			break
 		}
 
 		remaining -= width
-		offset += chars
-
-		return true
-	})
+		offset += utf8.RuneCountInString(g)
+	}
 
 	return lineStart + offset
 }

@@ -1,6 +1,7 @@
 package buffer
 
 import (
+	"iter"
 	"unicode/utf8"
 
 	"github.com/rivo/uniseg"
@@ -82,10 +83,7 @@ func (r Rope) EnsureGraphemeBoundaryPrev(charIdx int) int {
 func lastBoundaryBefore(text string) int {
 	pos := 0
 	last := 0
-	state := -1
-	for len(text) > 0 {
-		var cluster string
-		cluster, text, _, state = uniseg.FirstGraphemeClusterInString(text, state)
+	for cluster := range Graphemes(text) {
 		last = pos
 		pos += utf8.RuneCountInString(cluster)
 	}
@@ -97,10 +95,7 @@ func lastBoundaryBefore(text string) int {
 // offset pos, which is the first boundary strictly after pos.
 func firstBoundaryAfter(text string, pos int) int {
 	end := 0
-	state := -1
-	for len(text) > 0 {
-		var cluster string
-		cluster, text, _, state = uniseg.FirstGraphemeClusterInString(text, state)
+	for cluster := range Graphemes(text) {
 		end += utf8.RuneCountInString(cluster)
 		if end > pos {
 			return end
@@ -108,4 +103,18 @@ func firstBoundaryAfter(text string, pos int) int {
 	}
 
 	return end
+}
+
+// Graphemes iterates the grapheme clusters of s.
+func Graphemes(s string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		state := -1
+		for len(s) > 0 {
+			var cluster string
+			cluster, s, _, state = uniseg.FirstGraphemeClusterInString(s, state)
+			if !yield(cluster) {
+				return
+			}
+		}
+	}
 }

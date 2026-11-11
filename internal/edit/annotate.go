@@ -8,8 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/rivo/uniseg"
-
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 )
 
@@ -24,7 +22,7 @@ import (
 // A line ending directly inside a closing marker that is repeated right
 // after it is dropped, so a cursor can sit on a line ending.
 func ParseAnnotated(s string) (string, Selection, error) {
-	graphemes := splitGraphemes(s)
+	graphemes := slices.Collect(buffer.Graphemes(s))
 	var left strings.Builder
 	leftChars := 0
 	ranges := []Range{}
@@ -181,23 +179,10 @@ func Annotate(text buffer.Rope, sel Selection) string {
 	return out
 }
 
-func splitGraphemes(s string) []string {
-	out := make([]string, 0, len(s))
-	state := -1
-	for len(s) > 0 {
-		var g string
-		g, s, _, state = uniseg.FirstGraphemeClusterInString(s, state)
-		out = append(out, g)
-	}
-
-	return out
-}
-
 func lastGrapheme(s string) string {
 	last := ""
-	state := -1
-	for len(s) > 0 {
-		last, s, _, state = uniseg.FirstGraphemeClusterInString(s, state)
+	for g := range buffer.Graphemes(s) {
+		last = g
 	}
 
 	return last

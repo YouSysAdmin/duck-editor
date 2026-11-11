@@ -5,8 +5,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/rivo/uniseg"
-
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 )
@@ -383,18 +381,6 @@ func excludeCursor(text buffer.Rope, r, cursor edit.Range) edit.Range {
 	}
 
 	return r
-}
-
-func splitGraphemes(s string) []string {
-	out := make([]string, 0, len(s))
-	state := -1
-	for len(s) > 0 {
-		var g string
-		g, s, _, state = uniseg.FirstGraphemeClusterInString(s, state)
-		out = append(out, g)
-	}
-
-	return out
 }
 
 // isAutoPairGap reports a cursor sitting between an open and close pair.

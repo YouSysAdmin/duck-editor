@@ -497,7 +497,7 @@ func replaceChar(cx *Context) {
 			}
 
 			// Every grapheme becomes the replacement, line endings included.
-			count := len(splitGraphemes(r.Fragment(text)))
+			count := len(slices.Collect(buffer.Graphemes(r.Fragment(text))))
 
 			return edit.Change{From: r.From(), To: r.To(), Text: strings.Repeat(repl, count)}
 		})
