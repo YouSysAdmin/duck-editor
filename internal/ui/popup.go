@@ -11,9 +11,9 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
 )
 
-// wrapLines breaks lines at spaces to fit width cells, words longer
+// WrapLines breaks lines at spaces to fit width cells, words longer
 // than a line are cut. Tabs become four spaces, a rule stays one row.
-func wrapLines(lines []Line, width int) []Line {
+func WrapLines(lines []Line, width int) []Line {
 	width = max(width, 1)
 	var out []Line
 	for _, line := range lines {
@@ -106,7 +106,7 @@ func renderLine(line Line, inner int, base theme.Style, th *Theme) (string, int)
 func RenderPopup(lines []Line, scroll, width, height int, th *Theme) string {
 	style := th.Popup.Patch(th.Text)
 	inner := max(width-2, 1)
-	wrapped := wrapLines(lines, inner)
+	wrapped := WrapLines(lines, inner)
 	wrapped = wrapped[max(min(scroll, len(wrapped)-height), 0):]
 	var sb strings.Builder
 	for row := range height {
@@ -139,7 +139,7 @@ func PopupSize(lines []Line, maxWidth, maxHeight int) (int, int) {
 	}
 
 	width = min(max(width, 10), maxWidth)
-	height := len(wrapLines(lines, width-2))
+	height := len(WrapLines(lines, width-2))
 
 	return width, min(max(height, 1), maxHeight)
 }
@@ -261,7 +261,7 @@ func signatureRows(sig Signature, inner int) []sigRow {
 
 	if len(sig.Docs) > 0 {
 		rows = append(rows, sigRow{doc: true, line: Line{Rule: true}})
-		for _, l := range wrapLines(sig.Docs, inner) {
+		for _, l := range WrapLines(sig.Docs, inner) {
 			rows = append(rows, sigRow{doc: true, line: l})
 		}
 	}

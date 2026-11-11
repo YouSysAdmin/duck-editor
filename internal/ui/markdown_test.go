@@ -59,7 +59,7 @@ func TestWrapLinesKeepsRuns(t *testing.T) {
 	t.Parallel()
 
 	line := Line{Runs: []Run{{Text: "one two "}, {Text: "three four", Scope: scopeBold}, {Text: "\tfive"}}}
-	got := wrapLines([]Line{line, {Rule: true}}, 9)
+	got := WrapLines([]Line{line, {Rule: true}}, 9)
 	want := []string{"one two", "three", "four", "five", ""}
 	if !slices.Equal(Strings(got), want) {
 		t.Fatalf("wrapped %q, want %q", Strings(got), want)
@@ -71,11 +71,11 @@ func TestWrapLinesKeepsRuns(t *testing.T) {
 
 	// A word longer than the line is cut, a wide char on a narrow line
 	// does not hang.
-	if got := Strings(wrapLines([]Line{Plain("abcdefghij")}, 4)); !slices.Equal(got, []string{"abcd", "efgh", "ij"}) {
+	if got := Strings(WrapLines([]Line{Plain("abcdefghij")}, 4)); !slices.Equal(got, []string{"abcd", "efgh", "ij"}) {
 		t.Fatalf("cut %q", got)
 	}
 
-	if got := Strings(wrapLines([]Line{Plain("中文")}, 1)); !slices.Equal(got, []string{"中", "文"}) {
+	if got := Strings(WrapLines([]Line{Plain("中文")}, 1)); !slices.Equal(got, []string{"中", "文"}) {
 		t.Fatalf("wide %q", got)
 	}
 }

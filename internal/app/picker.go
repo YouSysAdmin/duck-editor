@@ -268,24 +268,9 @@ func (m Model) renderPreview(p *editor.Picker, width, height int) ([]string, str
 // a preview pane.
 func wrapLines(text []string, width int) []string {
 	// Every line starts with a space of margin.
-	width = max(width-1, 1)
-	var out []string
-	for _, line := range text {
-		for lipgloss.Width(line) > width {
-			cut := width
-			for i := min(width, len(line)-1); i > 0; i-- {
-				if line[i] == ' ' {
-					cut = i
-
-					break
-				}
-			}
-
-			out = append(out, " "+strings.TrimRight(line[:cut], " "))
-			line = strings.TrimLeft(line[cut:], " ")
-		}
-
-		out = append(out, " "+line)
+	out := ui.Strings(ui.WrapLines(ui.PlainLines(text), max(width-1, 1)))
+	for i, line := range out {
+		out[i] = " " + line
 	}
 
 	return out

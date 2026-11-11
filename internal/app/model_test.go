@@ -410,6 +410,13 @@ func TestWrapLines(t *testing.T) {
 			t.Fatalf("%q is wider than 10", l)
 		}
 	}
+
+	// Width is counted in cells, a multibyte text is cut between characters.
+	got = wrapLines([]string{"привітсвітпривіт", "один два три чотири"}, 10)
+	want = []string{" привітсві", " тпривіт", " один два", " три", " чотири"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("wrapped %q want %q", got, want)
+	}
 }
 
 // TestDirectoryPreviewBackground draws a directory listing on the editor
