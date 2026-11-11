@@ -16,6 +16,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
+	"github.com/YouSysAdmin/duck-editor/internal/yamlnode"
 )
 
 // kubeState is a buffer holding a Kubernetes object: saves show the diff
@@ -100,11 +101,11 @@ func secretToStringData(text string) string {
 	}
 
 	root := doc.Content[0]
-	if root.Kind != yaml.MappingNode || mappingValue(root, "kind") == nil || mappingValue(root, "kind").Value != "Secret" {
+	if root.Kind != yaml.MappingNode || yamlnode.Value(root, "kind") == nil || yamlnode.Value(root, "kind").Value != "Secret" {
 		return text
 	}
 
-	data := mappingValue(root, "data")
+	data := yamlnode.Value(root, "data")
 	if data == nil || data.Kind != yaml.MappingNode {
 		return text
 	}
@@ -152,16 +153,6 @@ func secretToStringData(text string) string {
 	}
 
 	return out.String()
-}
-
-func mappingValue(m *yaml.Node, key string) *yaml.Node {
-	for i := 0; i+1 < len(m.Content); i += 2 {
-		if m.Content[i].Value == key {
-			return m.Content[i+1]
-		}
-	}
-
-	return nil
 }
 
 // applyKube shows the diff of the buffer against the cluster and, after

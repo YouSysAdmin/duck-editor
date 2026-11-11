@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/YouSysAdmin/duck-editor/internal/yamlnode"
 )
 
 // parseLanguages reads a languages.yaml document: a language-servers
@@ -29,14 +31,14 @@ func parseLanguages(text string) (*Languages, error) {
 	}
 
 	inlineServers := map[string]int{}
-	for key, value := range pairs(root) {
+	for key, value := range yamlnode.Pairs(root) {
 		switch key.Value {
 		case "language-servers":
 			if err := expectKind(value, yaml.MappingNode, "language-servers"); err != nil {
 				return nil, err
 			}
 
-			for name, def := range pairs(value) {
+			for name, def := range yamlnode.Pairs(value) {
 				if err := checkKeys(def, serverKeys, "language server "+name.Value); err != nil {
 					return nil, err
 				}
@@ -54,7 +56,7 @@ func parseLanguages(text string) (*Languages, error) {
 				return nil, err
 			}
 
-			for name, def := range pairs(value) {
+			for name, def := range yamlnode.Pairs(value) {
 				lang, err := parseLanguage(langs, name, def, inlineServers)
 				if err != nil {
 					return nil, err
@@ -67,7 +69,7 @@ func parseLanguages(text string) (*Languages, error) {
 				return nil, err
 			}
 
-			for name, def := range pairs(value) {
+			for name, def := range yamlnode.Pairs(value) {
 				g, err := grammarFromNode(name.Value, def)
 				if err != nil {
 					return nil, err
@@ -109,7 +111,7 @@ func parseLanguage(langs *Languages, nameNode, def *yaml.Node, inline map[string
 		return nil, err
 	}
 
-	for key, value := range pairs(def) {
+	for key, value := range yamlnode.Pairs(def) {
 		if allowed, ok := nestedKeys[key.Value]; ok {
 			if err := checkKeys(value, allowed, key.Value+" of language "+name); err != nil {
 				return nil, err
@@ -124,7 +126,7 @@ func parseLanguage(langs *Languages, nameNode, def *yaml.Node, inline map[string
 
 	lang := languageFromMap(name, m)
 
-	for key, value := range pairs(def) {
+	for key, value := range yamlnode.Pairs(def) {
 		switch key.Value {
 		case "injection-regex":
 			// The regex has to match the whole injected name, so one
@@ -162,7 +164,7 @@ func parseLanguage(langs *Languages, nameNode, def *yaml.Node, inline map[string
 				// An inline grammar is named after the language unless
 				// it says otherwise.
 				grammarName := name
-				if n := mappingValue(value, "name"); n != nil {
+				if n := yamlnode.Value(value, "name"); n != nil {
 					grammarName = n.Value
 				}
 
@@ -272,28 +274,6 @@ func grammarFromNode(name string, def *yaml.Node) (*Grammar, error) {
 	return &Grammar{Name: name, Git: src.Git, Rev: src.Rev, Subpath: src.Subpath, Path: src.Path, line: def.Line}, nil
 }
 
-// mappingValue returns the value node of key in a mapping, or nil.
-func mappingValue(m *yaml.Node, key string) *yaml.Node {
-	for k, v := range pairs(m) {
-		if k.Value == key {
-			return v
-		}
-	}
-
-	return nil
-}
-
-// pairs iterates the key and value nodes of a mapping.
-func pairs(n *yaml.Node) func(yield func(*yaml.Node, *yaml.Node) bool) {
-	return func(yield func(*yaml.Node, *yaml.Node) bool) {
-		for i := 0; i+1 < len(n.Content); i += 2 {
-			if !yield(n.Content[i], n.Content[i+1]) {
-				return
-			}
-		}
-	}
-}
-
 func expectKind(n *yaml.Node, kind yaml.Kind, what string) error {
 	if n.Kind == kind {
 		return nil
@@ -341,7 +321,7 @@ func checkKeys(m *yaml.Node, allowed []string, what string) error {
 		return nil
 	}
 
-	for key := range pairs(m) {
+	for key := range yamlnode.Pairs(m) {
 		if !slices.Contains(allowed, key.Value) {
 			return fmt.Errorf("line %d: unknown key %q in %s", key.Line, key.Value, what)
 		}

@@ -15,6 +15,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
+	"github.com/YouSysAdmin/duck-editor/internal/yamlnode"
 	"github.com/YouSysAdmin/duck-editor/runtime"
 )
 
@@ -164,32 +165,32 @@ func exportLanguage(name string) error {
 	}
 
 	root := doc.Content[0]
-	langs, servers := mapValue(root, "languages"), mapValue(root, "language-servers")
-	key, lang := mapEntry(langs, name)
+	langs, servers := yamlnode.Value(root, "languages"), yamlnode.Value(root, "language-servers")
+	key, lang := yamlnode.Entry(langs, name)
 	if lang == nil {
 		return fmt.Errorf("no language %q in the catalogue", name)
 	}
 
 	out := &yaml.Node{Kind: yaml.MappingNode}
-	if refs := mapValue(lang, "language-servers"); refs != nil {
+	if refs := yamlnode.Value(lang, "language-servers"); refs != nil {
 		used := &yaml.Node{Kind: yaml.MappingNode}
 		for _, ref := range refs.Content {
 			server := ref.Value
 			if ref.Kind == yaml.MappingNode {
-				server = mapValue(ref, "name").Value
+				server = yamlnode.Value(ref, "name").Value
 			}
 
-			if k, v := mapEntry(servers, server); v != nil {
+			if k, v := yamlnode.Entry(servers, server); v != nil {
 				used.Content = append(used.Content, k, v)
 			}
 		}
 
 		if len(used.Content) > 0 {
-			out.Content = append(out.Content, scalarNode("language-servers"), used)
+			out.Content = append(out.Content, yamlnode.Scalar("language-servers"), used)
 		}
 	}
 
-	out.Content = append(out.Content, scalarNode("languages"), &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{key, lang}})
+	out.Content = append(out.Content, yamlnode.Scalar("languages"), &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{key, lang}})
 
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
@@ -201,29 +202,4 @@ func exportLanguage(name string) error {
 	_, err = os.Stdout.Write(buf.Bytes())
 
 	return err
-}
-
-// mapEntry returns the key and value of key in a mapping, nils when absent.
-func mapEntry(m *yaml.Node, key string) (*yaml.Node, *yaml.Node) {
-	if m == nil {
-		return nil, nil
-	}
-
-	for i := 0; i+1 < len(m.Content); i += 2 {
-		if m.Content[i].Value == key {
-			return m.Content[i], m.Content[i+1]
-		}
-	}
-
-	return nil, nil
-}
-
-func mapValue(m *yaml.Node, key string) *yaml.Node {
-	_, v := mapEntry(m, key)
-
-	return v
-}
-
-func scalarNode(s string) *yaml.Node {
-	return &yaml.Node{Kind: yaml.ScalarNode, Value: s}
 }

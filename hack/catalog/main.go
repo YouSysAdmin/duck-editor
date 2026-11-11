@@ -18,6 +18,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/YouSysAdmin/duck-editor/internal/yamlnode"
 )
 
 func main() {
@@ -53,8 +55,8 @@ func run(path, prune string) error {
 		return nil
 	}
 
-	grammars, _ := used(value(root, "languages"))
-	if g := value(root, "grammars"); g != nil {
+	grammars, _ := used(yamlnode.Value(root, "languages"))
+	if g := yamlnode.Value(root, "grammars"); g != nil {
 		for i := 0; i < len(g.Content); i += 2 {
 			grammars[g.Content[i].Value] = true
 		}
@@ -86,7 +88,7 @@ func readCatalog(path string) (*yaml.Node, error) {
 // nothing depends on where an entry sits in the file.
 func sortSections(root *yaml.Node) {
 	for _, key := range sectionOrder {
-		if m := value(root, key); m != nil {
+		if m := yamlnode.Value(root, key); m != nil {
 			sortMapping(m)
 		}
 	}
@@ -109,40 +111,29 @@ func sortMapping(m *yaml.Node) {
 	}
 }
 
-// value returns the value of key in a mapping node, nil when absent.
-func value(m *yaml.Node, key string) *yaml.Node {
-	for i := 0; i+1 < len(m.Content); i += 2 {
-		if m.Content[i].Value == key {
-			return m.Content[i+1]
-		}
-	}
-
-	return nil
-}
-
 // used collects the grammar and server names the languages refer to.
 func used(langs *yaml.Node) (grammars, servers map[string]bool) {
 	grammars, servers = map[string]bool{}, map[string]bool{}
 	for i := 0; i+1 < len(langs.Content); i += 2 {
 		name, lang := langs.Content[i].Value, langs.Content[i+1]
-		switch g := value(lang, "grammar"); {
+		switch g := yamlnode.Value(lang, "grammar"); {
 		case g == nil:
 			grammars[name] = true
 		case g.Kind == yaml.ScalarNode:
 			grammars[g.Value] = true
 		case g.Kind == yaml.MappingNode:
-			if n := value(g, "name"); n != nil {
+			if n := yamlnode.Value(g, "name"); n != nil {
 				grammars[n.Value] = true
 			} else {
 				grammars[name] = true
 			}
 		}
 
-		if list := value(lang, "language-servers"); list != nil {
+		if list := yamlnode.Value(lang, "language-servers"); list != nil {
 			for _, item := range list.Content {
 				if item.Kind == yaml.ScalarNode {
 					servers[item.Value] = true
-				} else if n := value(item, "name"); n != nil {
+				} else if n := yamlnode.Value(item, "name"); n != nil {
 					servers[n.Value] = true
 				}
 			}
@@ -157,31 +148,31 @@ func used(langs *yaml.Node) (grammars, servers map[string]bool) {
 // filters, in their place. The catalogue keeps every server in one
 // table, inline definitions are for user files.
 func hoistServers(root *yaml.Node) error {
-	shared := value(root, "language-servers")
+	shared := yamlnode.Value(root, "language-servers")
 	if shared == nil {
 		shared = &yaml.Node{Kind: yaml.MappingNode}
-		root.Content = append(root.Content, scalar("language-servers"), shared)
+		root.Content = append(root.Content, yamlnode.Scalar("language-servers"), shared)
 	}
 
-	langs := value(root, "languages")
+	langs := yamlnode.Value(root, "languages")
 	if langs == nil {
 		return nil
 	}
 
 	filters := []string{"name", "only-features", "except-features"}
 	for i := 1; i < len(langs.Content); i += 2 {
-		list := value(langs.Content[i], "language-servers")
+		list := yamlnode.Value(langs.Content[i], "language-servers")
 		if list == nil {
 			continue
 		}
 
 		for j, item := range list.Content {
-			if item.Kind != yaml.MappingNode || value(item, "command") == nil {
+			if item.Kind != yaml.MappingNode || yamlnode.Value(item, "command") == nil {
 				continue
 			}
 
 			name := itemName(item)
-			if value(shared, name) != nil {
+			if yamlnode.Value(shared, name) != nil {
 				return fmt.Errorf("line %d: server %q is defined twice", item.Line, name)
 			}
 
@@ -195,11 +186,11 @@ func hoistServers(root *yaml.Node) error {
 				}
 			}
 
-			shared.Content = append(shared.Content, scalar(name), def)
+			shared.Content = append(shared.Content, yamlnode.Scalar(name), def)
 			if len(ref.Content) > 2 {
 				list.Content[j] = ref
 			} else {
-				list.Content[j] = scalar(name)
+				list.Content[j] = yamlnode.Scalar(name)
 			}
 		}
 
@@ -218,15 +209,11 @@ func itemName(item *yaml.Node) string {
 		return item.Value
 	}
 
-	if n := value(item, "name"); n != nil {
+	if n := yamlnode.Value(item, "name"); n != nil {
 		return n.Value
 	}
 
 	return ""
-}
-
-func scalar(s string) *yaml.Node {
-	return &yaml.Node{Kind: yaml.ScalarNode, Value: s}
 }
 
 // pruneGrammars removes compiled libraries and source checkouts of
@@ -278,7 +265,7 @@ func pruneGrammars(dir string, grammars map[string]bool) error {
 func emitTop(b *bytes.Buffer, root *yaml.Node) {
 	first := true
 	for _, name := range sectionOrder {
-		key, v := entry(root, name)
+		key, v := yamlnode.Entry(root, name)
 		if v == nil {
 			continue
 		}
@@ -312,17 +299,6 @@ var spacedSections = map[string]bool{"language-servers": true, "languages": true
 // written in block style. Markdown and YAML formatters wrap at the same
 // width but keep block collections as they are, so the two agree.
 const maxWidth = 80
-
-// entry returns the key and value nodes of key in a mapping.
-func entry(m *yaml.Node, key string) (*yaml.Node, *yaml.Node) {
-	for i := 0; i+1 < len(m.Content); i += 2 {
-		if m.Content[i].Value == key {
-			return m.Content[i], m.Content[i+1]
-		}
-	}
-
-	return nil, nil
-}
 
 // emitComment writes the lines of a comment at the indent pad.
 func emitComment(b *bytes.Buffer, comment, pad string) {
