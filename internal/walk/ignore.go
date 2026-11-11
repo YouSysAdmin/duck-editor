@@ -7,8 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
+
+	"github.com/YouSysAdmin/duck-editor/internal/glob"
 )
 
 // pattern is one parsed ignore rule.
@@ -86,56 +87,13 @@ func parsePattern(line string) (pattern, bool) {
 // separated path relative to the ignore file. Unanchored patterns match
 // any path segment. A pattern matches the path itself, not what lies
 // below it, so a walk started inside an ignored directory lists it.
-func globToRegexp(glob string, anchored bool) (*regexp.Regexp, error) {
-	var sb strings.Builder
+func globToRegexp(pattern string, anchored bool) (*regexp.Regexp, error) {
+	prefix := "(^|/)"
 	if anchored {
-		sb.WriteString("^")
-	} else {
-		sb.WriteString("(^|/)")
+		prefix = "^"
 	}
 
-	runes := []rune(glob)
-	for i := 0; i < len(runes); i++ {
-		r := runes[i]
-		switch r {
-		case '*':
-			if i+1 < len(runes) && runes[i+1] == '*' {
-				i++
-				// "**/" matches zero or more directories.
-				if i+1 < len(runes) && runes[i+1] == '/' {
-					i++
-					sb.WriteString("(.*/)?")
-				} else {
-					sb.WriteString(".*")
-				}
-			} else {
-				sb.WriteString("[^/]*")
-			}
-		case '?':
-			sb.WriteString("[^/]")
-		case '[':
-			end := slices.Index(runes[i:], ']')
-			if end < 0 {
-				sb.WriteString(`\[`)
-
-				continue
-			}
-
-			class := string(runes[i+1 : i+end])
-			if strings.HasPrefix(class, "!") {
-				class = "^" + class[1:]
-			}
-
-			sb.WriteString("[" + class + "]")
-			i += end
-		default:
-			sb.WriteString(regexp.QuoteMeta(string(r)))
-		}
-	}
-
-	sb.WriteString("$")
-
-	return regexp.Compile(sb.String())
+	return regexp.Compile(prefix + glob.Body(pattern, glob.Options{OptionalDirs: true}) + "$")
 }
 
 // Match reports whether rel, a slash separated path below the matcher

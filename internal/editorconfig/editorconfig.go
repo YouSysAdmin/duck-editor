@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/YouSysAdmin/duck-editor/internal/glob"
 )
 
 // Properties are the settings relevant to the editor. Pointers are nil
@@ -191,93 +193,16 @@ func parseFile(path string, data []byte) file {
 	return f
 }
 
+// sectionGlob is the glob dialect of section names.
+var sectionGlob = glob.Options{Braces: true, NumericRanges: true}
+
 // globRegexp converts an editorconfig glob to a regexp over slash
 // separated relative paths. A glob without a slash matches in any
 // directory.
-func globRegexp(glob string) *regexp.Regexp {
-	var sb strings.Builder
-	sb.WriteString("^")
-	if !strings.Contains(glob, "/") {
-		sb.WriteString("(?:.*/)?")
+func globRegexp(pattern string) *regexp.Regexp {
+	if rest, ok := strings.CutPrefix(pattern, "/"); ok {
+		return glob.Anchored(rest, sectionGlob)
 	}
 
-	sb.WriteString(globBody(strings.TrimPrefix(glob, "/")))
-	sb.WriteString("$")
-	re, err := regexp.Compile(sb.String())
-	if err != nil {
-		return regexp.MustCompile("$^")
-	}
-
-	return re
-}
-
-// globBody converts a glob to an unanchored regexp body.
-func globBody(glob string) string {
-	var sb strings.Builder
-	runes := []rune(glob)
-	for i := 0; i < len(runes); i++ {
-		ch := runes[i]
-		switch ch {
-		case '*':
-			if i+1 < len(runes) && runes[i+1] == '*' {
-				sb.WriteString(".*")
-				i++
-			} else {
-				sb.WriteString("[^/]*")
-			}
-		case '?':
-			sb.WriteString("[^/]")
-		case '[':
-			end := strings.IndexRune(string(runes[i:]), ']')
-			if end < 0 {
-				sb.WriteString(`\[`)
-
-				continue
-			}
-
-			class := string(runes[i+1 : i+end])
-			if strings.HasPrefix(class, "!") {
-				class = "^" + class[1:]
-			}
-
-			sb.WriteString("[" + class + "]")
-			i += end
-		case '{':
-			end := strings.IndexRune(string(runes[i:]), '}')
-			if end < 0 {
-				sb.WriteString(`\{`)
-
-				continue
-			}
-
-			body := string(runes[i+1 : i+end])
-			if lo, hi, ok := strings.Cut(body, ".."); ok {
-				a, errA := strconv.Atoi(lo)
-				b, errB := strconv.Atoi(hi)
-				if errA == nil && errB == nil {
-					var nums []string
-					for n := a; n <= b; n++ {
-						nums = append(nums, strconv.Itoa(n))
-					}
-
-					sb.WriteString("(?:" + strings.Join(nums, "|") + ")")
-					i += end
-
-					continue
-				}
-			}
-
-			var alts []string
-			for _, alt := range strings.Split(body, ",") {
-				alts = append(alts, globBody(alt))
-			}
-
-			sb.WriteString("(?:" + strings.Join(alts, "|") + ")")
-			i += end
-		default:
-			sb.WriteString(regexp.QuoteMeta(string(ch)))
-		}
-	}
-
-	return sb.String()
+	return glob.Compile(pattern, sectionGlob)
 }
