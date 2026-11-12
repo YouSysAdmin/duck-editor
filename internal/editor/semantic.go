@@ -83,20 +83,9 @@ func (e *Editor) refreshSemanticTokens() {
 		return
 	}
 
-	if st.cancel != nil {
-		st.cancel()
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	st.cancel, st.pending = cancel, doc.edits
+	st.pending = doc.edits
 	docID := doc.ID
-	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
-		select {
-		case <-time.After(semanticDebounce):
-		case <-ctx.Done():
-			return
-		}
-
+	e.debounce(&st.cancel, semanticDebounce, func(_ context.Context, emit func(JobResult)) {
 		emit(func(e *Editor) { e.requestSemanticTokens(docID) })
 	})
 }

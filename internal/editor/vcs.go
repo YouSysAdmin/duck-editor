@@ -109,23 +109,11 @@ func (e *Editor) scheduleDiff(doc *Document) {
 		return
 	}
 
-	if doc.diff.cancel != nil {
-		doc.diff.cancel()
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	doc.diff.cancel = cancel
 	docID := doc.ID
 	edits := doc.edits
 	text := doc.Text()
 	base := doc.diff.base
-	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
-		select {
-		case <-time.After(diffDebounce):
-		case <-ctx.Done():
-			return
-		}
-
+	e.debounce(&doc.diff.cancel, diffDebounce, func(_ context.Context, emit func(JobResult)) {
 		hunks := vcs.Diff(base, ropeLines(text))
 		emit(func(e *Editor) {
 			doc, ok := e.Docs[docID]

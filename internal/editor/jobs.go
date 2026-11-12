@@ -1,6 +1,9 @@
 package editor
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // JobResult is applied on the editor when a background job reports.
 type JobResult func(e *Editor)
@@ -25,6 +28,27 @@ func (e *Editor) TakeJobs() []QueuedJob {
 
 func (e *Editor) queueJob(ctx context.Context, job Job) {
 	e.jobs = append(e.jobs, QueuedJob{Run: job, Ctx: ctx})
+}
+
+// debounce cancels the job behind cancel and queues its successor, which
+// starts after delay unless it is cancelled first too. cancel is set to
+// the cancel func of the new job.
+func (e *Editor) debounce(cancel *context.CancelFunc, delay time.Duration, job Job) {
+	if *cancel != nil {
+		(*cancel)()
+	}
+
+	ctx, stop := context.WithCancel(context.Background())
+	*cancel = stop
+	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return
+		}
+
+		job(ctx, emit)
+	})
 }
 
 // ApplyResult runs a job result on the editor.

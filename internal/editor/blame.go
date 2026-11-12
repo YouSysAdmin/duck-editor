@@ -49,20 +49,9 @@ func (e *Editor) refreshBlame() {
 		return
 	}
 
-	if st.cancel != nil {
-		st.cancel()
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	*st = blameState{line: line, edits: doc.edits, cancel: cancel}
+	*st = blameState{line: line, edits: doc.edits, cancel: st.cancel}
 	docID, edits, path, content, h := doc.ID, doc.edits, doc.Path(), text.String(), e.hostOf(doc)
-	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
-		select {
-		case <-time.After(blameDebounce):
-		case <-ctx.Done():
-			return
-		}
-
+	e.debounce(&st.cancel, blameDebounce, func(ctx context.Context, emit func(JobResult)) {
 		info, err := vcs.Blame(ctx, h, path, content, line)
 		emit(func(e *Editor) {
 			cur, ok := e.Docs[docID]

@@ -91,20 +91,8 @@ func (e *Editor) refreshInlayHints() {
 		return
 	}
 
-	if st.cancel != nil {
-		st.cancel()
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	st.cancel = cancel
 	docID := doc.ID
-	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
-		select {
-		case <-time.After(inlayHintDebounce):
-		case <-ctx.Done():
-			return
-		}
-
+	e.debounce(&st.cancel, inlayHintDebounce, func(_ context.Context, emit func(JobResult)) {
 		emit(func(e *Editor) { e.requestInlayHints(docID, from, to) })
 	})
 }
