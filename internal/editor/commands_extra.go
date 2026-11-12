@@ -14,6 +14,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
+	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
 )
@@ -779,11 +780,7 @@ func pathAround(text buffer.Rope, pos int) string {
 // document directory first, then the working directory.
 func (e *Editor) resolvePath(doc *Document, p string) string {
 	h := e.hostOf(doc)
-	if strings.HasPrefix(p, "~/") {
-		if home, err := h.Home(); err == nil {
-			p = filepath.Join(home, p[2:])
-		}
-	}
+	p, _ = host.ExpandHome(h, p)
 
 	if filepath.IsAbs(p) {
 		return p

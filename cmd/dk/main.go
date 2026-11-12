@@ -252,13 +252,7 @@ func connectWorkspace(ctx context.Context, w config.Workspace) (host.Host, error
 // local directory when it names no host, container or pod.
 func workspaceTarget(w config.Workspace) (*remoteTarget, string, error) {
 	home, _ := os.UserHomeDir()
-	expand := func(p string) string {
-		if p == "~" || strings.HasPrefix(p, "~/") {
-			return filepath.Join(home, strings.TrimPrefix(p, "~"))
-		}
-
-		return p
-	}
+	expand := func(p string) string { return host.ExpandTilde(home, p) }
 	t := &remoteTarget{user: w.User, path: w.Path, namespace: w.Namespace, context: w.Context, container: w.Container}
 	switch {
 	case w.Docker != "":

@@ -159,11 +159,8 @@ func editRemote(target remoteTarget, lang string) error {
 		return err
 	}
 
-	path := target.path
-	switch {
-	case path == "~" || strings.HasPrefix(path, "~/"):
-		path = filepath.Join(home, path[1:])
-	case !filepath.IsAbs(path):
+	path := host.ExpandTilde(home, target.path)
+	if !filepath.IsAbs(path) {
 		path = filepath.Join(r.Cwd(), path)
 	}
 

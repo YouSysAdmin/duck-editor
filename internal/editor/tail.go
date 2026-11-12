@@ -539,13 +539,9 @@ func localDir() string {
 
 // localPath resolves a path typed for this machine, with ~ for home.
 func localPath(path string) (string, error) {
-	if path == "~" || strings.HasPrefix(path, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-
-		path = filepath.Join(home, strings.TrimPrefix(path, "~"))
+	path, err := host.ExpandHome(host.Local{}, path)
+	if err != nil {
+		return "", err
 	}
 
 	if !filepath.IsAbs(path) {

@@ -17,6 +17,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
+	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
@@ -791,17 +792,9 @@ func (e *Editor) changeDirectory(dir string) error {
 	}
 
 	from := e.WorkingDir()
-	if dir == "" || dir == "~" {
-		home, err := e.Host.Home()
-		if err != nil {
-			return err
-		}
-
-		dir = home
-	} else if strings.HasPrefix(dir, "~/") {
-		if home, err := e.Host.Home(); err == nil {
-			dir = filepath.Join(home, dir[2:])
-		}
+	dir, err := host.ExpandHome(e.Host, cmp.Or(dir, "~"))
+	if err != nil {
+		return err
 	}
 
 	if e.Remote() {

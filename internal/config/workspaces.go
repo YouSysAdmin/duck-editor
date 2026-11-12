@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/YouSysAdmin/duck-editor/internal/host"
 )
 
 // Workspace is a place to work: a directory on this machine, on a host
@@ -166,9 +168,9 @@ func SSHHosts(path string) []string {
 			case "include":
 				for _, pattern := range fields[1:] {
 					// Relative includes are relative to ~/.ssh.
-					if strings.HasPrefix(pattern, "~/") {
+					if host.HasTilde(pattern) {
 						home, _ := os.UserHomeDir()
-						pattern = filepath.Join(home, pattern[2:])
+						pattern = host.ExpandTilde(home, pattern)
 					} else if !filepath.IsAbs(pattern) {
 						pattern = filepath.Join(filepath.Dir(path), pattern)
 					}

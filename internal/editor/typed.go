@@ -952,12 +952,7 @@ func (e *Editor) completePathOn(h host.Host, cwd, typed string, start, end int) 
 		dir, base = filepath.Split(typed)
 	}
 
-	expanded := dir
-	if strings.HasPrefix(expanded, "~/") {
-		if home, err := h.Home(); err == nil {
-			expanded = filepath.Join(home, expanded[2:])
-		}
-	}
+	expanded, _ := host.ExpandHome(h, dir)
 
 	if !filepath.IsAbs(expanded) {
 		expanded = filepath.Join(cwd, expanded)

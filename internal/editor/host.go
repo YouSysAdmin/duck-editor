@@ -3,7 +3,6 @@ package editor
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/YouSysAdmin/duck-editor/internal/config"
@@ -51,11 +50,7 @@ func (e *Editor) WorkingDir() string {
 // absPath resolves path against the working directory of the workspace.
 func (e *Editor) absPath(path string) string {
 	// ~ is the home directory of the workspace host.
-	if path == "~" || strings.HasPrefix(path, "~/") {
-		if home, err := e.Host.Home(); err == nil {
-			path = filepath.Join(home, strings.TrimPrefix(path, "~"))
-		}
-	}
+	path, _ = host.ExpandHome(e.Host, path)
 
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path)
