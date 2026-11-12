@@ -11,13 +11,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/YouSysAdmin/duck-editor/internal/atomicfile"
 )
 
 // ErrNotEmbedded is returned for a grammar the binary does not carry.
@@ -132,30 +133,7 @@ func (p *Pack) extract(src, dst string) error {
 		return err
 	}
 
-	tmp, err := os.CreateTemp(filepath.Dir(dst), ".extract-*")
-	if err != nil {
-		return err
-	}
-
-	name := tmp.Name()
-	_, err = io.Copy(tmp, zr)
-	if cerr := tmp.Close(); err == nil {
-		err = cerr
-	}
-
-	if err == nil {
-		err = os.Chmod(name, 0o755)
-	}
-
-	if err == nil {
-		err = os.Rename(name, dst)
-	}
-
-	if err != nil {
-		_ = os.Remove(name)
-	}
-
-	return err
+	return atomicfile.WriteFrom(dst, zr, 0o755)
 }
 
 // removeStale deletes cache directories of other grammar sets. Libraries

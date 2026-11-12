@@ -11,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/YouSysAdmin/duck-editor/internal/atomicfile"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 )
 
@@ -273,31 +274,14 @@ func textHash(text string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// writeFileAtomic writes data through a temp file in the same directory.
+// writeFileAtomic writes a state file through a temp file in the same
+// directory, creating the directory.
 func writeFileAtomic(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
 
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".tmp-*")
-	if err != nil {
-		return err
-	}
-
-	_, err = tmp.Write(data)
-	if cerr := tmp.Close(); err == nil {
-		err = cerr
-	}
-
-	if err == nil {
-		err = os.Rename(tmp.Name(), path)
-	}
-
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-	}
-
-	return err
+	return atomicfile.Write(path, data, 0o600)
 }
 
 func init() {

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/YouSysAdmin/duck-editor/internal/atomicfile"
 	"github.com/YouSysAdmin/duck-editor/internal/update"
 )
 
@@ -101,10 +102,5 @@ func downloadRelease(version, name, dest string) error {
 		return err
 	}
 
-	tmp := dest + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o755); err != nil {
-		return err
-	}
-
-	return os.Rename(tmp, dest)
+	return atomicfile.Write(dest, data, 0o755)
 }
