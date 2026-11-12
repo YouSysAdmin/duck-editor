@@ -825,26 +825,26 @@ func (e *Editor) startRowsAbove(v *View, doc *Document, vp ui.Viewport, line, cu
 
 	k -= r
 	for l := line - 1; l >= 0; l-- {
-		real := e.lineRowCount(doc, vp, l)
+		rows := e.lineRowCount(doc, vp, l)
 		virtual := len(vp.VirtualLines[l])
 		if k <= virtual {
 			if atOrAfter {
 				v.FirstLine, v.FirstRow = l+1, 0
 			} else {
-				v.FirstLine, v.FirstRow = l, real-1
+				v.FirstLine, v.FirstRow = l, rows-1
 			}
 
 			return
 		}
 
 		k -= virtual
-		if k <= real {
-			v.FirstLine, v.FirstRow = l, real-k
+		if k <= rows {
+			v.FirstLine, v.FirstRow = l, rows-k
 
 			return
 		}
 
-		k -= real
+		k -= rows
 	}
 
 	v.FirstLine, v.FirstRow = 0, 0

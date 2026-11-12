@@ -386,7 +386,7 @@ func init() {
 			return nil
 		}},
 		typedCommand{names: []string{"log-open"}, doc: "Open the log file", run: func(cx *Context, _ []string) error {
-			path := LogPath()
+			path := LogFile()
 			if path == "" {
 				return cmdError("logging is off")
 			}

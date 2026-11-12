@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
 
@@ -345,7 +346,7 @@ func emitEntry(b *bytes.Buffer, key, v *yaml.Node, depth int) {
 
 // tooWide reports whether a line exceeds maxWidth.
 func tooWide(line string) bool {
-	return len([]rune(line)) > maxWidth
+	return utf8.RuneCountInString(line) > maxWidth
 }
 
 func emitMapping(b *bytes.Buffer, m *yaml.Node, depth int) {

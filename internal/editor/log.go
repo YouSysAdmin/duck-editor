@@ -33,8 +33,8 @@ func SetLogFile(path string) error {
 	return nil
 }
 
-// LogPath returns the current log file, empty when logging is off.
-func LogPath() string {
+// LogFile returns the current log file, empty when logging is off.
+func LogFile() string {
 	return logPath
 }
 

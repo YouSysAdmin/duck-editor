@@ -186,10 +186,8 @@ func (e *Editor) openPrompt(prefix string, callback func(cx *Context, input stri
 }
 
 // withHistory lets Up and Down recall the values of a register.
-func (p *Prompt) withHistory(reg rune) *Prompt {
+func (p *Prompt) withHistory(reg rune) {
 	p.historyReg = reg
-
-	return p
 }
 
 // recall moves through the history by step, newest first, among the

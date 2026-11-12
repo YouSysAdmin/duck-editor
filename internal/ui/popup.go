@@ -240,8 +240,9 @@ type sigRow struct {
 func signatureRows(sig Signature, inner int) []sigRow {
 	inner = max(inner, 1)
 	label := []rune(sig.Label + signatureCounter(sig))
-	start := min(max(sig.ActiveStart, 0), len([]rune(sig.Label)))
-	end := min(max(sig.ActiveEnd, start), len([]rune(sig.Label)))
+	labelLen := utf8.RuneCountInString(sig.Label)
+	start := min(max(sig.ActiveStart, 0), labelLen)
+	end := min(max(sig.ActiveEnd, start), labelLen)
 	var rows []sigRow
 	for from := 0; from < len(label) || from == 0; {
 		to, cells := from, 0

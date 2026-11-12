@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -51,7 +52,7 @@ func (e Editor) Validate() error {
 	if alphabet := []rune(e.JumpLabelAlphabet); e.JumpLabelAlphabet != "" {
 		slices.Sort(alphabet)
 		if len(alphabet) < 2 || len(slices.Compact(alphabet)) != len(alphabet) {
-			return fmt.Errorf("jump-label-alphabet needs at least two different characters, each once")
+			return errors.New("jump-label-alphabet needs at least two different characters, each once")
 		}
 	}
 
