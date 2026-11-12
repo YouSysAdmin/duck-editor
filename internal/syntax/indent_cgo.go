@@ -9,6 +9,7 @@ import (
 	tree_sitter "github.com/tree-sitter/go-tree-sitter"
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
+	"github.com/YouSysAdmin/duck-editor/internal/edit"
 )
 
 // indentKind is a capture of indents.scm the editor understands.
@@ -156,7 +157,7 @@ func (s *Syntax) IndentFor(text buffer.Rope, pos int, newLine bool) (Indent, boo
 
 	// An @extend node that ended before the position still governs lines
 	// indented deeper than the line it starts on, like a Python body.
-	lineIndent := indentWidthOf(text.Line(line), 8)
+	lineIndent := edit.IndentWidth(text.Line(line), 8)
 	if prevByte := bytePos - 1; prevByte >= 0 && result.Align < 0 {
 		// A node with extend.prevent-once below an @extend ancestor stops
 		// that ancestor's first extension, like a return in Python.
@@ -180,7 +181,7 @@ func (s *Syntax) IndentFor(text buffer.Rope, pos int, newLine bool) (Indent, boo
 				continue
 			}
 
-			startIndent := indentWidthOf(text.Line(int(n.StartPosition().Row)), 8)
+			startIndent := edit.IndentWidth(text.Line(int(n.StartPosition().Row)), 8)
 			if lineIndent > startIndent || int(n.EndPosition().Row) == line {
 				addNode(n)
 			}
@@ -210,7 +211,7 @@ func visualColumn(text buffer.Rope, b int) int {
 	line := text.CharToLine(char)
 	prefix := text.Slice(text.LineToChar(line), char)
 
-	return indentWidthOf(prefix, 8) + utf8.RuneCountInString(strings.TrimLeft(prefix, " \t"))
+	return edit.IndentWidth(prefix, 8) + utf8.RuneCountInString(strings.TrimLeft(prefix, " \t"))
 }
 
 // firstTokenOfLine returns the leaf node at the first non whitespace char
@@ -387,21 +388,4 @@ func indentPredicatesHold(q *tree_sitter.Query, match *tree_sitter.QueryMatch) b
 	}
 
 	return true
-}
-
-// indentWidthOf measures the leading whitespace of a line in cells.
-func indentWidthOf(line string, tabWidth int) int {
-	width := 0
-	for _, ch := range line {
-		switch ch {
-		case ' ':
-			width++
-		case '\t':
-			width += tabWidth - width%tabWidth
-		default:
-			return width
-		}
-	}
-
-	return width
 }

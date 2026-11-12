@@ -86,3 +86,21 @@ func LastNonWhitespace(s string) (int, bool) {
 
 	return 0, false
 }
+
+// IndentWidth measures the leading whitespace of a line in cells, a tab
+// reaches the next tab stop.
+func IndentWidth(line string, tabWidth int) int {
+	width := 0
+	for _, ch := range line {
+		switch ch {
+		case ' ':
+			width++
+		case '\t':
+			width += tabWidth - width%tabWidth
+		default:
+			return width
+		}
+	}
+
+	return width
+}

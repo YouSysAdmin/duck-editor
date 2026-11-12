@@ -756,19 +756,7 @@ func detectIndent(text string) (IndentStyle, bool) {
 
 // indentLevelForLine returns how many indent units start the line.
 func indentLevelForLine(line string, tabWidth, indentWidth int) int {
-	width := 0
-	for _, ch := range line {
-		switch ch {
-		case ' ':
-			width++
-		case '\t':
-			width += tabWidth - width%tabWidth
-		default:
-			return width / max(indentWidth, 1)
-		}
-	}
-
-	return width / max(indentWidth, 1)
+	return edit.IndentWidth(line, tabWidth) / max(indentWidth, 1)
 }
 
 // indentForLine returns the indentation to use for a new line based on

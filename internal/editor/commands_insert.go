@@ -198,7 +198,7 @@ func insertNewline(cx *Context) {
 				if pairs.IsFenceGap(text, pos) {
 					// A fence body starts at the fence indentation.
 					inner = outer
-				} else if indentWidth(inner, doc.TabWidth()) <= indentWidth(outer, doc.TabWidth()) {
+				} else if edit.IndentWidth(inner, doc.TabWidth()) <= edit.IndentWidth(outer, doc.TabWidth()) {
 					inner = outer + doc.Indent().String()
 				}
 
@@ -238,20 +238,6 @@ func insertNewline(cx *Context) {
 // leadingWhitespace returns the indentation of a line.
 func leadingWhitespace(line string) string {
 	return line[:len(line)-len(strings.TrimLeft(line, " \t"))]
-}
-
-// indentWidth is the width of indentation in cells.
-func indentWidth(indent string, tabWidth int) int {
-	width := 0
-	for _, ch := range indent {
-		if ch == '\t' {
-			width += tabWidth
-		} else {
-			width++
-		}
-	}
-
-	return width
 }
 
 // dedent returns the deletion that removes one indent level before the
