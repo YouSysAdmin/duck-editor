@@ -2,18 +2,17 @@ package editor
 
 import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
+	"github.com/YouSysAdmin/duck-editor/internal/splits"
 )
 
 // ViewID identifies a window onto a document.
-type ViewID int
+type ViewID = splits.ViewID
 
 // DocID identifies an open document.
 type DocID int
 
 // Rect is a screen area in cells.
-type Rect struct {
-	X, Y, W, H int
-}
+type Rect = splits.Rect
 
 // View is a window showing one document with its own scroll position
 // and jumplist. Its selection lives in the document keyed by the view.

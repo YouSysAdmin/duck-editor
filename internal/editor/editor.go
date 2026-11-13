@@ -13,6 +13,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/splits"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
@@ -48,7 +49,7 @@ type Status struct {
 type Editor struct {
 	Docs  map[DocID]*Document
 	Views map[ViewID]*View
-	Tree  *Tree
+	Tree  *splits.Tree
 	Focus ViewID
 	Mode  Mode
 
@@ -243,7 +244,7 @@ func New(doc *Document, cfg config.Config) *Editor {
 	e.applyOptions()
 	e.addDocument(doc)
 	view := e.newView(doc.ID)
-	e.Tree = NewTree(view.ID)
+	e.Tree = splits.NewTree(view.ID)
 	e.focusView(view.ID)
 
 	return e

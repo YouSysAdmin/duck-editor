@@ -12,6 +12,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/editorconfig"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
+	"github.com/YouSysAdmin/duck-editor/internal/splits"
 )
 
 // Action says where a document opens.
@@ -254,9 +255,9 @@ func (e *Editor) Switch(id DocID, action Action) {
 
 		e.focusView(v.ID)
 	case ActionHorizontalSplit, ActionVerticalSplit:
-		layout := LayoutHorizontal
+		layout := splits.LayoutHorizontal
 		if action == ActionVerticalSplit {
-			layout = LayoutVertical
+			layout = splits.LayoutVertical
 		}
 
 		cur := e.View()

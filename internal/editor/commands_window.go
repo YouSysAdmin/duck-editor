@@ -1,6 +1,9 @@
 package editor
 
-import "github.com/YouSysAdmin/duck-editor/internal/edit"
+import (
+	"github.com/YouSysAdmin/duck-editor/internal/edit"
+	"github.com/YouSysAdmin/duck-editor/internal/splits"
+)
 
 func init() {
 	register("hsplit", "Horizontal bottom split", func(cx *Context) {
@@ -35,7 +38,7 @@ func init() {
 	register("rotate_view_reverse", "Goto previous window", func(cx *Context) {
 		cx.Editor.focusView(cx.Editor.Tree.Prev(cx.Editor.Focus))
 	})
-	jump := func(dir Direction) Command {
+	jump := func(dir splits.Direction) Command {
 		return func(cx *Context) {
 			e := cx.Editor
 			x, y := e.cursorScreenPos()
@@ -44,11 +47,11 @@ func init() {
 			}
 		}
 	}
-	register("jump_view_left", "Jump to left split", jump(DirLeft))
-	register("jump_view_right", "Jump to right split", jump(DirRight))
-	register("jump_view_up", "Jump to split above", jump(DirUp))
-	register("jump_view_down", "Jump to split below", jump(DirDown))
-	swap := func(dir Direction) Command {
+	register("jump_view_left", "Jump to left split", jump(splits.DirLeft))
+	register("jump_view_right", "Jump to right split", jump(splits.DirRight))
+	register("jump_view_up", "Jump to split above", jump(splits.DirUp))
+	register("jump_view_down", "Jump to split below", jump(splits.DirDown))
+	swap := func(dir splits.Direction) Command {
 		return func(cx *Context) {
 			e := cx.Editor
 			x, y := e.cursorScreenPos()
@@ -58,10 +61,10 @@ func init() {
 			}
 		}
 	}
-	register("swap_view_left", "Swap with left split", swap(DirLeft))
-	register("swap_view_right", "Swap with right split", swap(DirRight))
-	register("swap_view_up", "Swap with split above", swap(DirUp))
-	register("swap_view_down", "Swap with split below", swap(DirDown))
+	register("swap_view_left", "Swap with left split", swap(splits.DirLeft))
+	register("swap_view_right", "Swap with right split", swap(splits.DirRight))
+	register("swap_view_up", "Swap with split above", swap(splits.DirUp))
+	register("swap_view_down", "Swap with split below", swap(splits.DirDown))
 	register("transpose_view", "Transpose splits", func(cx *Context) {
 		e := cx.Editor
 		if e.Tree.Transpose(e.Focus) {

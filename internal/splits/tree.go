@@ -1,6 +1,16 @@
-package editor
+// Package splits is the split layout of the editor: a tree of views that
+// divides the screen area between them.
+package splits
 
 import "slices"
+
+// ViewID identifies a window onto a document.
+type ViewID int
+
+// Rect is a screen area in cells.
+type Rect struct {
+	X, Y, W, H int
+}
 
 // Layout is how a container arranges its children.
 type Layout int
