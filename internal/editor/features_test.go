@@ -429,9 +429,9 @@ func TestIncrementInteger(t *testing.T) {
 		{"abc", 1, "", false}, {"_1", 1, "", false}, {"", 1, "", false},
 	}
 	for _, c := range cases {
-		got, ok := incrementInteger(c.in, c.amount)
+		got, ok := edit.IncrementInteger(c.in, c.amount)
 		if ok != c.ok || got != c.want {
-			t.Errorf("incrementInteger(%q, %d) = %q %v, want %q %v", c.in, c.amount, got, ok, c.want, c.ok)
+			t.Errorf("edit.IncrementInteger(%q, %d) = %q %v, want %q %v", c.in, c.amount, got, ok, c.want, c.ok)
 		}
 	}
 
@@ -719,15 +719,15 @@ func TestSortReflowAndDiffReset(t *testing.T) {
 		t.Fatal("sort with one selection must fail")
 	}
 
-	if got := hardWrap("  one two three four five\n", 12, "\n"); got != "  one two\n  three four\n  five\n" {
+	if got := edit.HardWrap("  one two three four five\n", 12, "\n"); got != "  one two\n  three four\n  five\n" {
 		t.Fatalf("hardWrap = %q", got)
 	}
 
-	if got := hardWrap("a b\n\nc d", 80, "\n"); got != "a b\n\nc d" {
+	if got := edit.HardWrap("a b\n\nc d", 80, "\n"); got != "a b\n\nc d" {
 		t.Fatalf("paragraphs = %q", got)
 	}
 
-	if got := hardWrap("a b\r\n\r\nc d e\r\n", 3, "\r\n"); got != "a b\r\n\r\nc d\r\ne\r\n" {
+	if got := edit.HardWrap("a b\r\n\r\nc d e\r\n", 3, "\r\n"); got != "a b\r\n\r\nc d\r\ne\r\n" {
 		t.Fatalf("crlf = %q", got)
 	}
 

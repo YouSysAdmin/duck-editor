@@ -3,7 +3,6 @@ package editor
 import (
 	"context"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
@@ -28,7 +27,7 @@ func (e *Editor) prepareForSave(doc *Document) {
 	text := doc.Text()
 	var changes []edit.Change
 	if trim {
-		changes = trailingWhitespace(text, 0, text.LenLines()-1)
+		changes = edit.TrailingWhitespace(text, 0, text.LenLines()-1)
 	}
 
 	if len(changes) > 0 {
@@ -116,24 +115,6 @@ func (e *Editor) SaveOnBlur() {
 	}
 }
 
-// trailingWhitespace returns deletions of the spaces and tabs ending the
-// lines first to last.
-func trailingWhitespace(text buffer.Rope, first, last int) []edit.Change {
-	var changes []edit.Change
-	for i := first; i <= last; i++ {
-		line := text.LineWithoutEnding(i)
-		trimmed := strings.TrimRight(line, " \t")
-		if len(trimmed) == len(line) {
-			continue
-		}
-
-		start := text.LineToChar(i) + charCount(trimmed)
-		changes = append(changes, edit.Change{From: start, To: text.LineToChar(i) + charCount(line)})
-	}
-
-	return changes
-}
-
 // trimWhitespace removes trailing whitespace from the lines of the
 // selections, or from the whole buffer when nothing wider than a cursor
 // is selected.
@@ -148,12 +129,12 @@ func trimWhitespace(cx *Context, _ []string) error {
 			first, end := r.LineRange(text)
 			first = max(first, last+1)
 			if first <= end {
-				changes = append(changes, trailingWhitespace(text, first, end)...)
+				changes = append(changes, edit.TrailingWhitespace(text, first, end)...)
 				last = end
 			}
 		}
 	} else {
-		changes = trailingWhitespace(text, 0, text.LenLines()-1)
+		changes = edit.TrailingWhitespace(text, 0, text.LenLines()-1)
 	}
 
 	if len(changes) == 0 {

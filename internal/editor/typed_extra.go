@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -875,7 +874,7 @@ func sortSelections(cx *Context, args []string) error {
 		}
 
 		if numeric {
-			return compareNumeric(a, b)
+			return edit.CompareNumeric(a, b)
 		}
 
 		return strings.Compare(a, b)
@@ -910,52 +909,11 @@ func reflow(cx *Context, args []string) error {
 
 	text := doc.Text()
 	tx := edit.ChangeBySelection(text, doc.Selection(), func(r edit.Range) edit.Change {
-		return edit.Change{From: r.From(), To: r.To(), Text: hardWrap(r.Fragment(text), width, string(doc.LineEnding()))}
+		return edit.Change{From: r.From(), To: r.To(), Text: edit.HardWrap(r.Fragment(text), width, string(doc.LineEnding()))}
 	})
 	doc.Apply(&tx)
 
 	return nil
-}
-
-// hardWrap refills each paragraph to width, keeping the indent of the
-// first line of the paragraph and a trailing newline when present. Lines
-// are joined with nl, the line ending of the document.
-func hardWrap(s string, width int, nl string) string {
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	trailing := strings.HasSuffix(s, "\n")
-	paragraphs := strings.Split(strings.TrimRight(s, "\n"), "\n\n")
-	var out []string
-	for _, p := range paragraphs {
-		lines := strings.Split(p, "\n")
-		indent := lines[0][:len(lines[0])-len(strings.TrimLeft(lines[0], " \t"))]
-		words := strings.Fields(p)
-		var wrapped []string
-		line := indent
-		for _, w := range words {
-			switch {
-			case line == indent:
-				line += w
-			case utf8.RuneCountInString(line)+1+utf8.RuneCountInString(w) > width:
-				wrapped = append(wrapped, line)
-				line = indent + w
-			default:
-				line += " " + w
-			}
-		}
-
-		if line != indent || len(words) == 0 {
-			wrapped = append(wrapped, line)
-		}
-
-		out = append(out, strings.Join(wrapped, nl))
-	}
-
-	result := strings.Join(out, nl+nl)
-	if trailing {
-		result += nl
-	}
-
-	return result
 }
 
 // prettySexp indents an S-expression one node per line.
@@ -1140,36 +1098,4 @@ func reloadDocument(e *Editor, doc *Document) error {
 	doc.SetSelection(doc.Selection().EnsureInvariants(doc.Text()))
 
 	return nil
-}
-
-// leadingNumber matches the number a fragment starts with for a numeric
-// sort, after leading blanks.
-var leadingNumber = regexp.MustCompile(`^\s*[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?`)
-
-// compareNumeric orders fragments by their leading number. Fragments
-// without one go after the numbers, in text order.
-func compareNumeric(a, b string) int {
-	na, okA := parseLeadingNumber(a)
-	nb, okB := parseLeadingNumber(b)
-	switch {
-	case okA && okB:
-		return cmp.Or(cmp.Compare(na, nb), strings.Compare(a, b))
-	case okA:
-		return -1
-	case okB:
-		return 1
-	}
-
-	return strings.Compare(a, b)
-}
-
-func parseLeadingNumber(s string) (float64, bool) {
-	m := leadingNumber.FindString(s)
-	if m == "" {
-		return 0, false
-	}
-
-	n, err := strconv.ParseFloat(strings.TrimSpace(m), 64)
-
-	return n, err == nil
 }
