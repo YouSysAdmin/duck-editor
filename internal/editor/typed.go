@@ -12,6 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/YouSysAdmin/duck-editor/internal/cmdline"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/fuzzy"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
@@ -808,15 +809,15 @@ func (e *Editor) completeTyped(input string) []PromptCompletion {
 		return nil
 	}
 
-	start, quote := lastArgStart(runes)
+	start, quote := cmdline.LastArgStart(runes)
 	typed := string(runes[start:])
-	value := unescapeArg(typed)
+	value := cmdline.Unescape(typed)
 	if quote != 0 {
 		// Inside quotes the text after the quote is the value, the
 		// completion replaces it with an escaped form.
 		value = typed[1:]
 		if quote == '"' {
-			value = unescapeArg(value)
+			value = cmdline.Unescape(value)
 		}
 	}
 
@@ -852,39 +853,10 @@ func (e *Editor) completeTyped(input string) []PromptCompletion {
 	for i := range comps {
 		// A directory is a step on the way to a file, for :cd the goal.
 		comps[i].Descend = strings.HasSuffix(comps[i].Text, "/") && !dirCommands[tc.names[0]]
-		comps[i].Text = escapeArg(comps[i].Text)
+		comps[i].Text = cmdline.Escape(comps[i].Text)
 	}
 
 	return comps
-}
-
-// lastArgStart finds where the argument being typed starts: after the
-// last space outside quotes that is not escaped. quote is the quote that
-// opens it and is still open, zero for none.
-func lastArgStart(runes []rune) (int, rune) {
-	start, quote, escaped := 0, rune(0), false
-	for i, r := range runes {
-		switch {
-		case escaped:
-			escaped = false
-		case r == '\\' && quote != '\'':
-			escaped = true
-		case quote != 0:
-			if r == quote {
-				quote = 0
-			}
-		case r == '"' || r == '\'':
-			quote = r
-		case unicode.IsSpace(r):
-			start = i + 1
-		}
-	}
-
-	if quote == 0 || start >= len(runes) || runes[start] != quote {
-		quote = 0
-	}
-
-	return start, quote
 }
 
 // completeWords fuzzy matches a fixed list of candidates.
@@ -1035,7 +1007,7 @@ func (e *Editor) runTyped(cx *Context, line string) {
 	case len(args) > 0:
 		// Quotes group words, variables such as %{buffer_name} expand
 		// inside each argument and never split it.
-		parts, err := splitArgs(rest)
+		parts, err := cmdline.Split(rest)
 		if err != nil {
 			e.SetError("%v", err)
 

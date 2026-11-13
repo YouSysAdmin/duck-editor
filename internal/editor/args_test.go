@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/YouSysAdmin/duck-editor/internal/cmdline"
 )
 
 func TestSplitArgs(t *testing.T) {
@@ -25,27 +27,27 @@ func TestSplitArgs(t *testing.T) {
 		{`\%x`, []string{"%%x"}},
 	}
 	for _, tt := range tests {
-		got, err := splitArgs(tt.in)
+		got, err := cmdline.Split(tt.in)
 		if err != nil || !slices.Equal(got, tt.want) {
-			t.Errorf("splitArgs(%q) = %q, %v want %q", tt.in, got, err, tt.want)
+			t.Errorf("cmdline.Split(%q) = %q, %v want %q", tt.in, got, err, tt.want)
 		}
 	}
 
 	for _, bad := range []string{`"open`, `'open`, `%sh{x`} {
-		if _, err := splitArgs(bad); err == nil {
-			t.Errorf("splitArgs(%q) should fail", bad)
+		if _, err := cmdline.Split(bad); err == nil {
+			t.Errorf("cmdline.Split(%q) should fail", bad)
 		}
 	}
 
 	// An escaped word reads back as itself.
 	e := newTestEditor(t, "#[a|]#")
 	for _, word := range []string{"my file", `a\b`, "100%", `it's`} {
-		got, err := splitArgs(escapeArg(word))
+		got, err := cmdline.Split(cmdline.Escape(word))
 		if err != nil || len(got) != 1 {
 			t.Fatalf("escape of %q split into %q, %v", word, got, err)
 		}
 
-		if back, err := e.expand(got[0]); err != nil || back != word || unescapeArg(escapeArg(word)) != word {
+		if back, err := e.expand(got[0]); err != nil || back != word || cmdline.Unescape(cmdline.Escape(word)) != word {
 			t.Errorf("escape round trip of %q gave %q, %v", word, back, err)
 		}
 	}
@@ -68,8 +70,8 @@ func TestOpenPathWithSpaces(t *testing.T) {
 		t.Fatalf("opened %q, status %+v", e.Doc().Path(), e.Status())
 	}
 
-	comps := e.completeTyped("o " + escapeArg(dir) + "/my\\ no")
-	if len(comps) != 1 || comps[0].Text != escapeArg(path) {
+	comps := e.completeTyped("o " + cmdline.Escape(dir) + "/my\\ no")
+	if len(comps) != 1 || comps[0].Text != cmdline.Escape(path) {
 		t.Fatalf("completions %+v", comps)
 	}
 }
@@ -94,7 +96,7 @@ func TestCdCompletesDirectories(t *testing.T) {
 
 	e := newTestEditor(t, "#[a|]#")
 	var got []string
-	for _, c := range e.completeTyped("cd " + escapeArg(dir) + "/") {
+	for _, c := range e.completeTyped("cd " + cmdline.Escape(dir) + "/") {
 		got = append(got, filepath.Base(c.Text)+"/")
 	}
 

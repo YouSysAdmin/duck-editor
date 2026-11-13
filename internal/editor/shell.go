@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YouSysAdmin/duck-editor/internal/cmdline"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
@@ -464,7 +465,7 @@ func (e *Editor) expand(s string) (string, error) {
 			continue
 		}
 
-		kind, content, end, err := parseExpansion(runes, i)
+		kind, content, end, err := cmdline.ParseExpansion(runes, i)
 		if err != nil {
 			return "", err
 		}
@@ -479,45 +480,6 @@ func (e *Editor) expand(s string) (string, error) {
 	}
 
 	return out.String(), nil
-}
-
-var expansionPairs = map[rune]rune{'{': '}', '[': ']', '(': ')', '<': '>', '\'': '\'', '"': '"', '|': '|'}
-
-// parseExpansion reads %kind{content} starting at the percent sign and
-// returns the kind, the raw content and the index of the closing
-// delimiter. Bracket delimiters nest.
-func parseExpansion(runes []rune, start int) (string, string, int, error) {
-	i := start + 1
-	for i < len(runes) && (runes[i] >= 'a' && runes[i] <= 'z') {
-		i++
-	}
-
-	kind := string(runes[start+1 : i])
-	if i >= len(runes) {
-		return "", "", 0, fmt.Errorf("unterminated expansion at %q, %%%% is a literal %%", string(runes[start:]))
-	}
-
-	open := runes[i]
-	closing, ok := expansionPairs[open]
-	if !ok {
-		return "", "", 0, fmt.Errorf("expansion needs a delimiter after %%%s, %%%% is a literal %%", kind)
-	}
-
-	depth := 0
-	for j := i + 1; j < len(runes); j++ {
-		switch {
-		case runes[j] == open && open != closing:
-			depth++
-		case runes[j] == closing:
-			if depth == 0 {
-				return kind, string(runes[i+1 : j]), j, nil
-			}
-
-			depth--
-		}
-	}
-
-	return "", "", 0, fmt.Errorf("unterminated expansion %%%s%c", kind, open)
 }
 
 func (e *Editor) expandToken(kind, content string) (string, error) {
