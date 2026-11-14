@@ -328,10 +328,17 @@ func languageTable() (string, error) {
 			}
 		}
 
-		formatter := ""
-		if lang.Formatter.Command != "" {
-			formatter = "`" + lang.Formatter.Command + "`"
+		var formatters []string
+		for _, f := range lang.Formatters {
+			name := "`" + f.Command + "`"
+			if f.Fallback {
+				name += " (fallback)"
+			}
+
+			formatters = append(formatters, name)
 		}
+
+		formatter := strings.Join(formatters, ", ")
 
 		rows = append(rows, []string{name, cell(strings.Join(files, " ")), cell(strings.Join(servers, ", ")), formatter})
 	}

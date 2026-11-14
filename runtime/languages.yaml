@@ -30,6 +30,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   angular:
     command: ngserver
+    paths: [node_modules/.bin]
     args: ["--stdio", "--tsProbeLocations", ., "--ngProbeLocations", .]
 
   # Ansible playbooks
@@ -53,6 +54,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   basedpyright:
     command: basedpyright-langserver
+    paths: [.venv/bin, venv/bin]
     args: ["--stdio"]
     config: {}
 
@@ -67,6 +69,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   biome-lsp-proxy:
     command: biome
+    paths: [node_modules/.bin]
     args: [lsp-proxy]
 
   # Starlark build files of Buck2
@@ -139,6 +142,7 @@ language-servers:
   # https://github.com/fourdigits/django-template-lsp
   djlsp:
     command: djlsp
+    paths: [.venv/bin, venv/bin]
 
   # Docker Compose files
   # https://github.com/microsoft/compose-language-service
@@ -237,6 +241,7 @@ language-servers:
   # https://github.com/graphql/graphiql/tree/main/packages/graphql-language-service-cli
   graphql-language-service:
     command: graphql-lsp
+    paths: [node_modules/.bin]
     args: [server, "-m", stream]
 
   # Harper, grammar checker for prose and comments
@@ -273,6 +278,7 @@ language-servers:
   # https://github.com/pappasam/jedi-language-server
   jedi:
     command: jedi-language-server
+    paths: [.venv/bin, venv/bin]
 
   # jq
   # https://github.com/wader/jq-lsp
@@ -382,6 +388,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   oxfmt-language-server:
     command: oxfmt
+    paths: [node_modules/.bin]
     args: ["--lsp"]
 
   # oxlint, linter for JS and TS from the oxc project
@@ -389,6 +396,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   oxlint-language-server:
     command: oxlint
+    paths: [node_modules/.bin]
     args: ["--lsp"]
 
   # Protocol Buffers through pbkit
@@ -407,6 +415,7 @@ language-servers:
   # https://github.com/prisma/language-tools
   prisma-language-server:
     command: prisma-language-server
+    paths: [node_modules/.bin]
     args: ["--stdio"]
     config:
       prisma:
@@ -428,12 +437,14 @@ language-servers:
   # https://github.com/python-lsp/python-lsp-server
   pylsp:
     command: pylsp
+    paths: [.venv/bin, venv/bin]
 
   # Python, static analyzer written in Rust
   # https://github.com/mtshiba/pylyzer
   # No language starts it, list it in your languages.yaml to use it
   pylyzer:
     command: pylyzer
+    paths: [.venv/bin, venv/bin]
     args: ["--server"]
 
   # Python, type checker from Meta
@@ -441,6 +452,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   pyrefly:
     command: pyrefly
+    paths: [.venv/bin, venv/bin]
     args: [lsp]
 
   # Python, type checker from Microsoft
@@ -448,6 +460,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   pyright:
     command: pyright-langserver
+    paths: [.venv/bin, venv/bin]
     args: ["--stdio"]
     config: {}
 
@@ -456,6 +469,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   pytest-language-server:
     command: pytest-language-server
+    paths: [.venv/bin, venv/bin]
 
   # Rego policies for OPA
   # https://github.com/kitagry/regols
@@ -482,6 +496,7 @@ language-servers:
   # https://github.com/astral-sh/ruff
   ruff:
     command: ruff
+    paths: [.venv/bin, venv/bin]
     args: [server]
 
   # Markdown linter
@@ -537,6 +552,7 @@ language-servers:
   # https://github.com/sveltejs/language-tools
   svelteserver:
     command: svelteserver
+    paths: [node_modules/.bin]
     args: ["--stdio"]
     config:
       configuration:
@@ -579,6 +595,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   tailwindcss-ls:
     command: tailwindcss-language-server
+    paths: [node_modules/.bin]
     args: ["--stdio"]
 
   # TOML
@@ -620,12 +637,14 @@ language-servers:
   # https://github.com/astral-sh/ty
   ty:
     command: ty
+    paths: [.venv/bin, venv/bin]
     args: [server]
 
   # JavaScript and TypeScript
   # https://github.com/typescript-language-server/typescript-language-server
   typescript-language-server:
     command: typescript-language-server
+    paths: [node_modules/.bin]
     args: ["--stdio"]
     config:
       hostInfo: duck-editor
@@ -689,6 +708,7 @@ language-servers:
   # No language starts it, list it in your languages.yaml to use it
   vtsls:
     command: vtsls
+    paths: [node_modules/.bin]
     args: ["--stdio"]
     config:
       vtsls:
@@ -698,6 +718,7 @@ language-servers:
   # https://github.com/vuejs/language-tools
   vuels:
     command: vue-language-server
+    paths: [node_modules/.bin]
     args: ["--stdio"]
     config:
       typescript:
@@ -719,6 +740,7 @@ language-servers:
   # https://github.com/zubanls/zuban
   zuban:
     command: zuban
+    paths: [.venv/bin, venv/bin]
     args: [server]
 
 # ------------------------------------------------------------------------------
@@ -1057,6 +1079,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, css, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-css-language-server]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-css
@@ -1590,6 +1617,11 @@ languages:
     indent:
       tab-width: 2
       unit: "  "
+    formatter:
+      - command: prettier
+        args: [--parser, graphql, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [graphql-language-service]
     grammar:
       git: https://github.com/bkegley/tree-sitter-graphql
@@ -1716,6 +1748,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, html, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-html-language-server, superhtml]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-html
@@ -1841,6 +1878,11 @@ languages:
       tab-width: 2
       unit: "  "
     language-id: javascript
+    formatter:
+      - command: prettier
+        args: [--parser, babel, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [typescript-language-server]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-javascript
@@ -1934,6 +1976,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, json, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-json-language-server]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-json
@@ -1960,6 +2007,11 @@ languages:
     indent:
       tab-width: 4
       unit: "    "
+    formatter:
+      - command: prettier
+        args: [--parser, json5, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: []
     grammar:
       git: https://github.com/Joakker/tree-sitter-json5
@@ -1982,6 +2034,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, jsonc, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-json-language-server]
     grammar: json
 
@@ -1997,6 +2054,11 @@ languages:
       tab-width: 2
       unit: "  "
     language-id: javascriptreact
+    formatter:
+      - command: prettier
+        args: [--parser, babel, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [typescript-language-server]
     grammar: javascript
 
@@ -2088,6 +2150,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, less, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-css-language-server]
     grammar:
       git: https://github.com/jimliang/tree-sitter-less
@@ -2174,7 +2241,8 @@ languages:
       unit: "  "
     formatter:
       command: prettier
-      args: [--parser, markdown]
+      args: [--parser, markdown, --stdin-filepath, "{file}"]
+      paths: [node_modules/.bin]
     auto-format: true
     language-servers: [marksman, markdown-oxide, rumdl]
     grammar:
@@ -2743,6 +2811,11 @@ languages:
       tab-width: 2
       unit: "  "
     auto-format: true
+    formatter:
+      - command: prettier
+        args: [--parser, scss, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vscode-css-language-server]
     grammar:
       git: https://github.com/serenadeai/tree-sitter-scss
@@ -3009,6 +3082,11 @@ languages:
       tab-width: 2
       unit: "  "
     language-id: typescriptreact
+    formatter:
+      - command: prettier
+        args: [--parser, typescript, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [typescript-language-server]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-typescript
@@ -3041,6 +3119,11 @@ languages:
       tab-width: 2
       unit: "  "
     language-id: typescript
+    formatter:
+      - command: prettier
+        args: [--parser, typescript, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [typescript-language-server]
     grammar:
       git: https://github.com/tree-sitter/tree-sitter-typescript
@@ -3074,6 +3157,11 @@ languages:
     indent:
       tab-width: 2
       unit: "  "
+    formatter:
+      - command: prettier
+        args: [--parser, vue, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [vuels]
     grammar:
       git: https://github.com/ikatyang/tree-sitter-vue
@@ -3204,8 +3292,11 @@ languages:
       unit: "  "
     auto-format: true
     formatter:
-      args: ["-"]
-      command: yamlfmt
+      - { command: yamlfmt, args: ["-"] }
+      - command: prettier
+        args: [--parser, yaml, --stdin-filepath, "{file}"]
+        fallback: true
+        paths: [node_modules/.bin]
     language-servers: [yaml-language-server]
     grammar:
       git: https://github.com/ikatyang/tree-sitter-yaml

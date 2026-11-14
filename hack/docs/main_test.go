@@ -86,7 +86,12 @@ func TestToolsDocumented(t *testing.T) {
 
 	for _, name := range langs.Names() {
 		lang, _ := langs.Get(name)
-		for _, cmd := range []string{lang.Formatter.Command, lang.Check.Command} {
+		cmds := []string{lang.Check.Command}
+		for _, f := range lang.Formatters {
+			cmds = append(cmds, f.Command)
+		}
+
+		for _, cmd := range cmds {
 			if cmd != "" && !mentions(cmd) {
 				t.Errorf("docs/tools.md does not mention %s of %s", cmd, name)
 			}

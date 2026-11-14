@@ -58,8 +58,10 @@ type Language struct {
 	// file has no known extension.
 	Shebangs []string
 
-	// Formatter is an external command fed the text on stdin.
-	Formatter Formatter
+	// Formatters are external commands fed the text on stdin, in the
+	// order they are tried. A fallback one runs only when no earlier
+	// command and no language server can format.
+	Formatters []Formatter
 
 	// Check validates a file right after it is written, {file} in its
 	// args is the path. A failing check puts the old file back.
@@ -102,6 +104,14 @@ type FeatureFilter struct {
 type Formatter struct {
 	Command string
 	Args    []string
+
+	// Fallback puts the command after the language servers.
+	Fallback bool
+
+	// Paths are directories searched for Command before PATH, in order.
+	// A relative one is looked up from the directory of the file up to
+	// the repository root.
+	Paths []string
 }
 
 // Server is a [language-server.<name>] entry.
@@ -118,6 +128,10 @@ type Server struct {
 	// action menu. A kind also hides the kinds below it, source hides
 	// source.organizeImports.
 	ExceptCodeActions []string
+
+	// Paths are directories searched for Command before PATH, like the
+	// paths of a formatter, looked up from the server root.
+	Paths []string
 }
 
 // HidesCodeAction reports whether the menu leaves out actions of kind.
@@ -262,6 +276,7 @@ func serverFromMap(name string, m map[string]any) *Server {
 
 	s.Config = m["config"]
 	s.ExceptCodeActions = stringList(m["except-code-actions"])
+	s.Paths = stringList(m["paths"])
 
 	return s
 }
@@ -338,8 +353,8 @@ func (l *Languages) merge(user *Languages) {
 			merged.CodeActionsOnSave = u.CodeActionsOnSave
 		}
 
-		if u.Formatter.Command != "" {
-			merged.Formatter = u.Formatter
+		if len(u.Formatters) > 0 {
+			merged.Formatters = u.Formatters
 		}
 
 		if u.Check.Command != "" {
@@ -491,7 +506,7 @@ func languageFromMap(name string, m map[string]any) *Language {
 		}
 	}
 
-	lang.Formatter = decodeCommand(m["formatter"])
+	lang.Formatters = decodeFormatters(m["formatter"])
 	lang.Check = decodeCommand(m["check"])
 
 	lang.LanguageID, _ = m["language-id"].(string)
@@ -783,6 +798,26 @@ func decodeCommand(v any) Formatter {
 			if s, ok := a.(string); ok {
 				out.Args = append(out.Args, s)
 			}
+		}
+	}
+
+	out.Fallback, _ = f["fallback"].(bool)
+	out.Paths = stringList(f["paths"])
+
+	return out
+}
+
+// decodeFormatters reads one formatter table or a list of them.
+func decodeFormatters(v any) []Formatter {
+	list, ok := v.([]any)
+	if !ok {
+		list = []any{v}
+	}
+
+	var out []Formatter
+	for _, item := range list {
+		if f := decodeCommand(item); f.Command != "" {
+			out = append(out, f)
 		}
 	}
 

@@ -17,6 +17,7 @@ import (
 // it had before for putting back.
 type savedCheck struct {
 	path    string
+	command string
 	old     []byte
 	existed bool
 	gen     int
@@ -41,11 +42,12 @@ func (e *Editor) prepareCheck(doc *Document, asRoot bool) *savedCheck {
 	}
 
 	h := e.hostOf(doc)
-	if _, err := h.LookPath(lang.Check.Command); err != nil {
+	command, ok := findCommand(h, filepath.Dir(doc.Path()), lang.Check.Command, lang.Check.Paths)
+	if !ok {
 		return nil
 	}
 
-	c := &savedCheck{path: doc.Path(), asRoot: asRoot}
+	c := &savedCheck{path: doc.Path(), command: command, asRoot: asRoot}
 	if asRoot {
 		data, err := sudoRead(h, c.path)
 		c.old, c.existed = []byte(data), err == nil && data != ""
@@ -69,12 +71,8 @@ func (e *Editor) runCheck(doc *Document, c *savedCheck) {
 	}
 
 	check := doc.language.Check
-	args := make([]string, len(check.Args))
-	for i, a := range check.Args {
-		args[i] = strings.ReplaceAll(a, "{file}", c.path)
-	}
-
-	cmd := host.Command{Name: check.Command, Args: args, Dir: filepath.Dir(c.path)}
+	args := expandFile(check.Args, c.path)
+	cmd := host.Command{Name: c.command, Args: args, Dir: filepath.Dir(c.path)}
 	if c.asRoot {
 		cmd = host.Command{Name: sudoCommand, Args: append([]string{"-n", cmd.Name}, cmd.Args...), Dir: cmd.Dir}
 	}

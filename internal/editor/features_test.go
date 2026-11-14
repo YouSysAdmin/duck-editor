@@ -1071,7 +1071,7 @@ func TestFormatterShebangPreview(t *testing.T) {
 
 	// An external formatter runs as a job and replaces the text by lines.
 	e := newTestEditor(t, "#[k|]#eep\nlower case\nkeep too\n")
-	e.Doc().language = &syntax.Language{Name: "x", Formatter: syntax.Formatter{Command: "sh", Args: []string{"-c", "tr a-z A-Z"}}}
+	e.Doc().language = &syntax.Language{Name: "x", Formatters: []syntax.Formatter{{Command: "sh", Args: []string{"-c", "tr a-z A-Z"}}}}
 	e.feed(t, ":format<ret>")
 	jobs := e.TakeJobs()
 	if len(jobs) != 1 {
@@ -1089,7 +1089,7 @@ func TestFormatterShebangPreview(t *testing.T) {
 	}
 
 	// A formatter that prints nothing leaves the text alone.
-	e.Doc().language = &syntax.Language{Name: "x", Formatter: syntax.Formatter{Command: "sh", Args: []string{"-c", "cat >/dev/null"}}}
+	e.Doc().language = &syntax.Language{Name: "x", Formatters: []syntax.Formatter{{Command: "sh", Args: []string{"-c", "cat >/dev/null"}}}}
 	e.feed(t, ":format<ret>")
 	runJobs(e)
 	if got := e.Doc().Text().String(); got != "keep\nlower case\nkeep too\n" || !e.Status().IsError {
@@ -1097,7 +1097,7 @@ func TestFormatterShebangPreview(t *testing.T) {
 	}
 
 	// A formatter that is not installed is skipped like a missing server.
-	e.Doc().language = &syntax.Language{Name: "x", AutoFormat: true, Formatter: syntax.Formatter{Command: "duck-no-such-formatter"}}
+	e.Doc().language = &syntax.Language{Name: "x", AutoFormat: true, Formatters: []syntax.Formatter{{Command: "duck-no-such-formatter"}}}
 	if e.hasFormatter(e.Doc()) || shouldFormat(e, e.Doc(), writeOptions{}) {
 		t.Fatal("a missing formatter is used")
 	}
@@ -1105,6 +1105,19 @@ func TestFormatterShebangPreview(t *testing.T) {
 	e.feed(t, ":format<ret>")
 	if jobs := e.TakeJobs(); len(jobs) != 0 || !strings.Contains(e.Status().Text, "no formatter") {
 		t.Fatalf("jobs %d status %+v", len(jobs), e.Status())
+	}
+
+	// Without a server the first installed fallback runs, {file} is the
+	// path of the buffer.
+	e.Doc().language = &syntax.Language{Name: "x", Formatters: []syntax.Formatter{
+		{Command: "duck-no-such-formatter"},
+		{Command: "duck-no-such-fallback", Fallback: true},
+		{Command: "sh", Args: []string{"-c", "basename \"$1\"", "sh", "{file}"}, Fallback: true},
+	}}
+	e.feed(t, ":format<ret>")
+	runJobs(e)
+	if got := e.Doc().Text().String(); got != "test.txt\n" {
+		t.Fatalf("fallback formatter gave %q status %+v", got, e.Status())
 	}
 
 	// Shebangs identify files without a known extension.
@@ -1413,7 +1426,7 @@ func TestFormatterRunsInProjectRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	doc.language = &syntax.Language{Name: "x", Roots: []string{"go.mod"}, Formatter: syntax.Formatter{Command: "pwd"}}
+	doc.language = &syntax.Language{Name: "x", Roots: []string{"go.mod"}, Formatters: []syntax.Formatter{{Command: "pwd"}}}
 	e.feed(t, ":format<ret>")
 	for _, job := range e.TakeJobs() {
 		job.Run(job.Ctx, func(r JobResult) { e.ApplyResult(r) })
@@ -1421,6 +1434,88 @@ func TestFormatterRunsInProjectRoot(t *testing.T) {
 
 	if got := doc.Text().String(); got != root+"\n" {
 		t.Fatalf("formatter ran in %q, want %q", got, root)
+	}
+}
+
+func TestFormatterSearchPaths(t *testing.T) {
+	t.Parallel()
+
+	// outer/node_modules lies above the repository and is never used.
+	outer, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	root := filepath.Join(outer, "repo")
+	sub := filepath.Join(root, "web", "src")
+	for _, dir := range []string{filepath.Join(root, ".git"), sub, filepath.Join(outer, "node_modules", ".bin"), filepath.Join(root, "node_modules", ".bin")} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	files := map[string]string{
+		filepath.Join(outer, "node_modules", ".bin", "duck-fmt"): "#!/bin/sh\necho outer\n",
+		filepath.Join(root, "node_modules", ".bin", "duck-fmt"):  "#!/bin/sh\necho project\n",
+		filepath.Join(sub, "a.ts"):                               "x\n",
+	}
+	for path, data := range files {
+		if err := os.WriteFile(path, []byte(data), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	e := newTestEditor(t, "#[x|]#")
+	doc, err := e.Open(filepath.Join(sub, "a.ts"), ActionReplace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doc.language = &syntax.Language{Name: "x", Formatters: []syntax.Formatter{
+		{Command: "duck-fmt", Fallback: true, Paths: []string{"bin", "node_modules/.bin"}},
+	}}
+	e.feed(t, ":format<ret>")
+	runJobs(e)
+	if got := doc.Text().String(); got != "project\n" {
+		t.Fatalf("formatted %q status %+v", got, e.Status())
+	}
+
+	// Above the repository root the command is not looked up.
+	if err := os.Remove(filepath.Join(root, "node_modules", ".bin", "duck-fmt")); err != nil {
+		t.Fatal(err)
+	}
+
+	if e.hasFormatter(doc) {
+		t.Fatal("node_modules above the repository is used")
+	}
+
+	// An earlier path wins, an absolute one is taken as is.
+	bin := filepath.Join(sub, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(bin, "duck-fmt"), []byte("#!/bin/sh\necho bin\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	e.feed(t, ":format<ret>")
+	runJobs(e)
+	if got := doc.Text().String(); got != "bin\n" {
+		t.Fatalf("first path gave %q", got)
+	}
+
+	doc.language.Formatters[0].Paths = []string{filepath.Join(outer, "node_modules", ".bin")}
+	e.feed(t, ":format<ret>")
+	runJobs(e)
+	if got := doc.Text().String(); got != "outer\n" {
+		t.Fatalf("absolute path gave %q", got)
+	}
+
+	// Without paths only PATH counts.
+	doc.language.Formatters[0].Paths = nil
+	if e.hasFormatter(doc) {
+		t.Fatal("a command outside PATH is used without paths")
 	}
 }
 

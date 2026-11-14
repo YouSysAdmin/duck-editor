@@ -18,6 +18,15 @@ over the environment of your login shell, so a tool installed into
 `~/go/bin` or `~/.cargo/bin` is found as soon as your shell startup files
 add those directories.
 
+Prettier (`npm install -g prettier`) is the fallback formatter of
+JavaScript, TypeScript, JSX, TSX, JSON, JSONC, JSON5, CSS, SCSS, Less,
+HTML, Vue, GraphQL and YAML. It runs only when no language server or
+native formatter of the file is installed, and it formats Markdown. A
+prettier installed in the project (`node_modules/.bin`) is used before the
+global one, see `paths` in [Languages](languages.md). The same holds for
+the JavaScript language servers, and for the Python ones installed into the
+project `.venv` or `venv`.
+
 ## Package managers
 
 Most tools come from the package manager of their own language. Install

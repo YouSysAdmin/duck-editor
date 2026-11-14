@@ -259,14 +259,19 @@ func (e *Editor) startServer(h host.Host, name, root string) *lsp.Client {
 		return nil
 	}
 
+	command, found := findCommand(h, root, srv.Command, srv.Paths)
 	start := e.lspStart
 	if start == nil {
 		start = lsp.Start
-		if _, err := h.LookPath(srv.Command); err != nil {
-			e.logf("language server %s: %v", name, err)
+		if !found {
+			e.logf("language server %s: %s not found", name, srv.Command)
 
 			return nil
 		}
+	}
+
+	if !found {
+		command = srv.Command
 	}
 
 	key := h.Name() + "\x00" + name + "\x00" + root
@@ -280,7 +285,7 @@ func (e *Editor) startServer(h host.Host, name, root string) *lsp.Client {
 
 	client, err := start(lsp.Options{
 		Name:        name,
-		Command:     srv.Command,
+		Command:     command,
 		Args:        srv.Args,
 		Environment: srv.Environment,
 		Root:        root,

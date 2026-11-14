@@ -3,6 +3,7 @@ package syntax
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -329,6 +330,33 @@ languages:
 	}
 }
 
+func TestFormatterList(t *testing.T) {
+	t.Parallel()
+
+	langs, err := parseLanguages(`languages:
+  one:
+    formatter: { command: a, args: [-] }
+  many:
+    formatter:
+      - { command: b }
+      - { command: c, args: ["{file}"], fallback: true, paths: [bin] }
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	one, _ := langs.Get("one")
+	if len(one.Formatters) != 1 || one.Formatters[0].Command != "a" || one.Formatters[0].Fallback {
+		t.Fatalf("one = %+v", one.Formatters)
+	}
+
+	many, _ := langs.Get("many")
+	want := []Formatter{{Command: "b"}, {Command: "c", Args: []string{"{file}"}, Fallback: true, Paths: []string{"bin"}}}
+	if !reflect.DeepEqual(many.Formatters, want) {
+		t.Fatalf("many = %+v", many.Formatters)
+	}
+}
+
 func TestUnknownKeysRejected(t *testing.T) {
 	t.Parallel()
 
@@ -337,6 +365,7 @@ func TestUnknownKeysRejected(t *testing.T) {
 		"languages:\n  x:\n    indent: { tab-width: 2, width: 4 }\n":              `unknown key "width" in indent of language x`,
 		"language-servers:\n  s:\n    command: s\n    timeout: 5\n":               `unknown key "timeout" in language server s`,
 		"languages:\n  x:\n    language-servers:\n      - { name: s, nope: 1 }\n": `unknown key "nope" in language server entry`,
+		"languages:\n  x:\n    formatter:\n      - { command: a, when: b }\n":     `unknown key "when" in formatter of language x`,
 		"grammars:\n  g: { git: u, rev: r, branch: main }\n":                      `unknown key "branch" in grammar g`,
 		"use-grammars:\n  except: [a]\n":                                          `unknown top level key "use-grammars"`,
 	}

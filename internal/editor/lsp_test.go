@@ -439,6 +439,30 @@ func TestLSPFormatOnSave(t *testing.T) {
 	}
 }
 
+func TestLSPFormatBeforeFallback(t *testing.T) {
+	e, _, _ := newLSPEditor(t, "package main\n")
+	doc := e.Doc()
+	lang := *doc.language
+	lang.Formatters = []syntax.Formatter{{Command: "sh", Args: []string{"-c", "tr a-z A-Z"}, Fallback: true}}
+	doc.language = &lang
+
+	// The server formats, the fallback command stays unused.
+	e.feed(t, ":format<ret>")
+	pump(t, e, func() bool { return strings.HasPrefix(doc.Text().String(), "// formatted") })
+	runJobs(e)
+	if got := doc.Text().String(); got != "// formatted\npackage main\n" {
+		t.Fatalf("server format gave %q", got)
+	}
+
+	// A command that is not a fallback goes before the server.
+	lang.Formatters[0].Fallback = false
+	e.feed(t, ":format<ret>")
+	runJobs(e)
+	if got := doc.Text().String(); got != "// FORMATTED\nPACKAGE MAIN\n" {
+		t.Fatalf("primary formatter gave %q", got)
+	}
+}
+
 func TestLSPCodeActionMenu(t *testing.T) {
 	e, _, _ := newLSPEditor(t, "package main\n")
 	doc := e.Doc()

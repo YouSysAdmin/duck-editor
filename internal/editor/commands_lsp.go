@@ -15,6 +15,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/syntax"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
@@ -619,18 +620,26 @@ func applyCodeAction(e *Editor, client *lsp.Client, action lsp.CodeAction) {
 	run(action)
 }
 
-// formatDocument asks the server to format and applies the edits. then
-// runs after the edits are applied or when formatting is unavailable.
+// formatDocument formats with the first installed formatter command,
+// then a language server, then the first installed fallback command, and
+// applies the edits. then runs after the edits are applied or when
+// formatting is unavailable.
 func formatDocument(e *Editor, then func()) {
 	doc := e.Doc()
-	if e.hasFormatter(doc) {
-		e.formatExternal(doc, then)
+	if f, ok := e.pickFormatter(doc, false); ok {
+		e.formatExternal(doc, f, then)
 
 		return
 	}
 
 	client := e.clientFor(doc, featFormat)
 	if client == nil {
+		if f, ok := e.pickFormatter(doc, true); ok {
+			e.formatExternal(doc, f, then)
+
+			return
+		}
+
 		if then == nil {
 			e.SetError("no formatter available for this buffer")
 		} else {
@@ -965,8 +974,7 @@ func RelativeTo(base, path string) (string, bool) {
 // formatExternal pipes the text through the language formatter command
 // in the background and applies the result as a line diff so selections
 // survive.
-func (e *Editor) formatExternal(doc *Document, then func()) {
-	f := doc.language.Formatter
+func (e *Editor) formatExternal(doc *Document, f syntax.Formatter, then func()) {
 	docID := doc.ID
 	edits := doc.edits
 	text := doc.Text()
@@ -978,13 +986,21 @@ func (e *Editor) formatExternal(doc *Document, then func()) {
 		dir = lspRoot(e.hostOf(doc), doc.Path(), doc.language)
 	}
 
+	// {file} names the file, so a formatter finds its config and picks
+	// the parser. An unnamed buffer stands in the working directory.
+	file := doc.Path()
+	if file == "" {
+		file = e.absPath("untitled")
+	}
+
+	args := expandFile(f.Args, file)
 	h := e.hostOf(doc)
 	e.queueJob(context.Background(), func(ctx context.Context, emit func(JobResult)) {
 		// A hung formatter must not hold up the save for good.
 		ctx, cancel := context.WithTimeout(ctx, shellTimeout)
 		defer cancel()
 
-		stdout, stderr, err := h.Run(ctx, host.Command{Name: f.Command, Args: f.Args, Dir: dir, Stdin: []byte(input)})
+		stdout, stderr, err := h.Run(ctx, host.Command{Name: f.Command, Args: args, Dir: dir, Stdin: []byte(input)})
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			err = fmt.Errorf("no answer within %s", shellTimeout)
 		}
@@ -1022,16 +1038,136 @@ func (e *Editor) formatExternal(doc *Document, then func()) {
 }
 
 // hasFormatter reports whether the language of doc names a formatter
-// that is installed on the host of the file. A missing one leaves the
-// work to the language servers, like a missing server is skipped.
+// command installed on the host of the file, fallback ones included.
 func (e *Editor) hasFormatter(doc *Document) bool {
-	if doc.language == nil || doc.language.Formatter.Command == "" {
-		return false
+	_, primary := e.pickFormatter(doc, false)
+	_, fallback := e.pickFormatter(doc, true)
+
+	return primary || fallback
+}
+
+// pickFormatter returns the first formatter command of doc installed on
+// the host of the file, among the fallback ones or the others. A missing
+// one is skipped, like a missing server.
+func (e *Editor) pickFormatter(doc *Document, fallback bool) (syntax.Formatter, bool) {
+	if doc.language == nil {
+		return syntax.Formatter{}, false
 	}
 
-	_, err := e.hostOf(doc).LookPath(doc.language.Formatter.Command)
+	h, dir := e.hostOf(doc), e.commandDir(doc)
+	for _, f := range doc.language.Formatters {
+		if f.Fallback != fallback {
+			continue
+		}
 
-	return err == nil
+		if path, ok := findCommand(h, dir, f.Command, f.Paths); ok {
+			f.Command = path
+
+			return f, true
+		}
+	}
+
+	return syntax.Formatter{}, false
+}
+
+// commandDir is the directory the commands of doc are looked up from,
+// the one of the file or the working directory for a buffer without a
+// path.
+func (e *Editor) commandDir(doc *Document) string {
+	if doc.Path() == "" {
+		return e.WorkingDir()
+	}
+
+	return filepath.Dir(doc.Path())
+}
+
+// findCommand returns the program to run for command: the first of paths
+// holding it, then PATH. A relative path is tried in dir and every
+// directory above it up to the nearest repository root, nearest first.
+func findCommand(h host.Host, dir, command string, paths []string) (string, bool) {
+	if len(paths) > 0 && !strings.ContainsRune(command, '/') {
+		if path, ok := searchPaths(h, dir, paths, command); ok {
+			return path, true
+		}
+	}
+
+	if _, err := h.LookPath(command); err != nil {
+		return "", false
+	}
+
+	return command, true
+}
+
+func searchPaths(h host.Host, dir string, paths []string, name string) (string, bool) {
+	var dirs []string
+	for d := dir; d != ""; d = filepath.Dir(d) {
+		dirs = append(dirs, d)
+		if filepath.Dir(d) == d {
+			break
+		}
+	}
+
+	// One lookup holds the .git markers of dirs, then the candidates of
+	// every path: one for an absolute path, one per dir for a relative one.
+	lookup := make([]string, 0, len(dirs)*(len(paths)+1))
+	for _, d := range dirs {
+		lookup = append(lookup, filepath.Join(d, ".git"))
+	}
+
+	type group struct {
+		files    []string
+		relative bool
+	}
+
+	groups := make([]group, len(paths))
+	for i, p := range paths {
+		p, _ = host.ExpandHome(h, p)
+		if filepath.IsAbs(p) {
+			groups[i].files = []string{filepath.Join(p, name)}
+		} else {
+			groups[i].relative = true
+			for _, d := range dirs {
+				groups[i].files = append(groups[i].files, filepath.Join(d, p, name))
+			}
+		}
+
+		lookup = append(lookup, groups[i].files...)
+	}
+
+	found, _ := h.Exists(lookup)
+	if len(found) != len(lookup) {
+		return "", false
+	}
+
+	// Directories above the nearest repository root belong to another
+	// project, a tool there never wins.
+	limit := len(dirs)
+	if i := slices.Index(found[:len(dirs)], true); i >= 0 {
+		limit = i + 1
+	}
+
+	at := len(dirs)
+	for _, g := range groups {
+		for k, path := range g.files {
+			if found[at+k] && (!g.relative || k < limit) {
+				return path, true
+			}
+		}
+
+		at += len(g.files)
+	}
+
+	return "", false
+}
+
+// expandFile replaces {file} in args with path.
+func expandFile(args []string, path string) []string {
+	out := make([]string, len(args))
+	for i, a := range args {
+		out[i] = strings.ReplaceAll(a, "{file}", path)
+	}
+
+	return out
 }
 
 func firstLines(s string, n int) string {

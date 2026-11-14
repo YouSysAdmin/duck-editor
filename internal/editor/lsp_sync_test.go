@@ -508,3 +508,57 @@ func TestCompletionResolve(t *testing.T) {
 		t.Fatalf("after the late answer: %q", doc.Text().String())
 	}
 }
+
+func TestServerFromSearchPaths(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bin := filepath.Join(root, "node_modules", ".bin")
+	for _, dir := range []string{filepath.Join(root, ".git"), bin} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	files := map[string]string{
+		filepath.Join(bin, "duck-ls"):         "#!/bin/sh\n",
+		filepath.Join(root, "a.duck"):         "x\n",
+		filepath.Join(root, "languages.yaml"): "language-servers:\n  duck-ls:\n    command: duck-ls\n    paths: [node_modules/.bin]\nlanguages:\n  duck:\n    file-types: [duck]\n    roots: [.git]\n    language-servers: [duck-ls]\n",
+	}
+	for path, data := range files {
+		if err := os.WriteFile(path, []byte(data), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	langs, err := syntax.LoadLanguages(filepath.Join(root, "languages.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := config.Default()
+	cfg.Editor.IdleTimeout = 0
+	e := New(NewDocument("", ""), cfg)
+	e.Syntax = syntax.NewLoader(nil, langs)
+	var command string
+	e.lspStart = func(opts lsp.Options, dispatch lsp.Dispatcher) (*lsp.Client, error) {
+		command = opts.Command
+		_, in, out, closer := startFakeServer(t)
+		c := lsp.NewClient(opts.Name, opts.Root, in, out, closer, dispatch)
+		c.Initialize(opts.Config)
+
+		return c, nil
+	}
+
+	t.Cleanup(e.StopLanguageServers)
+	if _, err := e.Open(filepath.Join(root, "a.duck"), ActionReplace); err != nil {
+		t.Fatal(err)
+	}
+
+	e.clientFor(e.Doc(), featFormat)
+	if want := filepath.Join(bin, "duck-ls"); command != want {
+		t.Fatalf("started %q, want %q", command, want)
+	}
+}

@@ -112,8 +112,18 @@ func parseLanguage(langs *Languages, nameNode, def *yaml.Node, inline map[string
 	}
 
 	for key, value := range yamlnode.Pairs(def) {
-		if allowed, ok := nestedKeys[key.Value]; ok {
-			if err := checkKeys(value, allowed, key.Value+" of language "+name); err != nil {
+		allowed, ok := nestedKeys[key.Value]
+		if !ok {
+			continue
+		}
+
+		items := []*yaml.Node{value}
+		if key.Value == "formatter" && value.Kind == yaml.SequenceNode {
+			items = value.Content
+		}
+
+		for _, item := range items {
+			if err := checkKeys(item, allowed, key.Value+" of language "+name); err != nil {
 				return nil, err
 			}
 		}
@@ -304,13 +314,13 @@ var (
 		"block-comment-tokens", "auto-pairs", "indent", "formatter", "check", "language-id", "code-actions-on-save",
 		"soft-wrap", "rulers", "text-width", "auto-format", "grammar", "language-servers", "glob-roots",
 	}
-	serverKeys     = []string{"command", "args", "environment", "config", "except-code-actions"}
+	serverKeys     = []string{"command", "args", "environment", "config", "except-code-actions", "paths"}
 	serverItemKeys = append([]string{"name", "only-features", "except-features"}, serverKeys...)
 	grammarKeys    = []string{"name", "git", "rev", "subpath", "path"}
 	nestedKeys     = map[string][]string{
 		"indent":    {"tab-width", "unit"},
-		"formatter": {"command", "args"},
-		"check":     {"command", "args"},
+		"formatter": {"command", "args", "fallback", "paths"},
+		"check":     {"command", "args", "paths"},
 		"soft-wrap": {"enable", "max-wrap", "max-indent-retain", "wrap-indicator", "wrap-at-text-width"},
 	}
 )

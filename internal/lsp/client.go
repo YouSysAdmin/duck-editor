@@ -24,6 +24,10 @@ type Client struct {
 	Name string
 	Root string
 
+	// Command is the program the server was started from, empty for an
+	// in process server.
+	Command string
+
 	// NoSnippets turns off snippet support in the initialize request.
 	NoSnippets bool
 
@@ -155,6 +159,7 @@ func Start(opts Options, dispatch Dispatcher) (*Client, error) {
 
 	c := NewClient(opts.Name, opts.Root, proc.Stdout(), proc.Stdin(), proc.Stdin(), dispatch)
 	c.proc = proc
+	c.Command = opts.Command
 	c.pid = h.PID()
 	c.NoSnippets = opts.NoSnippets
 	c.Initialize(opts.Config)

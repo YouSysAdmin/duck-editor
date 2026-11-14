@@ -6,6 +6,7 @@ import (
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/syntax"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
@@ -51,10 +52,7 @@ func (e *Editor) bufferInfo(doc *Document) []string {
 		out = append(out, "  none configured")
 	}
 
-	format := "language server"
-	if lang.Formatter.Command != "" {
-		format = commandInfo(e, doc, lang.Formatter.Command, lang.Formatter.Args)
-	}
+	format := formatterInfo(e, doc, lang)
 
 	if lang.AutoFormat || e.Config.Editor.AutoFormat {
 		format += ", on save"
@@ -62,7 +60,7 @@ func (e *Editor) bufferInfo(doc *Document) []string {
 
 	out = append(out, "formatter   "+format)
 	if lang.Check.Command != "" {
-		out = append(out, "check       "+commandInfo(e, doc, lang.Check.Command, lang.Check.Args))
+		out = append(out, "check       "+commandInfo(e, doc, lang.Check))
 	}
 
 	errs, warns := 0, 0
@@ -103,6 +101,10 @@ func (e *Editor) serverInfo(doc *Document, name string) string {
 		}
 
 		parts := []string{state, "root " + root}
+		if strings.ContainsRune(c.Command, '/') {
+			parts = append(parts, "from "+e.displayDir(c.Command))
+		}
+
 		if c.Ready() {
 			parts = append(parts, "positions "+encodingName(c.Encoding))
 		}
@@ -136,7 +138,7 @@ func (e *Editor) serverInfo(doc *Document, name string) string {
 		return "not configured, languages.yaml has no command for it"
 	}
 
-	if _, err := e.hostOf(doc).LookPath(srv.Command); err != nil {
+	if _, ok := findCommand(e.hostOf(doc), e.lspRootFor(doc), srv.Command, srv.Paths); !ok {
 		return srv.Command + " is not installed"
 	}
 
@@ -147,10 +149,35 @@ func (e *Editor) serverInfo(doc *Document, name string) string {
 	return "not running, :lsp-restart starts it"
 }
 
-// commandInfo names an external command and whether it is installed.
-func commandInfo(e *Editor, doc *Document, command string, args []string) string {
-	line := strings.TrimSpace(command + " " + strings.Join(args, " "))
-	if _, err := e.hostOf(doc).LookPath(command); err != nil {
+// formatterInfo lists the formatters of lang in the order they are tried.
+func formatterInfo(e *Editor, doc *Document, lang *syntax.Language) string {
+	var steps []string
+	for _, f := range lang.Formatters {
+		if !f.Fallback {
+			steps = append(steps, commandInfo(e, doc, f))
+		}
+	}
+
+	steps = append(steps, "language server")
+	for _, f := range lang.Formatters {
+		if f.Fallback {
+			steps = append(steps, commandInfo(e, doc, f))
+		}
+	}
+
+	return strings.Join(steps, " -> ")
+}
+
+// commandInfo names an external command, with the path it was found in
+// when that is not PATH, and whether it is installed.
+func commandInfo(e *Editor, doc *Document, f syntax.Formatter) string {
+	path, ok := findCommand(e.hostOf(doc), e.commandDir(doc), f.Command, f.Paths)
+	if !ok {
+		path = f.Command
+	}
+
+	line := strings.TrimSpace(path + " " + strings.Join(f.Args, " "))
+	if !ok {
 		return line + ", not installed"
 	}
 
