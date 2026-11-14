@@ -91,9 +91,10 @@ func fetchKube(ctx context.Context, h host.Host, resource string, opts []string)
 	return secretToStringData(out), nil
 }
 
-// secretToStringData moves the text values of a Secret from base64 data
-// to stringData, which the API server turns back into data. Values that
-// are not text stay in data. Other objects come back unchanged.
+// secretToStringData moves the text values of a Secret, or of every Secret
+// in a List, from base64 data to stringData, which the API server turns
+// back into data. Values that are not text stay in data. Other objects
+// come back unchanged.
 func secretToStringData(text string) string {
 	var doc yaml.Node
 	if err := yaml.Unmarshal([]byte(text), &doc); err != nil || len(doc.Content) == 0 {
@@ -101,13 +102,49 @@ func secretToStringData(text string) string {
 	}
 
 	root := doc.Content[0]
-	if root.Kind != yaml.MappingNode || yamlnode.Value(root, "kind") == nil || yamlnode.Value(root, "kind").Value != "Secret" {
+	if root.Kind != yaml.MappingNode {
 		return text
 	}
 
-	data := yamlnode.Value(root, "data")
-	if data == nil || data.Kind != yaml.MappingNode {
+	changed := false
+	if kind := yamlnode.Value(root, "kind"); kind != nil && kind.Value == "List" {
+		if items := yamlnode.Value(root, "items"); items != nil && items.Kind == yaml.SequenceNode {
+			for _, item := range items.Content {
+				changed = decodeSecret(item) || changed
+			}
+		}
+	} else {
+		changed = decodeSecret(root)
+	}
+
+	if !changed {
 		return text
+	}
+
+	var out bytes.Buffer
+	enc := yaml.NewEncoder(&out)
+	enc.SetIndent(2)
+	if err := enc.Encode(&doc); err != nil {
+		return text
+	}
+
+	return out.String()
+}
+
+// decodeSecret moves the text values of one Secret object to stringData
+// and reports whether it changed anything.
+func decodeSecret(obj *yaml.Node) bool {
+	if obj.Kind != yaml.MappingNode {
+		return false
+	}
+
+	if kind := yamlnode.Value(obj, "kind"); kind == nil || kind.Value != "Secret" {
+		return false
+	}
+
+	data := yamlnode.Value(obj, "data")
+	if data == nil || data.Kind != yaml.MappingNode {
+		return false
 	}
 
 	strData := &yaml.Node{Kind: yaml.MappingNode}
@@ -130,29 +167,23 @@ func secretToStringData(text string) string {
 	}
 
 	if len(strData.Content) == 0 {
-		return text
+		return false
 	}
 
 	data.Content = keep
-	for i := 0; i+1 < len(root.Content); i += 2 {
-		if root.Content[i].Value == "data" {
+	for i := 0; i+1 < len(obj.Content); i += 2 {
+		if obj.Content[i].Value == "data" {
 			if len(keep) == 0 {
-				root.Content = append(root.Content[:i], root.Content[i+2:]...)
+				obj.Content = append(obj.Content[:i], obj.Content[i+2:]...)
 			}
 
 			break
 		}
 	}
 
-	root.Content = append(root.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: "stringData"}, strData)
-	var out bytes.Buffer
-	enc := yaml.NewEncoder(&out)
-	enc.SetIndent(2)
-	if err := enc.Encode(&doc); err != nil {
-		return text
-	}
+	obj.Content = append(obj.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: "stringData"}, strData)
 
-	return out.String()
+	return true
 }
 
 // applyKube shows the diff of the buffer against the cluster and, after

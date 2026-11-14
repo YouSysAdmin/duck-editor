@@ -73,3 +73,16 @@ func TestKubeEdit(t *testing.T) {
 		t.Fatalf("unchanged save: %+v", e.Status())
 	}
 }
+
+// TestSecretListToStringData decodes every Secret of a List.
+func TestSecretListToStringData(t *testing.T) {
+	t.Parallel()
+
+	list := "apiVersion: v1\nkind: List\nitems:\n  - apiVersion: v1\n    kind: Secret\n    metadata:\n      name: a\n    data:\n      user: YWRtaW4=\n  - apiVersion: v1\n    kind: ConfigMap\n    metadata:\n      name: c\n    data:\n      k: YWRtaW4=\n  - apiVersion: v1\n    kind: Secret\n    metadata:\n      name: b\n    data:\n      cert: /w==\n      token: dG9r\n"
+	got := secretToStringData(list)
+	for _, want := range []string{"stringData:\n      user: admin\n", "k: YWRtaW4=", "cert: /w==", "stringData:\n      token: tok\n"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in %q", want, got)
+		}
+	}
+}
