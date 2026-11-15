@@ -13,10 +13,17 @@ editor runs on yours:
 ```sh
 dk build-server:proj/main.go            # ssh, scp style, relative to the home directory
 dk ssh://deploy@build-server:2222/srv/app
+dk ssh://deploy@10.0.0.5:~/proj         # host:path after the scheme too, ~ is the home directory
+dk ssh://deploy@10.0.0.5:2222:~/proj    # the port, then the path
 dk docker://web/workspaces/app          # a running container
 dk docker://node@web                    # as another user, in the container's working directory
 dk kubectl://api-7f9c/srv?namespace=prod&container=app&context=eu
 ```
+
+After `ssh://` the path follows the host either after a slash, as in a URL
+(`/~/proj` for the home directory), or after a colon, scp style, so `~` and
+relative paths need no leading slash. Digits right after the host are the
+port, a colon behind them starts the path.
 
 A directory opens the file explorer in it, a file opens the file. Without a
 path the session starts where the other side starts: the home directory

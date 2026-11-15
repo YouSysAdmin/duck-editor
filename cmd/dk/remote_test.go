@@ -23,6 +23,14 @@ func TestParseRemote(t *testing.T) {
 		{"ssh://dev@box:2222/srv/app", remoteTarget{kind: "ssh", dest: "box", user: "dev", port: "2222", path: "/srv/app"}, true},
 		{"ssh://box/~/proj", remoteTarget{kind: "ssh", dest: "box", path: "~/proj"}, true},
 		{"ssh://box", remoteTarget{kind: "ssh", dest: "box"}, true},
+		{"ssh://dev@10.0.0.1:~/proj", remoteTarget{kind: "ssh", dest: "10.0.0.1", user: "dev", path: "~/proj"}, true},
+		{"ssh://dev@10.0.0.1:2222:~/proj", remoteTarget{kind: "ssh", dest: "10.0.0.1", user: "dev", port: "2222", path: "~/proj"}, true},
+		{"ssh://box:/etc/hosts", remoteTarget{kind: "ssh", dest: "box", path: "/etc/hosts"}, true},
+		{"ssh://box:2222:", remoteTarget{kind: "ssh", dest: "box", port: "2222"}, true},
+		{"ssh://box:proj/a.go", remoteTarget{kind: "ssh", dest: "box", path: "proj/a.go"}, true},
+		{"ssh://box:~", remoteTarget{kind: "ssh", dest: "box", path: "~"}, true},
+		{"ssh://[::1]:2222:~/p", remoteTarget{kind: "ssh", dest: "::1", port: "2222", path: "~/p"}, true},
+		{"ssh://box:2222", remoteTarget{kind: "ssh", dest: "box", port: "2222"}, true},
 		{"docker://app", remoteTarget{kind: "docker", dest: "app"}, true},
 		{"docker://node@app/workspaces/web", remoteTarget{kind: "docker", dest: "app", user: "node", path: "/workspaces/web"}, true},
 		{
@@ -87,7 +95,7 @@ func TestSplitPosition(t *testing.T) {
 func TestClassifyArg(t *testing.T) {
 	t.Parallel()
 
-	for _, arg := range []string{"ssh://user@box:2222", "docker://ctr/app/main.go:12", "box:/etc/hosts"} {
+	for _, arg := range []string{"ssh://user@box:2222", "ssh://user@box:2222:~/p", "ssh://box:~/a.go:12", "docker://ctr/app/main.go:12", "box:/etc/hosts"} {
 		if _, target := classifyArg(arg); target == nil {
 			t.Errorf("%s was taken for a local file", arg)
 		}

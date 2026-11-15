@@ -120,7 +120,7 @@ reloads by itself, with your own edits in it you get a warning instead.
 
 ## Remote machines
 
-`dk host:path` or `dk ssh://[user@]host[:port]/path` edits on another machine, `dk docker://[user@]container/path` in a running container
+`dk host:path` or `dk ssh://[user@]host[:port]/path` (or `ssh://[user@]host[:port]:~/path`) edits on another machine, `dk docker://[user@]container/path` in a running container
 such as a dev container, `dk kubectl://pod/path?namespace=ns&container=c&context=ctx` in a pod. The editor, your config and themes stay here,
 files, search, git, shell commands and language servers run there, in a small agent started over ssh, docker exec or kubectl exec. Your
 ssh config, keys and agent apply. The first connection installs the agent into `~/.cache/duck/agent` on the other side. Commands there see

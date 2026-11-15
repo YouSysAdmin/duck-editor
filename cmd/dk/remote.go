@@ -42,12 +42,19 @@ type remoteTarget struct {
 }
 
 // parseRemote recognizes ssh://[user@]host[:port]/path,
-// docker://[user@]container/path,
+// ssh://[user@]host[:port]:path, docker://[user@]container/path,
 // kubectl://pod/path?namespace=ns&container=c&context=ctx and the scp
 // style [user@]host:path. The scp style applies only when no local file
 // is named by the argument or the part before the colon, and that part
 // holds no slash.
 func parseRemote(arg string) (remoteTarget, bool) {
+	if base, path, ok := sshColonPath(arg); ok {
+		t, ok := parseRemoteURL("ssh", base)
+		t.path = path
+
+		return t, ok
+	}
+
 	for _, kind := range []string{"ssh", "docker", "kubectl"} {
 		if strings.HasPrefix(arg, kind+"://") {
 			return parseRemoteURL(kind, arg)
@@ -67,6 +74,57 @@ func parseRemote(arg string) (remoteTarget, bool) {
 	}
 
 	return remoteTarget{kind: "ssh", dest: dest, path: path}, true
+}
+
+// sshColonPath splits ssh://[user@]host[:port]:path into the URL without
+// the path and the path, which is taken as is, ~ and relative paths
+// included. Digits right after the host are the port. It reports false
+// for the URL form, where the path follows a slash.
+func sshColonPath(arg string) (string, string, bool) {
+	rest, ok := strings.CutPrefix(arg, "ssh://")
+	if !ok {
+		return "", "", false
+	}
+
+	// The user ends at an @ before any colon or slash.
+	start := 0
+	if i := strings.IndexAny(rest, "@:/"); i >= 0 && rest[i] == '@' {
+		start = i + 1
+	}
+
+	end := start
+	if strings.HasPrefix(rest[start:], "[") {
+		i := strings.IndexByte(rest[start:], ']')
+		if i < 0 {
+			return "", "", false
+		}
+
+		end += i + 1
+	} else {
+		i := strings.IndexAny(rest[start:], ":/")
+		if i < 0 {
+			return "", "", false
+		}
+
+		end += i
+	}
+
+	after, ok := strings.CutPrefix(rest[end:], ":")
+	if !ok || end == start {
+		return "", "", false
+	}
+
+	base := "ssh://" + rest[:end]
+	digits := strings.IndexFunc(after, func(r rune) bool { return r < '0' || r > '9' })
+	switch {
+	case digits < 0 || (digits > 0 && after[digits] == '/'):
+		// host:port or host:port/path
+		return "", "", false
+	case digits > 0 && after[digits] == ':':
+		return base + ":" + after[:digits], after[digits+1:], true
+	}
+
+	return base, after, true
 }
 
 func parseRemoteURL(kind, arg string) (remoteTarget, bool) {

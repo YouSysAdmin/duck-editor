@@ -22,7 +22,7 @@ func TestLoadWorkspaces(t *testing.T) {
 		t.Fatalf("workspaces %+v %v", ws, err)
 	}
 
-	if ws[2].Where() != "ssh://10.0.0.1:/srv/app" || ws[1].Where() != "/srv/mailyard" || ws[0].Where() != "docker://app/srv" {
+	if ws[2].Where() != "ssh://deploy@10.0.0.1:2222:/srv/app" || ws[1].Where() != "/srv/mailyard" || ws[0].Where() != "docker://app/srv" {
 		t.Fatalf("where %q %q %q", ws[2].Where(), ws[1].Where(), ws[0].Where())
 	}
 

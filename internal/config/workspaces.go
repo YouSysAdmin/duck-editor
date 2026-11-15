@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -53,7 +54,16 @@ func (w Workspace) Where() string {
 	case w.Kubectl != "":
 		return "kubectl://" + w.Kubectl + w.Path
 	case w.Host != "":
-		return "ssh://" + w.Host + ":" + w.Path
+		dest := w.Host
+		if w.User != "" {
+			dest = w.User + "@" + dest
+		}
+
+		if w.Port > 0 {
+			dest += ":" + strconv.Itoa(w.Port)
+		}
+
+		return "ssh://" + dest + ":" + w.Path
 	}
 
 	return w.Path
