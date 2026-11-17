@@ -2185,6 +2185,15 @@ languages:
       git: https://github.com/tree-sitter-grammars/tree-sitter-lua
       rev: 10fe0054734eec83049514ea2e718b2a56acd0c9
 
+  # Mail messages, the headers of a transit message
+  mail:
+    scope: text.mail
+    injection-regex: "mail|eml|email"
+    file-types: [eml]
+    grammar:
+      git: https://github.com/YouSysAdmin/tree-sitter-mail
+      rev: e480b475ba41e9cbc4c383d356e4b45785b8fbfd
+
   # Makefiles
   make:
     scope: source.make
