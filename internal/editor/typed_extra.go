@@ -771,13 +771,32 @@ func moveFile(cx *Context, args []string, force bool) error {
 		return err
 	}
 
+	e.retarget(doc, dest)
+
+	return nil
+}
+
+// retarget binds a document to the new path of its file.
+func (e *Editor) retarget(doc *Document, path string) {
 	e.closeLSP(doc)
-	doc.SetPath(dest)
+	doc.SetPath(path)
 	e.attachSyntax(doc)
 	e.attachLSP(doc)
 	e.attachVCS(doc)
+}
 
-	return nil
+// followMove moves the documents of files at or below from on h to
+// their place below to.
+func (e *Editor) followMove(h host.Host, from, to string) {
+	for _, doc := range e.Documents() {
+		if doc.Path() == "" || e.hostOf(doc).Name() != h.Name() {
+			continue
+		}
+
+		if rel, ok := RelativeTo(from, doc.Path()); ok {
+			e.retarget(doc, filepath.Join(to, rel))
+		}
+	}
 }
 
 // changeDirectory switches the working directory, defaulting to home.

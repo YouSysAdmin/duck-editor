@@ -76,6 +76,51 @@ func Status(h host.Host, dir string) (string, []FileStatus, error) {
 		return "", nil, err
 	}
 
+	return root, parseStatus(out), nil
+}
+
+// DirStatus maps the entries of dir that differ from HEAD to their kind.
+// A directory takes the kind of the files below it, ~ when they differ.
+func DirStatus(ctx context.Context, h host.Host, dir string) (map[string]rune, error) {
+	run := func(args ...string) ([]byte, error) {
+		out, _, err := h.Run(ctx, host.Command{Name: "git", Args: append([]string{"-C", dir}, args...)})
+
+		return out, err
+	}
+
+	// The prefix comes from git, so links in dir do not matter.
+	out, err := run("rev-parse", "--show-prefix")
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := strings.TrimSpace(string(out))
+	out, err = run("status", "--porcelain=v1", "-z", "--untracked-files=all", "--", ".")
+	if err != nil {
+		return nil, err
+	}
+
+	kinds := map[string]rune{}
+	for _, f := range parseStatus(out) {
+		below, ok := strings.CutPrefix(f.Path, prefix)
+		if !ok || below == "" {
+			continue
+		}
+
+		name, _, nested := strings.Cut(strings.TrimSuffix(below, "/"), "/")
+		kind := f.Kind
+		if old, seen := kinds[name]; seen && old != kind && nested {
+			kind = '~'
+		}
+
+		kinds[name] = kind
+	}
+
+	return kinds, nil
+}
+
+// parseStatus reads the output of git status --porcelain=v1 -z.
+func parseStatus(out []byte) []FileStatus {
 	var files []FileStatus
 	entries := bytes.Split(out, []byte{0})
 	for i := 0; i < len(entries); i++ {
@@ -95,7 +140,7 @@ func Status(h host.Host, dir string) (string, []FileStatus, error) {
 		files = append(files, FileStatus{Path: path, Kind: kind})
 	}
 
-	return root, files, nil
+	return files
 }
 
 func statusKind(code string) rune {

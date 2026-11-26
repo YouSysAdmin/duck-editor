@@ -317,7 +317,7 @@ func TestPickerQAFixes(t *testing.T) {
 	e.feed(t, "<esc>")
 	q := NewPicker("Q", []PickerItem{{Label: "main go", Line: -1}}, nil)
 	e.openPicker(q)
-	q.insert("main\tgo\nx")
+	q.insert(&Context{Editor: e}, "main\tgo\nx")
 	if q.Query() != "main go x" {
 		t.Fatalf("pasted query %q", q.Query())
 	}

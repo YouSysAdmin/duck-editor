@@ -809,11 +809,13 @@ func TestExplorerAndInteractive(t *testing.T) {
 
 	e := newTestEditor(t, "#[a|]#")
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	if e.Picker == nil || len(e.Picker.Items()) != 2 || e.Picker.Items()[1].Label != "sub/" {
 		t.Fatalf("explorer = %+v", e.Picker)
 	}
 
 	e.feed(t, "sub<ret>")
+	runJobs(e)
 	if e.Picker == nil || len(e.Picker.Items()) != 2 || e.Picker.Items()[1].Label != "f.txt" {
 		t.Fatalf("sub explorer = %+v", e.Picker)
 	}
@@ -1972,16 +1974,19 @@ func TestExplorerFiltersAndNavigates(t *testing.T) {
 	}
 	e := newTestEditor(t, "#[a|]#")
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "src/"}) {
 		t.Fatalf("listed %q", got)
 	}
 
 	e.feed(t, "<down><A-l>")
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "a.go"}) {
 		t.Fatalf("inside src %q", got)
 	}
 
 	e.feed(t, "<backspace>")
+	runJobs(e)
 	if sel, _ := e.Picker.Selected(); sel.Label != "src/" {
 		t.Fatalf("after going up %q is selected in %q", sel.Label, labels(e))
 	}
@@ -1989,6 +1994,7 @@ func TestExplorerFiltersAndNavigates(t *testing.T) {
 	e.Config.Editor.FilePicker.Hidden = false
 	e.Config.Editor.FilePicker.GitIgnore = false
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "build/", "src/", ".env", ".gitignore"}) {
 		t.Fatalf("with everything shown %q", got)
 	}
@@ -2235,7 +2241,9 @@ func TestExplorerShowAll(t *testing.T) {
 	}
 	e := newTestEditor(t, "#[a|]#")
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	e.feed(t, "<down><C-i>")
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "build/", "src/", ".env", ".gitignore"}) {
 		t.Fatalf("with everything shown %q", got)
 	}
@@ -2245,11 +2253,13 @@ func TestExplorerShowAll(t *testing.T) {
 	}
 
 	e.feed(t, "<A-l>")
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "a.go", "a.log"}) {
 		t.Fatalf("inside src %q", got)
 	}
 
 	e.feed(t, "<C-i>")
+	runJobs(e)
 	if got := labels(e); !slices.Equal(got, []string{"../", "a.go"}) {
 		t.Fatalf("filtered again %q", got)
 	}

@@ -48,6 +48,10 @@ type PickerItem struct {
 	// Note follows Label in a dim style and is not matched, such as the
 	// target of a symbolic link.
 	Note string
+
+	// Status is the git state of an explorer entry, a kind of
+	// vcs.FileStatus or zero.
+	Status rune
 }
 
 // PickerAction says how a picked item opens.
@@ -105,8 +109,22 @@ type Picker struct {
 	// generation guards against results from a previous run.
 	generation int
 
-	// parent goes one directory up in pickers that browse directories.
-	parent func(cx *Context)
+	// explorer is set in the file explorer, which lists one directory
+	// and moves between directories in place.
+	explorer *explorer
+
+	// onClose runs when the picker closes, also before an accepted item
+	// opens.
+	onClose func(e *Editor)
+
+	// multi lets picker_toggle_mark mark items, marks holds them in the
+	// order they were marked.
+	multi bool
+	marks []PickerItem
+
+	// recursive switches between the explorer of a directory and the
+	// file picker over everything below it.
+	recursive func(cx *Context)
 
 	// remove takes the selected item away, picker_remove in the buffer
 	// picker, and reports whether it went.
@@ -280,7 +298,7 @@ func (p *Picker) refilter(keep PickerItem) {
 	var loose []PickerMatch
 	for i, item := range p.items {
 		// The way up of the explorer is no match for a query.
-		if p.parent != nil && item.Label == "../" && !pattern.IsEmpty() {
+		if p.explorer != nil && item.Label == "../" && !pattern.IsEmpty() {
 			continue
 		}
 
@@ -334,14 +352,20 @@ func (p *Picker) move(delta int) {
 
 func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 	e := cx.Editor
+	if p.explorer != nil {
+		p.explorer.remember(e)
+	}
+
 	action, bound := e.Keymaps.Action(keymap.Picker, key)
 	if !bound {
 		if ch, isChar := key.Char(); isChar && key.Mods&(keymap.ModCtrl|keymap.ModAlt|keymap.ModSuper) == 0 {
-			p.query = slices.Insert(p.query, p.cursor, ch)
-			p.cursor++
-			p.filter()
+			p.typeRune(cx, ch)
 		}
 
+		return
+	}
+
+	if p.explorer != nil && p.explorer.handleAction(cx, action) {
 		return
 	}
 
@@ -350,6 +374,14 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 		e.closePicker()
 	case "picker_accept":
 		p.accept(cx, PickerOpen)
+	case "picker_complete":
+		p.move(1)
+	case "picker_toggle_mark":
+		p.toggleMark()
+	case "picker_toggle_recursive":
+		if p.recursive != nil {
+			p.recursive(cx)
+		}
 	case "picker_accept_hsplit":
 		p.accept(cx, PickerHSplit)
 	case "picker_accept_vsplit":
@@ -378,14 +410,6 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 		p.selected = max(len(p.matches)-1, 0)
 	case "picker_toggle_preview":
 		p.ShowPreview = !p.ShowPreview
-	case "picker_parent":
-		if p.parent != nil {
-			p.parent(cx)
-		}
-	case "picker_descend":
-		if p.parent != nil {
-			p.accept(cx, PickerOpen)
-		}
 	case "picker_toggle_all":
 		if p.relist != nil {
 			p.showAll = !p.showAll
@@ -399,10 +423,7 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 			p.selected = max(min(row, len(p.matches)-1), 0)
 		}
 	case "picker_delete_char_backward":
-		switch {
-		case len(p.query) == 0 && p.parent != nil:
-			p.parent(cx)
-		case p.cursor > 0:
+		if p.cursor > 0 {
 			p.query = slices.Delete(p.query, p.cursor-1, p.cursor)
 			p.cursor--
 			p.filter()
@@ -437,7 +458,7 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 }
 
 // insert puts text into the query at the cursor and filters again.
-func (p *Picker) insert(text string) {
+func (p *Picker) insert(cx *Context, text string) {
 	if text == "" {
 		return
 	}
@@ -450,20 +471,98 @@ func (p *Picker) insert(text string) {
 
 		return r
 	}, text))
+	// A path pasted into the explorer moves through its directories.
+	if p.explorer != nil {
+		for _, r := range runes {
+			p.typeRune(cx, r)
+		}
+
+		return
+	}
+
 	p.query = slices.Insert(p.query, p.cursor, runes...)
 	p.cursor += len(runes)
 	p.filter()
+}
+
+// typeRune adds a typed char to the query, a slash in the explorer may
+// change the directory instead.
+func (p *Picker) typeRune(cx *Context, r rune) {
+	if r == '/' && p.explorer != nil && p.explorer.slash(cx) {
+		return
+	}
+
+	p.query = slices.Insert(p.query, p.cursor, r)
+	p.cursor++
+	p.filter()
+}
+
+// markKey identifies an item among the marks.
+func markKey(item PickerItem) string {
+	if item.Path != "" {
+		return item.Path
+	}
+
+	return item.Label
+}
+
+// Marked reports whether item is marked.
+func (p *Picker) Marked(item PickerItem) bool {
+	key := markKey(item)
+
+	return slices.ContainsFunc(p.marks, func(m PickerItem) bool { return markKey(m) == key })
+}
+
+// MarkCount returns the number of marked items.
+func (p *Picker) MarkCount() int {
+	return len(p.marks)
+}
+
+// toggleMark marks or unmarks the selected item and moves on. The way
+// up of the explorer is never marked.
+func (p *Picker) toggleMark() {
+	item, ok := p.Selected()
+	if !p.multi || !ok || p.explorer != nil && item.Label == "../" {
+		return
+	}
+
+	key := markKey(item)
+	if i := slices.IndexFunc(p.marks, func(m PickerItem) bool { return markKey(m) == key }); i >= 0 {
+		p.marks = slices.Delete(p.marks, i, i+1)
+	} else {
+		p.marks = append(p.marks, item)
+	}
+
+	if p.selected < len(p.matches)-1 {
+		p.selected++
+	}
 }
 
 func (p *Picker) accept(cx *Context, action PickerAction) {
 	item, ok := p.Selected()
 	e := cx.Editor
 	e.closePicker()
-	if !ok || p.onSelect == nil {
+	if p.onSelect == nil {
 		return
 	}
 
-	p.onSelect(cx, item, action)
+	// Marked items open all, in the order they were marked. Directories
+	// of the explorer are left out.
+	if len(p.marks) > 0 {
+		marks := p.marks
+		p.marks = nil
+		for _, m := range marks {
+			if !m.Dir {
+				p.onSelect(cx, m, action)
+			}
+		}
+
+		return
+	}
+
+	if ok {
+		p.onSelect(cx, item, action)
+	}
 }
 
 // openPicker shows a picker and starts its loader, if any.
@@ -506,9 +605,13 @@ func (e *Editor) closePicker() {
 		e.Picker.cancel = nil
 	}
 
-	e.Picker.Loading = false
+	p := e.Picker
+	p.Loading = false
 	e.Picker = nil
 	e.dropPreviews()
+	if p.onClose != nil {
+		p.onClose(e)
+	}
 }
 
 // emitItems returns a JobResult adding items to the picker when it is

@@ -4,16 +4,12 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"slices"
-	"strings"
 
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
-	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
-	"github.com/YouSysAdmin/duck-editor/internal/walk"
 )
 
 func init() {
@@ -27,12 +23,13 @@ func init() {
 		fileExplorer(cx, cx.Editor.workspaceRoot())
 	})
 	register("file_explorer_in_current_buffer_directory", "Open file explorer at current buffer's directory", func(cx *Context) {
-		dir := cx.Editor.WorkingDir()
-		if p := cx.Editor.Doc().Path(); p != "" {
-			dir = filepath.Dir(p)
+		// The file of the buffer comes selected.
+		dir, path := cx.Editor.WorkingDir(), cx.Editor.Doc().Path()
+		if path != "" {
+			dir = filepath.Dir(path)
 		}
 
-		fileExplorer(cx, dir)
+		openExplorer(cx.Editor, dir, path, false, false)
 	})
 	register("file_explorer_in_current_directory", "Open file explorer at current working directory", func(cx *Context) {
 		fileExplorer(cx, cx.Editor.WorkingDir())
@@ -255,154 +252,4 @@ func copyBetweenRegisters(cx *Context) {
 			e.SetStatus("Copied register %c to %c", src, dst)
 		})
 	})
-}
-
-// fileExplorer lists a directory, directories first. Picking a directory
-// opens it, picking a file opens the file. A directory only root may read
-// is listed through sudo after asking.
-func fileExplorer(cx *Context, dir string) {
-	listExplorer(cx, dir, "", false)
-}
-
-// listExplorer is fileExplorer with the entry from to select, the
-// directory just left when going up. all lists the entries the
-// file-picker options hide.
-func listExplorer(cx *Context, dir, from string, all bool) {
-	e := cx.Editor
-	entries, err := e.Host.ReadDir(dir)
-	if err != nil {
-		retry := func(e *Editor) error {
-			return e.withSudo(e.Host, func(e *Editor) error { return rootExplorer(e, dir, from, all) })
-		}
-		if !e.offerSudo(cx, err, dir, retry) {
-			e.SetError("%v", err)
-		}
-
-		return
-	}
-
-	showExplorer(e, dir, from, entries, false, all)
-}
-
-// rootExplorer lists a directory as root.
-func rootExplorer(e *Editor, dir, from string, all bool) error {
-	entries, err := sudoList(e.Host, dir)
-	if err != nil {
-		return err
-	}
-
-	showExplorer(e, dir, from, entries, true, all)
-
-	return nil
-}
-
-// showExplorer opens the explorer picker on the entries of dir, leaving
-// out what the file-picker options hide. Entries listed as root open as
-// root. picker_parent goes up, picker_descend opens, picker_toggle_all
-// shows or hides the entries the options leave out.
-func showExplorer(e *Editor, dir, from string, entries []host.DirEntry, asRoot, all bool) {
-	h := e.Host
-	exists := func(paths []string) []bool {
-		found, _ := h.Exists(paths)
-		if len(found) != len(paths) {
-			return make([]bool, len(paths))
-		}
-
-		return found
-	}
-	opts := walkOptions(e)
-	if all {
-		opts = unfiltered(opts)
-	}
-
-	filter := walk.NewDirFilter(dir, opts, exists, h.ReadFile)
-	entries = slices.DeleteFunc(entries, func(entry host.DirEntry) bool { return filter.Skip(entry.Name, entry.IsDir()) })
-	// Listings come sorted by name, directories go first.
-	slices.SortStableFunc(entries, func(a, b host.DirEntry) int {
-		switch {
-		case a.IsDir() == b.IsDir():
-			return 0
-		case a.IsDir():
-			return -1
-		}
-
-		return 1
-	})
-	var items []PickerItem
-	if filepath.Dir(dir) != dir {
-		items = append(items, PickerItem{Label: "../", Path: filepath.Dir(dir), Line: -1, Dir: true})
-	}
-
-	for _, entry := range entries {
-		name := entry.Name
-		if entry.IsDir() {
-			name += "/"
-		}
-
-		item := PickerItem{Label: name, Path: filepath.Join(dir, entry.Name), Line: -1, Dir: entry.IsDir()}
-		if entry.Link != "" {
-			item.Note = "-> " + entry.Link
-		}
-
-		items = append(items, item)
-	}
-
-	rel := dir
-	if r, ok := RelativeTo(e.WorkingDir(), dir); ok {
-		rel = r
-	}
-
-	// The working directory itself is named, a dot says nothing.
-	if rel == "." {
-		rel = filepath.Base(dir)
-	}
-
-	title := "Explorer " + rel
-	if asRoot {
-		title += " as root"
-	}
-
-	if all {
-		title += " (all)"
-	}
-
-	list := func(cx *Context, path, from string, all bool) {
-		if !asRoot {
-			listExplorer(cx, path, from, all)
-
-			return
-		}
-
-		if err := rootExplorer(cx.Editor, path, from, all); err != nil {
-			cx.Editor.SetError("%v", err)
-		}
-	}
-	p := NewPicker(title, items, func(cx *Context, item PickerItem, action PickerAction) {
-		e := cx.Editor
-		switch {
-		case item.Label == "../":
-			list(cx, item.Path, dir, all)
-		case strings.HasSuffix(item.Label, "/") && asRoot:
-			if err := rootExplorer(e, item.Path, "", all); err != nil {
-				e.SetError("%v", err)
-			}
-		case strings.HasSuffix(item.Label, "/"):
-			listExplorer(cx, item.Path, "", all)
-		case asRoot:
-			if err := e.sudoOpenPath(e.Host, item.Path); err != nil {
-				e.SetError("%v", err)
-			}
-		default:
-			openItem(cx, item, action)
-		}
-	})
-	p.parent = func(cx *Context) { list(cx, filepath.Dir(dir), dir, all) }
-	p.showAll = all
-	p.relist = func(cx *Context) {
-		item, _ := p.Selected()
-		list(cx, dir, item.Path, p.showAll)
-	}
-	p.Paths = true
-	p.selectPath(from)
-	e.openPicker(p)
 }

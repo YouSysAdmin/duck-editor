@@ -157,12 +157,14 @@ func TestSudoFromPickers(t *testing.T) {
 	// A root only file picked in the explorer asks before using sudo.
 	e := newTestEditor(t, "#[x|]#")
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	e.feed(t, "user<ret>")
 	if st := e.Status(); !st.IsError || !strings.Contains(st.Text, "sudo? y/n") {
 		t.Fatalf("status %+v", st)
 	}
 
 	e.feed(t, "y")
+	runJobs(e)
 	e.feed(t, "secret<ret>")
 	if doc := e.Doc(); doc.Path() != locked || !doc.AsRoot() {
 		t.Fatalf("opened %q root %v status %+v", doc.Path(), doc.AsRoot(), e.Status())
@@ -174,7 +176,9 @@ func TestSudoFromPickers(t *testing.T) {
 	}
 
 	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
 	e.feed(t, "y")
+	runJobs(e)
 	if e.Picker == nil || !strings.HasSuffix(e.Picker.Title, "as root") || len(e.Picker.Items()) != 2 || e.Picker.Items()[1].Label != "user-data.txt" {
 		t.Fatalf("picker %+v status %+v", e.Picker, e.Status())
 	}

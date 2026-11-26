@@ -183,13 +183,15 @@ func openItem(cx *Context, item PickerItem, action PickerAction) {
 	e.ensureCursorInViewCenter()
 }
 
-func filePicker(cx *Context, root string) {
+// filePicker lists every file below root and returns the picker, nil
+// when root does not exist.
+func filePicker(cx *Context, root string) *Picker {
 	e := cx.Editor
 	h := e.Host
 	if _, err := h.Stat(root); err != nil {
 		e.SetError("workspace directory does not exist")
 
-		return
+		return nil
 	}
 
 	// The title names the directory when it is not the workspace.
@@ -203,6 +205,15 @@ func filePicker(cx *Context, root string) {
 	})
 	p.previewBase = root
 	p.Paths = true
+	p.multi = true
+	// The explorer of root takes over the filter.
+	p.recursive = func(cx *Context) {
+		query := slices.Clone(p.query)
+		cx.Editor.closePicker()
+		x := openExplorer(cx.Editor, root, "", false, p.showAll)
+		x.picker.query, x.picker.cursor = query, len(query)
+		x.picker.filter()
+	}
 	list := func() {
 		opts := walkOptions(e)
 		p.Title = title
@@ -239,6 +250,8 @@ func filePicker(cx *Context, root string) {
 		cx.Editor.openPicker(p)
 	}
 	e.openPicker(p)
+
+	return p
 }
 
 func walkOptions(e *Editor) walk.Options {

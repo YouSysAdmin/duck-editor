@@ -23,6 +23,13 @@ type PickerRow struct {
 	// Note follows Text in the dimmed style.
 	Note string
 
+	// Marked draws a mark before Text.
+	Marked bool
+
+	// Status is a git change kind drawn after Text in its diff color,
+	// zero for none.
+	Status rune
+
 	// TruncateStart cuts a too long Text at its start, so a path keeps
 	// its file name.
 	TruncateStart bool
@@ -219,13 +226,23 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 
 	matchStyle := style.Patch(th.Special)
 
-	marker := "  "
+	marker := " "
 	if row.Selected {
-		marker = "> "
+		marker = ">"
 	}
 
 	var sb strings.Builder
 	sb.WriteString(th.Render(style, marker))
+	if row.Marked {
+		sb.WriteString(th.Render(style.Patch(th.Special), "+"))
+	} else {
+		sb.WriteString(th.Render(style, " "))
+	}
+
+	suffix := lipgloss.Width(row.Note)
+	if row.Status != 0 {
+		suffix += 2
+	}
 
 	// Group runs of matched and unmatched bytes, walking the match
 	// offsets in order alongside the text.
@@ -235,7 +252,7 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 	}
 
 	text := row.Text
-	if avail := width - 2 - lipgloss.Width(row.Note); row.TruncateStart && lipgloss.Width(text) > avail && avail > 1 {
+	if avail := width - 2 - suffix; row.TruncateStart && lipgloss.Width(text) > avail && avail > 1 {
 		cut := truncateStart(text, avail)
 		// Match offsets move with the dropped bytes, the ellipsis takes
 		// their place.
@@ -280,6 +297,10 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 	}
 
 	flush()
+	if row.Status != 0 {
+		sb.WriteString(th.Render(style.Patch(statusStyle(row.Status, th)), " "+string(row.Status)))
+	}
+
 	if row.Note != "" {
 		sb.WriteString(th.Render(style.Patch(th.Dimmed()), " "+row.Note))
 	}
@@ -291,4 +312,16 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 	}
 
 	return out
+}
+
+// statusStyle colors a git change kind like the diff gutter.
+func statusStyle(kind rune, th *Theme) theme.Style {
+	switch kind {
+	case '+':
+		return th.DiffAdd
+	case '-', '!':
+		return th.DiffDelete
+	}
+
+	return th.DiffChange
 }

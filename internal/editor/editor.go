@@ -104,6 +104,10 @@ type Editor struct {
 	Picker     *Picker
 	LastPicker *Picker
 
+	// explorerSpots keeps the entry last selected in a directory of the
+	// explorer, by host and directory.
+	explorerSpots map[string]string
+
 	// Popup shows hover text until the next key.
 	Popup *Popup
 
@@ -467,7 +471,7 @@ func (e *Editor) HandlePaste(text string) {
 	cx := &Context{Editor: e, count: e.count}
 	switch {
 	case e.Picker != nil:
-		e.Picker.insert(singleLine(text))
+		e.Picker.insert(cx, singleLine(text))
 
 		return
 	case e.Prompt != nil:

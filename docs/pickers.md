@@ -35,41 +35,85 @@ Keys are rebound under `keys.picker` in `config.yaml`, see
 
 <!-- BEGIN picker -->
 
-| Keys                     | Action                        | Does                                                                         |
-| ------------------------ | ----------------------------- | ---------------------------------------------------------------------------- |
-| `ret`                    | `picker_accept`               | Open the selected item                                                       |
-| `C-s`                    | `picker_accept_hsplit`        | Open the selected item in a horizontal split                                 |
-| `C-v`                    | `picker_accept_vsplit`        | Open the selected item in a vertical split                                   |
-| `esc` `C-c`              | `picker_close`                | Close the picker                                                             |
-| `tab` `down` `C-n` `C-j` | `picker_next`                 | Select the next item                                                         |
-| `S-tab` `up` `C-p` `C-k` | `picker_prev`                 | Select the previous item                                                     |
-| `pagedown` `C-d`         | `picker_page_down`            | Move the selection a page down                                               |
-| `pageup` `C-u`           | `picker_page_up`              | Move the selection a page up                                                 |
-| `home`                   | `picker_first`                | Select the first item                                                        |
-| `end`                    | `picker_last`                 | Select the last item                                                         |
-| `C-t`                    | `picker_toggle_preview`       | Show or hide the preview                                                     |
-| `A-d`                    | `picker_preview_down`         | Scroll the preview half a page down                                          |
-| `A-u`                    | `picker_preview_up`           | Scroll the preview half a page up                                            |
-| `A-h`                    | `picker_parent`               | Go up a directory in the explorer                                            |
-| `A-l`                    | `picker_descend`              | Open the selected entry of the explorer                                      |
-| `C-i`                    | `picker_toggle_all`           | Show or hide the files the file-picker options leave out                     |
-| `C-x`                    | `picker_remove`               | Close the selected buffer in the buffer picker                               |
-| `backspace` `C-h`        | `picker_delete_char_backward` | Delete a character of the filter, go up from an empty filter in the explorer |
-| `del`                    | `picker_delete_char_forward`  | Delete the character ahead                                                   |
-| `C-w` `A-backspace`      | `picker_delete_word_backward` | Delete a word of the filter                                                  |
-| `left` `C-b`             | `picker_move_left`            | Move left in the filter                                                      |
-| `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                     |
-| `C-a`                    | `picker_line_start`           | Move to the start of the filter                                              |
-| `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                |
+| Keys                     | Action                        | Does                                                                                                  |
+| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `ret`                    | `picker_accept`               | Open the selected item                                                                                |
+| `C-s`                    | `picker_accept_hsplit`        | Open the selected item in a horizontal split                                                          |
+| `C-v`                    | `picker_accept_vsplit`        | Open the selected item in a vertical split                                                            |
+| `esc` `C-c`              | `picker_close`                | Close the picker                                                                                      |
+| `down` `C-n` `C-j`       | `picker_next`                 | Select the next item                                                                                  |
+| `tab`                    | `picker_complete`             | Enter the selected directory of the explorer when the filter is not empty, else select the next item  |
+| `S-tab` `up` `C-p` `C-k` | `picker_prev`                 | Select the previous item                                                                              |
+| `pagedown` `C-d`         | `picker_page_down`            | Move the selection a page down                                                                        |
+| `pageup` `C-u`           | `picker_page_up`              | Move the selection a page up                                                                          |
+| `home`                   | `picker_first`                | Select the first item                                                                                 |
+| `end`                    | `picker_last`                 | Select the last item                                                                                  |
+| `C-t`                    | `picker_toggle_preview`       | Show or hide the preview                                                                              |
+| `A-d`                    | `picker_preview_down`         | Scroll the preview half a page down                                                                   |
+| `A-u`                    | `picker_preview_up`           | Scroll the preview half a page up                                                                     |
+| `A-h`                    | `picker_parent`               | Go up a directory in the explorer                                                                     |
+| `A-l`                    | `picker_descend`              | Open the selected entry of the explorer                                                               |
+| `C-i`                    | `picker_toggle_all`           | Show or hide the files the file-picker options leave out                                              |
+| `C-r`                    | `picker_toggle_recursive`     | Switch between the explorer and the file picker of its directory                                      |
+| `A-space`                | `picker_toggle_mark`          | Mark or unmark the selected item, marked items open together                                          |
+| `A-n`                    | `picker_create`               | Create a file, or a directory ending in a slash, in the explorer                                      |
+| `A-r`                    | `picker_rename`               | Rename the selected entry of the explorer, or move the marked ones                                    |
+| `A-c`                    | `picker_copy`                 | Copy the selected entry of the explorer, or the marked ones                                           |
+| `C-x`                    | `picker_remove`               | Close the selected buffer in the buffer picker, delete the selected or marked entries in the explorer |
+| `backspace` `C-h`        | `picker_delete_char_backward` | Delete a character of the filter, go up from an empty filter in the explorer                          |
+| `del`                    | `picker_delete_char_forward`  | Delete the character ahead                                                                            |
+| `C-w` `A-backspace`      | `picker_delete_word_backward` | Delete a word of the filter                                                                           |
+| `left` `C-b`             | `picker_move_left`            | Move left in the filter                                                                               |
+| `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                                              |
+| `C-a`                    | `picker_line_start`           | Move to the start of the filter                                                                       |
+| `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                                         |
 
 <!-- END picker -->
 
-`picker_parent` and `picker_descend` move through the file explorer,
-`backspace` with an empty filter goes up there too. `../` is the first
-entry. `picker_toggle_all` in the file picker and the explorer shows or
+`picker_toggle_all` in the file picker and the explorer shows or
 hides the files the `file-picker` options leave out. `picker_remove`
 closes the chosen buffer in the buffer picker and keeps the picker
-open.
+open. `A-space` marks entries of the file picker and the explorer, the
+title counts them and `ret` opens all marked files at once.
+
+## File explorer
+
+The explorer lists one directory, directories first, `../` on top.
+`space .` opens it on the directory of the buffer with its file
+selected. Listings load in the background, so a slow remote host never
+holds up the editor, and the explorer selects the entry chosen last
+time in a directory it comes back to. Entries git sees changed carry
+their status after the name: `+` added or untracked, `~` modified, `>`
+renamed, `!` conflict, a directory the status of what is below it.
+
+Moving around:
+
+- `A-l` or `ret` on a directory lists it, `A-h`, or `backspace` with an
+  empty filter, goes up.
+- A typed `/` steps into the directory the filter names, a full name or
+  the start of the selected one: `sr/` enters `src`. `../` goes up,
+  `~/` home, a `/` on its own to the root. A pasted path walks down the
+  same way.
+- `tab` with a filter enters the selected directory, without one it
+  moves down like in other pickers.
+- `C-r` turns the explorer into the file picker of its directory, the
+  filter stays, `C-r` there goes back to the explorer.
+
+Changing files, each runs as root in an explorer opened through sudo:
+
+- `ret` on a filter that matches nothing opens a new buffer of that
+  name, the file is written on save. A name ending in `/` creates the
+  directory and lists it.
+- `A-n` asks for a name and creates the file, or the directory when it
+  ends in `/`, missing parents included.
+- `A-r` renames the selected entry, a name of an existing directory
+  moves it there. With marked entries it asks for a directory and moves
+  them all. Open buffers follow their files.
+- `A-c` copies the same way, directories with everything below them.
+- `C-x` deletes the selected or marked entries after a `y`.
+
+An existing target is never overwritten. Names are relative to the
+listed directory, absolute paths and `~` work too.
 
 ## Filter syntax
 

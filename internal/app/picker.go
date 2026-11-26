@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -118,13 +119,13 @@ func (m Model) renderPicker(p *editor.Picker) (*lipgloss.Layer, *tea.Cursor) {
 	rows := make([]ui.PickerRow, 0, layout.ListHeight)
 	for i := p.Offset(); i < len(matches) && len(rows) < layout.ListHeight; i++ {
 		item := p.Items()[matches[i].Index]
-		rows = append(rows, ui.PickerRow{Text: item.Label, Positions: matches[i].Positions, Selected: i == p.SelectedIndex(), Dir: item.Dir, Note: item.Note, TruncateStart: p.Paths})
+		rows = append(rows, ui.PickerRow{Text: item.Label, Positions: matches[i].Positions, Selected: i == p.SelectedIndex(), Dir: item.Dir, Note: item.Note, Marked: p.Marked(item), Status: item.Status, TruncateStart: p.Paths})
 	}
 
 	view := ui.PickerView{
 		Width:   area.W,
 		Height:  area.H,
-		Title:   p.Title,
+		Title:   pickerTitle(p),
 		Query:   p.Query(),
 		Loading: p.Loading,
 		Matched: len(matches),
@@ -274,4 +275,13 @@ func wrapLines(text []string, width int) []string {
 	}
 
 	return out
+}
+
+// pickerTitle is the title of the picker with the count of marked items.
+func pickerTitle(p *editor.Picker) string {
+	if n := p.MarkCount(); n > 0 {
+		return p.Title + " [" + strconv.Itoa(n) + " marked]"
+	}
+
+	return p.Title
 }

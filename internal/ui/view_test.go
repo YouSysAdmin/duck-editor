@@ -349,3 +349,15 @@ func TestPickerRowTruncatesPathStart(t *testing.T) {
 		t.Fatalf("other lists keep the start: %q", got)
 	}
 }
+
+// TestPickerRowMarkAndStatus draws a mark before the text and the git
+// status after it, before the note.
+func TestPickerRowMarkAndStatus(t *testing.T) {
+	t.Parallel()
+
+	th := DefaultTheme()
+	row := renderPickerRow(PickerRow{Text: "main.go", Marked: true, Status: '~', Note: "-> x", Selected: true}, 20, &th, theme.Style{})
+	if got := ansi.Strip(row); got != ">+main.go ~ -> x"+strings.Repeat(" ", 4) {
+		t.Fatalf("row %q", got)
+	}
+}
