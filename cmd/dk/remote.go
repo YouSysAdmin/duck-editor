@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/editor"
@@ -150,23 +151,28 @@ func parseRemoteURL(kind, arg string) (remoteTarget, bool) {
 }
 
 // connect creates the host of the target, the agent takes over the user
-// environment in envMode.
-func (t remoteTarget) connect(envMode string) *host.Remote {
+// environment in envMode. progress, when set, reports an agent upload.
+func (t remoteTarget) connect(envMode string, progress host.ProgressFunc) *host.Remote {
 	agents := filepath.Join(config.CacheDir(), "agent")
 	agent := func(goos, goarch string, download bool) (string, error) {
+		if download && progress != nil {
+			fmt.Fprintf(os.Stderr, "dk: the host has no agent, preparing one for %s/%s\n", goos, goarch)
+		}
+
 		return host.AgentBinary(agents, version, goos, goarch, download)
 	}
 
 	args := []string{"-env", envMode}
 	switch t.kind {
 	case "docker":
-		return host.NewDocker(t.dest, host.DockerOptions{User: t.user, Agent: agent, AgentArgs: args})
+		return host.NewDocker(t.dest, host.DockerOptions{User: t.user, Agent: agent, Progress: progress, AgentArgs: args})
 	case "kubectl":
 		return host.NewKubectl(t.dest, host.KubectlOptions{
 			Namespace: t.namespace,
 			Context:   t.context,
 			Container: t.container,
 			Agent:     agent,
+			Progress:  progress,
 			AgentArgs: args,
 		})
 	}
@@ -176,7 +182,7 @@ func (t remoteTarget) connect(envMode string) *host.Remote {
 		dest = t.user + "@" + dest
 	}
 
-	return host.NewSSH(dest, host.SSHOptions{Port: t.port, Identity: t.identity, Agent: agent, AgentArgs: args})
+	return host.NewSSH(dest, host.SSHOptions{Port: t.port, Identity: t.identity, Agent: agent, Progress: progress, AgentArgs: args})
 }
 
 // remoteEnvMode reads remote-env from the user config, which is all the
@@ -204,9 +210,12 @@ func editRemote(target remoteTarget, lang string) error {
 		return err
 	}
 
-	r := target.connect(envMode)
+	progress := &uploadProgress{}
+	r := target.connect(envMode, progress.report)
 	fmt.Fprintf(os.Stderr, "dk: connecting to %s\n", r.Name())
-	if err := r.Connect(context.Background()); err != nil {
+	err = r.Connect(context.Background())
+	progress.end()
+	if err != nil {
 		return err
 	}
 
@@ -240,4 +249,39 @@ func editRemote(target remoteTarget, lang string) error {
 	}
 
 	return session(r, dir, editor.FindWorkspaceConfig(r, dir), start)
+}
+
+// uploadProgress prints an agent upload on one terminal line.
+type uploadProgress struct {
+	mu   sync.Mutex
+	open bool
+}
+
+func (p *uploadProgress) report(sent, size int64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	const mb = 1 << 20
+	pct := int64(100)
+	if size > 0 {
+		pct = sent * 100 / size
+	}
+
+	fmt.Fprintf(os.Stderr, "\r\033[Kdk: uploading the agent %.1f/%.1f MB %d%%", float64(sent)/mb, float64(size)/mb, pct)
+	p.open = true
+	if sent >= size {
+		fmt.Fprintln(os.Stderr)
+		p.open = false
+	}
+}
+
+// end finishes a progress line an interrupted upload left open.
+func (p *uploadProgress) end() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.open {
+		fmt.Fprintln(os.Stderr)
+		p.open = false
+	}
 }

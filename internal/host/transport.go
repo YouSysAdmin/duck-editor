@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,12 +23,17 @@ import (
 // agent yet.
 type AgentFunc func(goos, goarch string, download bool) (string, error)
 
+// ProgressFunc reports an agent upload, sent of size bytes. It is called
+// from a background goroutine.
+type ProgressFunc func(sent, size int64)
+
 // SSHOptions configure a host reached with the ssh command.
 type SSHOptions struct {
 	// Port is passed with -p, Identity with -i when set.
 	Port     string
 	Identity string
 	Agent    AgentFunc
+	Progress ProgressFunc
 
 	// AgentArgs follow "dk agent" on the remote side.
 	AgentArgs []string
@@ -37,7 +43,7 @@ type SSHOptions struct {
 // user's ssh config, keys and agent apply. dest is a host name or
 // user@host. The host is named ssh://dest.
 func NewSSH(dest string, opts SSHOptions) *Remote {
-	d := &commandDialer{name: "ssh " + dest, argv: sshArgv(dest, opts), agent: opts.Agent, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
+	d := &commandDialer{name: "ssh " + dest, argv: sshArgv(dest, opts), agent: opts.Agent, progress: opts.Progress, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
 	name := "ssh://" + dest
 	if opts.Port != "" {
 		name += ":" + opts.Port
@@ -87,13 +93,14 @@ type DockerOptions struct {
 	// User runs the agent as this user, the container default when empty.
 	User      string
 	Agent     AgentFunc
+	Progress  ProgressFunc
 	AgentArgs []string
 }
 
 // NewDocker returns a host that is a running container, reached with
 // docker exec. The host is named docker://container.
 func NewDocker(container string, opts DockerOptions) *Remote {
-	d := &commandDialer{name: "docker " + container, argv: dockerArgv(container, opts), agent: opts.Agent, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
+	d := &commandDialer{name: "docker " + container, argv: dockerArgv(container, opts), agent: opts.Agent, progress: opts.Progress, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
 
 	r := NewRemote("docker://"+container, d.dial)
 	r.terminal = func(script string) []string {
@@ -126,13 +133,14 @@ type KubectlOptions struct {
 	// empty.
 	Container string
 	Agent     AgentFunc
+	Progress  ProgressFunc
 	AgentArgs []string
 }
 
 // NewKubectl returns a host that is a running pod, reached with kubectl
 // exec. The host is named kubectl://pod.
 func NewKubectl(pod string, opts KubectlOptions) *Remote {
-	d := &commandDialer{name: "kubectl " + pod, argv: kubectlArgv(pod, opts), agent: opts.Agent, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
+	d := &commandDialer{name: "kubectl " + pod, argv: kubectlArgv(pod, opts), agent: opts.Agent, progress: opts.Progress, agentArgs: opts.AgentArgs, ids: map[string]fileID{}}
 	name := "kubectl://"
 	if opts.Namespace != "" {
 		name += opts.Namespace + "/"
@@ -176,8 +184,9 @@ type commandDialer struct {
 
 	// argv is the command line running a sh script on the other side.
 	// interactive is set for the first connection, which may prompt.
-	argv  func(interactive bool, script string) []string
-	agent AgentFunc
+	argv     func(interactive bool, script string) []string
+	agent    AgentFunc
+	progress ProgressFunc
 
 	// agentArgs follow "dk agent" in the start script.
 	agentArgs []string
@@ -325,6 +334,9 @@ func (d *commandDialer) hash(path string) (string, error) {
 // start runs the start script. It returns a connection when an agent
 // answered, or what system needs one.
 func (d *commandDialer) start(ctx context.Context, interactive bool) (Conn, *needAgent, error) {
+	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
+
 	argv := d.argv(interactive, d.startScript())
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.WaitDelay = time.Second
@@ -446,17 +458,89 @@ func (d *commandDialer) install(ctx context.Context, interactive bool, uname str
 
 	defer func() { _ = f.Close() }()
 
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+
+	upload := &uploadReader{r: f, size: info.Size(), report: d.progress}
+	done := make(chan struct{})
+	defer close(done)
+
+	go upload.watch(done, uploadStall, func() { cancel(errUploadStalled) })
+
 	script := `d="${HOME:-/tmp}/.cache/duck/agent/` + id + `"; mkdir -p "$d" && cat > "$d/dk.tmp" && chmod 755 "$d/dk.tmp" && mv "$d/dk.tmp" "$d/dk"`
 	argv := d.argv(interactive, script)
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
-	cmd.Stdin = f
+	cmd.WaitDelay = time.Second
+	cmd.Stdin = upload
 	stderr := &tailBuffer{max: 4 << 10}
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
+		if errors.Is(context.Cause(ctx), errUploadStalled) {
+			return fmt.Errorf("install agent: %s: the upload stalled, nothing was sent for %s", d.name, uploadStall)
+		}
+
 		return fmt.Errorf("install agent: %w", d.failure(stderr))
 	}
 
 	return nil
+}
+
+var errUploadStalled = errors.New("agent upload stalled")
+
+// uploadReader counts the bytes of an agent upload and reports them.
+type uploadReader struct {
+	r      io.Reader
+	size   int64
+	report ProgressFunc
+
+	sent     atomic.Int64
+	lastRead atomic.Int64
+	reported time.Time
+}
+
+func (u *uploadReader) Read(p []byte) (int, error) {
+	n, err := u.r.Read(p)
+	now := time.Now()
+	u.lastRead.Store(now.UnixNano())
+	sent := u.sent.Add(int64(n))
+	if u.report != nil && (sent == u.size || now.Sub(u.reported) >= 100*time.Millisecond) {
+		u.reported = now
+		u.report(sent, u.size)
+	}
+
+	return n, err
+}
+
+// watch calls stalled when reads started and then stopped for limit
+// before the whole file was read. The wait before the first read, such
+// as a password prompt, is not counted.
+func (u *uploadReader) watch(done <-chan struct{}, limit time.Duration, stalled func()) {
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-done:
+			return
+		case <-tick.C:
+		}
+
+		last := u.lastRead.Load()
+		if last == 0 || u.sent.Load() >= u.size {
+			continue
+		}
+
+		if time.Since(time.Unix(0, last)) > limit {
+			stalled()
+
+			return
+		}
+	}
 }
 
 // tailBuffer keeps the last max bytes written to it.

@@ -238,7 +238,7 @@ func connectWorkspace(ctx context.Context, w config.Workspace) (host.Host, error
 		return nil, err
 	}
 
-	r := t.connect(envMode)
+	r := t.connect(envMode, nil)
 	if err := r.ConnectQuiet(ctx); err != nil {
 		_ = r.Close()
 

@@ -30,8 +30,12 @@ const (
 	// callTimeout bounds a request the editor waits for.
 	callTimeout = 30 * time.Second
 
-	// dialTimeout bounds one connection attempt.
+	// dialTimeout bounds one start of the agent. An agent upload is not
+	// bounded by it, only by uploadStall.
 	dialTimeout = 30 * time.Second
+
+	// uploadStall fails an agent upload that sent nothing for this long.
+	uploadStall = 60 * time.Second
 
 	// cacheTTL is how long file metadata is reused, the picker preview
 	// asks for it on every frame.
@@ -137,9 +141,6 @@ func (r *Remote) ConnectQuiet(ctx context.Context) error {
 }
 
 func (r *Remote) connect(ctx context.Context, interactive bool) error {
-	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
-	defer cancel()
-
 	c, err := r.dial(ctx, interactive)
 	if err != nil {
 		return err
