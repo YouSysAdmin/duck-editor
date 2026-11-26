@@ -216,6 +216,13 @@ tasks:
         vars: {SRC: '{{.RT}}/grammars'}
       - GOOS=linux GOARCH={{.ARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
       - COPYFILE_DISABLE=1 tar --no-xattrs -C dist/{{.NAME}} -czf dist/{{.NAME}}.tar.gz dk
+  # Termux binaries link against bionic, they are built natively in a
+  # Termux container rather than cross compiled.
+  release:android:
+    desc: "Termux build in dist/, made in a Termux container, needs docker for linux/arm64, task release:android VERSION=x.y.z"
+    cmds:
+      - sh hack/termux-release.sh {{.VERSION}} dist
+      - cd dist && shasum -a 256 dk-*.tar.gz > SHA256SUMS
   # The agent needs no grammars, built without cgo it runs on any C
   # library, Alpine and distroless images included.
   release:agent:

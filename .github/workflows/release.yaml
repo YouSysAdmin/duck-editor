@@ -1,7 +1,8 @@
 # Builds and publishes a release when a v* tag is pushed.
 # The macOS runner builds the native binary and cross compiles
 # the Linux ones with zig, the Linux runners load every embedded grammar in CentOS 7,
-# Debian and Alpine containers before anything is published.
+# Debian and Alpine containers before anything is published. The Termux build
+# is made natively in a Termux container on an arm64 runner.
 name: release
 
 on:
@@ -60,8 +61,22 @@ jobs:
           tar -xzf dist/dk-agent-linux-${{ matrix.arch }}.tar.gz -C dist/dk-agent-linux-${{ matrix.arch }}
       - run: task release:smoke ARCHES=${{ matrix.arch }}
 
+  android:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: go-task/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+      - run: task release:android VERSION="${GITHUB_REF_NAME#v}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-android
+          path: dist/dk-android-*.tar.gz
+          if-no-files-found: error
+
   publish:
-    needs: smoke
+    needs: [smoke, android]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -69,8 +84,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: dist*
           path: dist
+          merge-multiple: true
+      - run: cd dist && rm -f SHA256SUMS && sha256sum dk-*.tar.gz > SHA256SUMS
       # A release made on GitHub already exists for the tag, then only the files are added
       - run: |
           files=(dist/*.tar.gz dist/SHA256SUMS install.sh)

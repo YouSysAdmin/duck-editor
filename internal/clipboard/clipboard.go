@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 )
 
 // Provider moves text to and from the system clipboard. primary selects
@@ -104,7 +106,7 @@ func run(c Command, input string, capture bool) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
 	defer cancel()
 
-	proc := exec.CommandContext(ctx, c.Command, c.Args...)
+	proc := termux.Command(ctx, c.Command, c.Args...)
 	proc.Stdin = strings.NewReader(input)
 	proc.WaitDelay = waitDelay
 	var stdout bytes.Buffer
@@ -236,7 +238,7 @@ var xselWorks = func() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
 	defer cancel()
 
-	return exec.CommandContext(ctx, "xsel", "-o", "-b").Run() == nil
+	return termux.Command(ctx, "xsel", "-o", "-b").Run() == nil
 }
 
 // Named returns a builtin provider by its option name.

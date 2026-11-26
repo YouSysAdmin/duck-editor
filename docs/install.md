@@ -6,7 +6,7 @@ weight: 10
 
 # Installation
 
-Duck runs on macOS and Linux. The release binaries are self contained: the
+Duck runs on macOS, Linux and Android in Termux. The release binaries are self contained: the
 tree-sitter grammars are built in, there is no runtime directory to install.
 
 ## Install script
@@ -16,15 +16,15 @@ curl -fsSL https://raw.githubusercontent.com/YouSysAdmin/duck-editor/master/inst
 ```
 
 The script picks the archive for the machine from the latest GitHub release,
-checks it against `SHA256SUMS` and installs `dk` into `~/.local/bin`. It
-takes these variables:
+checks it against `SHA256SUMS` and installs `dk` into `~/.local/bin`, in
+Termux into `$PREFIX/bin`. It takes these variables:
 
-| Variable           | Meaning                                                    |
-| ------------------ | ---------------------------------------------------------- |
-| `DUCK_VERSION`     | release to install, such as `0.1.0`, the latest by default |
-| `DUCK_INSTALL_DIR` | target directory, `~/.local/bin` by default                |
-| `DUCK_REPO`        | GitHub repository, `YouSysAdmin/duck-editor` by default    |
-| `DUCK_BASE_URL`    | directory holding the archives, overrides the release URL  |
+| Variable           | Meaning                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `DUCK_VERSION`     | release to install, such as `0.1.0`, the latest by default           |
+| `DUCK_INSTALL_DIR` | target directory, `~/.local/bin` by default, `$PREFIX/bin` in Termux |
+| `DUCK_REPO`        | GitHub repository, `YouSysAdmin/duck-editor` by default              |
+| `DUCK_BASE_URL`    | directory holding the archives, overrides the release URL            |
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/YouSysAdmin/duck-editor/master/install.sh | DUCK_VERSION=0.1.0 sh
@@ -57,10 +57,20 @@ distribution and CentOS 7. Alpine needs the glibc compatibility layer first:
 apk add gcompat
 ```
 
+### Android
+
+The `android-arm64` build runs in [Termux](https://termux.dev), the Linux
+builds do not, Android has its own C library. The install script picks it
+there. The grammars with a C++ scanner use the `libc++_shared` Termux has.
+The system clipboard needs `pkg install termux-api` and the Termux:API app,
+without them yanks go through the terminal escape. Scripts that start with
+`#!/usr/bin/env` or `#!/bin/sh`, such as language servers installed with npm,
+run through the Termux copy of their interpreter.
+
 ## Manual download
 
 Each release has `dk-<os>-<arch>.tar.gz` archives for `darwin-arm64`,
-`linux-amd64` and `linux-arm64`, holding the single `dk` binary, and
+`linux-amd64`, `linux-arm64` and `android-arm64`, holding the single `dk` binary, and
 `SHA256SUMS`:
 
 ```sh

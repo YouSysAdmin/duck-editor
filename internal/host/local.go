@@ -16,6 +16,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/buffer"
 	"github.com/YouSysAdmin/duck-editor/internal/fileinfo"
 	"github.com/YouSysAdmin/duck-editor/internal/search"
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 	"github.com/YouSysAdmin/duck-editor/internal/walk"
 )
 
@@ -145,7 +146,7 @@ func (Local) Run(ctx context.Context, c Command) ([]byte, []byte, error) {
 }
 
 func command(ctx context.Context, c Command) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
+	cmd := termux.Command(ctx, c.Name, c.Args...)
 	cmd.Dir = c.Dir
 	if len(c.Env) > 0 {
 		cmd.Env = append(os.Environ(), c.Env...)

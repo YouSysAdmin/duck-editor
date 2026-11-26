@@ -2,7 +2,7 @@
 package app
 
 import (
-	"os/exec"
+	"context"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,6 +15,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/editor"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
@@ -202,7 +203,7 @@ func (m Model) afterEditor(next ...tea.Cmd) (tea.Model, tea.Cmd) {
 	}
 
 	if req := m.editor.TakeExec(); req != nil {
-		cmd := exec.Command(req.Argv[0], req.Argv[1:]...)
+		cmd := termux.Command(context.Background(), req.Argv[0], req.Argv[1:]...)
 		cmd.Dir = req.Dir
 		cmds = append(cmds, tea.ExecProcess(cmd, func(err error) tea.Msg { return execDoneMsg{err} }))
 	}

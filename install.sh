@@ -4,13 +4,12 @@
 #   curl -fsSL https://raw.githubusercontent.com/YouSysAdmin/duck-editor/master/install.sh | sh
 #
 # DUCK_VERSION      release to install, such as 0.1.0, the latest by default
-# DUCK_INSTALL_DIR  target directory, ~/.local/bin by default
+# DUCK_INSTALL_DIR  target directory, ~/.local/bin by default, $PREFIX/bin in Termux
 # DUCK_REPO         GitHub repository, YouSysAdmin/duck-editor by default
 # DUCK_BASE_URL     directory holding the archives, overrides the release URL
 set -eu
 
 repo=${DUCK_REPO:-YouSysAdmin/duck-editor}
-dir=${DUCK_INSTALL_DIR:-$HOME/.local/bin}
 
 if [ -n "${DUCK_BASE_URL:-}" ]; then
 	base=$DUCK_BASE_URL
@@ -25,6 +24,15 @@ Linux) os=linux ;;
 Darwin) os=darwin ;;
 *) echo "dk: unsupported system $(uname -s)" >&2; exit 1 ;;
 esac
+
+# Termux runs Android binaries, the Linux ones need glibc and are not PIE.
+default_dir=$HOME/.local/bin
+if [ "$os" = linux ] && [ "$(uname -o 2>/dev/null)" = Android ]; then
+	os=android
+	default_dir=${PREFIX:-/data/data/com.termux/files/usr}/bin
+fi
+
+dir=${DUCK_INSTALL_DIR:-$default_dir}
 
 case $(uname -m) in
 x86_64 | amd64) arch=amd64 ;;

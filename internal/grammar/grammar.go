@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/YouSysAdmin/duck-editor/internal/syntax"
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 )
 
 // Status reports the outcome for one grammar.
@@ -201,7 +202,7 @@ func short(rev string) string {
 
 // git runs a git command in dir and returns its trimmed stdout.
 func git(ctx context.Context, dir string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd := termux.Command(ctx, "git", args...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 	var stdout, stderr bytes.Buffer
@@ -280,6 +281,8 @@ func compile(ctx context.Context, opts Options, src, parser, scanner, lib string
 	cc := compiler(opts.CC, "CC", "cc")
 	cxx := compiler(opts.CXX, "CXX", "c++")
 	linux := opts.targetOS() == "linux"
+	// Android links the C++ runtime from libc++_shared, every Termux has it.
+	elf := linux || opts.targetOS() == "android"
 	// Same directory as the library so the final rename stays on one
 	// file system.
 	tmp, err := os.MkdirTemp(filepath.Dir(lib), ".dk-grammar-")
@@ -318,7 +321,7 @@ func compile(ctx context.Context, opts Options, src, parser, scanner, lib string
 	}
 
 	link = append(link, "-xc", "-std=c11", parser)
-	if linux {
+	if elf {
 		link = append(link, "-Wl,-z,relro,-z,now")
 	}
 
@@ -342,7 +345,7 @@ func compiler(option, env, fallback string) []string {
 // run executes a compiler command line, its first field is the program.
 func run(ctx context.Context, command []string, args ...string) error {
 	name := command[0]
-	cmd := exec.CommandContext(ctx, name, append(slices.Clone(command[1:]), args...)...)
+	cmd := termux.Command(ctx, name, append(slices.Clone(command[1:]), args...)...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {

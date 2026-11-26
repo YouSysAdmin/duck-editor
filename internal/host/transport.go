@@ -11,11 +11,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 )
 
 // AgentFunc returns the local dk binary to install for a remote system,
@@ -343,7 +344,7 @@ func (d *commandDialer) start(ctx context.Context, interactive bool) (Conn, *nee
 	defer cancel()
 
 	argv := d.argv(interactive, d.startScript())
-	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd := termux.Command(context.Background(), argv[0], argv[1:]...)
 	cmd.WaitDelay = time.Second
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -501,7 +502,7 @@ func (d *commandDialer) install(ctx context.Context, interactive bool, need need
 
 	script := `d="${HOME:-/tmp}/.cache/duck/agent/` + id + `"; mkdir -p "$d" && ` + receive + ` > "$d/dk.tmp" && chmod 755 "$d/dk.tmp" && mv "$d/dk.tmp" "$d/dk"`
 	argv := d.argv(interactive, script)
-	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	cmd := termux.Command(ctx, argv[0], argv[1:]...)
 	cmd.WaitDelay = time.Second
 	cmd.Stdin = stdin
 	stderr := &tailBuffer{max: 4 << 10}

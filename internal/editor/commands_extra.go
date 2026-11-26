@@ -2,7 +2,6 @@ package editor
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/lsp"
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 )
 
 func init() {
@@ -475,11 +475,14 @@ func gotoFile(cx *Context, action Action) {
 // systemOpen opens a URL with the opener of the desktop.
 func systemOpen(ctx context.Context, target string) error {
 	opener := "xdg-open"
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		opener = "open"
+	case "android":
+		opener = "termux-open"
 	}
 
-	return exec.CommandContext(ctx, opener, target).Run()
+	return termux.Command(ctx, opener, target).Run()
 }
 
 // openTarget opens a file URI in the editor and anything else with the

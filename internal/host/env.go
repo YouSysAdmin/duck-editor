@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/YouSysAdmin/duck-editor/internal/termux"
 )
 
 // How the agent takes over the environment of the user's shell.
@@ -121,7 +123,7 @@ func shellEnv(shell string, flags ...string) ([][2]string, bool) {
 	defer cancel()
 
 	// env by its full path, startup files may leave PATH without it.
-	cmd := exec.CommandContext(ctx, shell, append(flags, "-c", "echo "+envMarker+"; /usr/bin/env")...)
+	cmd := termux.Command(ctx, shell, append(flags, "-c", "echo "+envMarker+"; /usr/bin/env")...)
 	cmd.Stdin = nil
 	// A daemon started by a startup file may keep the output open.
 	cmd.WaitDelay = time.Second
