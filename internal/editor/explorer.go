@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/YouSysAdmin/duck-editor/internal/host"
@@ -34,6 +35,10 @@ type explorer struct {
 	// selectNext is the path to select once the listing arrives, else
 	// the entry selected when the explorer was there last.
 	selectNext string
+
+	// hasGit tells whether git is installed on the host, looked up once
+	// by the first listing that needs it.
+	hasGit func() bool
 }
 
 // fileExplorer lists a directory, directories first. Picking a directory
@@ -46,7 +51,13 @@ func fileExplorer(cx *Context, dir string) {
 // openExplorer opens the explorer on dir with from selected. all lists
 // the entries the file-picker options hide.
 func openExplorer(e *Editor, dir, from string, asRoot, all bool) *explorer {
-	x := &explorer{host: e.Host, asRoot: asRoot}
+	h := e.Host
+	x := &explorer{host: h, asRoot: asRoot}
+	x.hasGit = sync.OnceValue(func() bool {
+		_, err := h.LookPath("git")
+
+		return err == nil
+	})
 	p := NewPicker("", nil, func(cx *Context, item PickerItem, action PickerAction) { x.pick(cx, item, action) })
 	p.explorer = x
 	p.Paths = true
@@ -134,10 +145,10 @@ func (x *explorer) loader(e *Editor, dir string) func(ctx context.Context, gen i
 		opts = unfiltered(opts)
 	}
 
-	git := !e.vcsDisabled && !asRoot
+	git, hasGit := !e.vcsDisabled && !asRoot, x.hasGit
 
 	return func(ctx context.Context, gen int, emit func(JobResult)) {
-		items, err := listDir(h, dir, opts, asRoot)
+		items, listErr := listDir(h, dir, opts, asRoot)
 		if ctx.Err() != nil {
 			return
 		}
@@ -147,8 +158,8 @@ func (x *explorer) loader(e *Editor, dir string) func(ctx context.Context, gen i
 				return
 			}
 
-			if err != nil {
-				x.failed(e, dir, err)
+			if listErr != nil {
+				x.failed(e, dir, listErr)
 
 				return
 			}
@@ -163,7 +174,9 @@ func (x *explorer) loader(e *Editor, dir string) func(ctx context.Context, gen i
 			x.selectNext = ""
 		})
 
-		if err != nil || !git {
+		// Git runs only for a directory of a repository on a host that
+		// has it.
+		if listErr != nil || !git || !vcs.InRepository(h, dir) || !hasGit() {
 			return
 		}
 

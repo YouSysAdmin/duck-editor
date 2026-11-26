@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/YouSysAdmin/duck-editor/internal/host"
@@ -77,6 +78,26 @@ func Status(h host.Host, dir string) (string, []FileStatus, error) {
 	}
 
 	return root, parseStatus(out), nil
+}
+
+// InRepository reports whether dir lies in a git work tree: it or a
+// directory above it holds .git, a directory or the file of a worktree
+// or submodule. All candidates are checked in one Exists call.
+func InRepository(h host.Host, dir string) bool {
+	var candidates []string
+	for d := filepath.Clean(dir); ; d = filepath.Dir(d) {
+		candidates = append(candidates, filepath.Join(d, ".git"))
+		if filepath.Dir(d) == d {
+			break
+		}
+	}
+
+	found, err := h.Exists(candidates)
+	if err != nil {
+		return false
+	}
+
+	return slices.Contains(found, true)
 }
 
 // DirStatus maps the entries of dir that differ from HEAD to their kind.

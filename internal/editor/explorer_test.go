@@ -1,12 +1,16 @@
 package editor
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
+
+	"github.com/YouSysAdmin/duck-editor/internal/host"
 )
 
 // explorerTree creates files below a temporary directory, a name ending
@@ -343,5 +347,66 @@ func TestExplorerGitStatus(t *testing.T) {
 
 	if got["changed.txt"] != '~' || got["added.txt"] != '+' || got["kept.txt"] != 0 {
 		t.Fatalf("status %q", got)
+	}
+}
+
+// TestExplorerOutsideRepository lists a directory git does not track
+// when the job results are applied only after the job ends, as a slow
+// host delivers them.
+func TestExplorerOutsideRepository(t *testing.T) {
+	t.Parallel()
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+
+	dir := explorerTree(t, "a.txt")
+	e := newTestEditor(t, "#[x|]#")
+	e.vcsDisabled = false
+	fileExplorer(&Context{Editor: e}, dir)
+	for _, job := range e.TakeJobs() {
+		var results []JobResult
+		job.Run(job.Ctx, func(r JobResult) { results = append(results, r) })
+		for _, r := range results {
+			e.ApplyResult(r)
+		}
+	}
+
+	if e.Picker == nil || !slices.Equal(pickerLabels(e), []string{"../", "a.txt"}) {
+		t.Fatalf("picker %+v status %+v", e.Picker, e.Status())
+	}
+}
+
+// countingHost counts the commands run on the local machine.
+type countingHost struct {
+	host.Local
+
+	runs *atomic.Int32
+}
+
+func (h countingHost) Run(ctx context.Context, cmd host.Command) ([]byte, []byte, error) {
+	h.runs.Add(1)
+
+	return h.Local.Run(ctx, cmd)
+}
+
+// TestExplorerSkipsGitOutsideRepository runs no git for a directory
+// that is not in a repository.
+func TestExplorerSkipsGitOutsideRepository(t *testing.T) {
+	t.Parallel()
+
+	dir := explorerTree(t, "a.txt")
+	e := newTestEditor(t, "#[x|]#")
+	e.vcsDisabled = false
+	runs := &atomic.Int32{}
+	e.Host = countingHost{runs: runs}
+	fileExplorer(&Context{Editor: e}, dir)
+	runJobs(e)
+	if e.Picker == nil || !slices.Equal(pickerLabels(e), []string{"../", "a.txt"}) {
+		t.Fatalf("picker %+v", e.Picker)
+	}
+
+	if n := runs.Load(); n != 0 {
+		t.Fatalf("%d commands run outside a repository", n)
 	}
 }

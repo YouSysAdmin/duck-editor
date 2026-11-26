@@ -62,6 +62,10 @@ func TestDirStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if !InRepository(host.Local{}, filepath.Join(dir, "src", "mixed")) || InRepository(host.Local{}, t.TempDir()) {
+		t.Fatal("InRepository is wrong about the repository or a directory outside")
+	}
+
 	want := map[string]rune{"a.go": '~', "new.go": '+', "fresh": '+', "mixed": '~'}
 	if !maps.Equal(got, want) {
 		t.Fatalf("status %q, want %q", got, want)
