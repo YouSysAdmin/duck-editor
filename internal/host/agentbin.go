@@ -17,18 +17,19 @@ import (
 var errNoArchive = update.ErrNoArchive
 
 // AgentBinary finds the dk binary to install on a remote system. A
-// development build uses dk-<os>-<arch> in cacheDir, built by task agent.
-// A release uses its static Linux agent, dk-agent-linux-<arch>, which runs
-// on any C library, or else the full dk of that system: this executable
-// or the release archive. With download set a missing archive is
-// downloaded into cacheDir.
+// development build uses this executable for the same system, else
+// dk-<os>-<arch> in cacheDir, built by task agent. A release uses its
+// static agent, dk-agent-<os>-<arch>, which needs no grammars and on
+// Linux runs on any C library, or else the full dk of that system: this
+// executable or the release archive. With download set a missing archive
+// is downloaded into cacheDir.
 func AgentBinary(cacheDir, version, goos, goarch string, download bool) (string, error) {
 	self := goos == runtime.GOOS && goarch == runtime.GOARCH
-	if self && (goos != "linux" || version == "dev") {
-		return os.Executable()
-	}
-
 	if version == "dev" {
+		if self {
+			return os.Executable()
+		}
+
 		cached := filepath.Join(cacheDir, "dk-"+goos+"-"+goarch)
 		if _, err := os.Stat(cached); err != nil {
 			return "", fmt.Errorf("no dk binary for %s/%s, a development build looks for %s, task agent builds it", goos, goarch, cached)
@@ -39,11 +40,7 @@ func AgentBinary(cacheDir, version, goos, goarch string, download bool) (string,
 
 	dir := filepath.Join(cacheDir, version)
 	full := filepath.Join(dir, "dk-"+goos+"-"+goarch)
-	agent := full
-	if goos == "linux" {
-		agent = filepath.Join(dir, "dk-agent-"+goos+"-"+goarch)
-	}
-
+	agent := filepath.Join(dir, "dk-agent-"+goos+"-"+goarch)
 	if _, err := os.Stat(agent); err == nil {
 		return agent, nil
 	}
@@ -52,16 +49,13 @@ func AgentBinary(cacheDir, version, goos, goarch string, download bool) (string,
 		return "", fmt.Errorf("no dk binary for %s/%s yet", goos, goarch)
 	}
 
-	missing := false
-	if agent != full {
-		err := downloadRelease(version, filepath.Base(agent), agent)
-		missing = errors.Is(err, errNoArchive)
-		switch {
-		case err == nil:
-			return agent, nil
-		case !errors.Is(err, errNoArchive) && !self:
-			return "", fmt.Errorf("download the dk agent %s for %s/%s: %w", version, goos, goarch, err)
-		}
+	err := downloadRelease(version, filepath.Base(agent), agent)
+	missing := errors.Is(err, errNoArchive)
+	switch {
+	case err == nil:
+		return agent, nil
+	case !missing && !self:
+		return "", fmt.Errorf("download the dk agent %s for %s/%s: %w", version, goos, goarch, err)
 	}
 
 	// A release before the static agents uses the full dk, linked as the

@@ -41,17 +41,17 @@ The agent is `dk` itself (`dk agent`), started through `ssh`, `docker exec`
 or `kubectl exec`. Your ssh config, keys and agent apply. On the first
 connection it is installed into `~/.cache/duck/agent/` on the other side:
 
-- on Linux, the static agent of your version, `dk-agent-linux-<arch>`, is
-  downloaded from GitHub on your machine, checked against `SHA256SUMS` and
-  copied. It is built without cgo, so it runs on any C library, Alpine and
-  other musl images included. The other side needs neither `curl` nor
-  `wget`, only `sh`. When it has `gzip`, the agent is sent compressed,
-- macOS gets the running `dk` when the system matches, otherwise the release
-  archive of your version,
-- a release from before the static agents falls back to the full `dk`, which
-  needs glibc, on Alpine `apk add gcompat`,
-- a development build uses `~/.cache/duck/agent/dk-linux-<arch>`, built by
-  `task agent`.
+- a release installs the static agent of your version,
+  `dk-agent-<os>-<arch>`, downloaded from GitHub on your machine, checked
+  against `SHA256SUMS` and copied. It is built without cgo and grammars, so
+  it is small and on Linux runs on any C library, Alpine and other musl
+  images included. The other side needs neither `curl` nor `wget`, only
+  `sh`. When it has `gzip`, the agent is sent compressed,
+- a release from before the static agents falls back to the full `dk`, the
+  running one when the system matches. On Linux it needs glibc, on Alpine
+  `apk add gcompat`,
+- a development build uses the running `dk` when the system matches, else
+  `~/.cache/duck/agent/dk-<os>-<arch>`, built by `task agent`.
 
 The other side may run Linux on amd64 or arm64, or macOS on Apple silicon.
 

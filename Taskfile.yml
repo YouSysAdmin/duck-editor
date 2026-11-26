@@ -43,17 +43,17 @@ tasks:
       - go build -o {{.BIN}} ./cmd/dk
       - ln -sfn ../{{.RUNTIME}} bin/runtime
   agent:
-    desc: Build the Linux agents a development build installs on remote hosts, dk host:path
+    desc: Build the Linux and macOS agents a development build installs on remote hosts, dk host:path
     vars:
       AGENT_DIR: '{{.XDG_CACHE_HOME | default (printf "%s/.cache" .HOME)}}/duck/agent'
     env:
       CGO_ENABLED: "0"
     sources: ["**/*.go", go.mod, go.sum]
-    generates: ["{{.AGENT_DIR}}/dk-linux-amd64", "{{.AGENT_DIR}}/dk-linux-arm64"]
+    generates: ["{{.AGENT_DIR}}/dk-linux-amd64", "{{.AGENT_DIR}}/dk-linux-arm64", "{{.AGENT_DIR}}/dk-darwin-arm64"]
     cmds:
       - mkdir -p {{.AGENT_DIR}}
-      - for: [amd64, arm64]
-        cmd: GOOS=linux GOARCH={{.ITEM}} go build -trimpath -ldflags "-s -w" -o {{.AGENT_DIR}}/dk-linux-{{.ITEM}} ./cmd/dk
+      - for: [linux/amd64, linux/arm64, darwin/arm64]
+        cmd: GOOS={{dir .ITEM}} GOARCH={{base .ITEM}} go build -trimpath -ldflags "-s -w" -o {{.AGENT_DIR}}/dk-{{dir .ITEM}}-{{base .ITEM}} ./cmd/dk
   run:
     desc: "Run the editor, pass files after --: task run -- main.go"
     deps: [build]
@@ -175,10 +175,9 @@ tasks:
         vars: {ARCH: amd64}
       - task: release:linux
         vars: {ARCH: arm64}
-      - task: release:agent
-        vars: {ARCH: amd64}
-      - task: release:agent
-        vars: {ARCH: arm64}
+      - for: [linux/amd64, linux/arm64, darwin/arm64]
+        task: release:agent
+        vars: {OS: '{{dir .ITEM}}', ARCH: '{{base .ITEM}}'}
       - cd dist && shasum -a 256 dk-*.tar.gz > SHA256SUMS
       # Leave the host grammars embedded for local builds.
       - task: pack
@@ -222,11 +221,11 @@ tasks:
   release:agent:
     internal: true
     vars:
-      NAME: dk-agent-linux-{{.ARCH}}
+      NAME: dk-agent-{{.OS}}-{{.ARCH}}
     env:
       CGO_ENABLED: "0"
     cmds:
-      - GOOS=linux GOARCH={{.ARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
+      - GOOS={{.OS}} GOARCH={{.ARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o dist/{{.NAME}}/dk ./cmd/dk
       - COPYFILE_DISABLE=1 tar --no-xattrs -C dist/{{.NAME}} -czf dist/{{.NAME}}.tar.gz dk
   release:smoke:
     desc: "Load every embedded grammar of the Linux builds in old glibc and Alpine containers, ARCHES=amd64 limits it"

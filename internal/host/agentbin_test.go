@@ -95,3 +95,13 @@ func TestAgentBinaryOldRelease(t *testing.T) {
 		t.Fatalf("second lookup %s %v", again, err)
 	}
 }
+
+// TestAgentBinaryMacOS installs the static macOS agent of a release
+// instead of the full dk.
+func TestAgentBinaryMacOS(t *testing.T) {
+	serveRelease(t, "dk-agent-darwin-riscv", "dk-darwin-riscv")
+	path, err := AgentBinary(t.TempDir(), "1.0.0", "darwin", "riscv", true)
+	if err != nil || readAgent(t, path) != "dk-agent-darwin-riscv" {
+		t.Fatalf("agent %s %v", path, err)
+	}
+}

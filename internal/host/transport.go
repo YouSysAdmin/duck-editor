@@ -211,7 +211,6 @@ var remoteSystems = []struct {
 	{"Linux aarch64", "linux", "arm64"},
 	{"Linux arm64", "linux", "arm64"},
 	{"Darwin arm64", "darwin", "arm64"},
-	{"Darwin x86_64", "darwin", "amd64"},
 }
 
 // goSystem translates uname -s -m output.
