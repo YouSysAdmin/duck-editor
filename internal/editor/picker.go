@@ -513,6 +513,12 @@ func (p *Picker) Marked(item PickerItem) bool {
 	return slices.ContainsFunc(p.marks, func(m PickerItem) bool { return markKey(m) == key })
 }
 
+// StatusColumn reports whether rows keep a column for the git status of
+// their entries, as in the explorer.
+func (p *Picker) StatusColumn() bool {
+	return p.explorer != nil
+}
+
 // MarkCount returns the number of marked items.
 func (p *Picker) MarkCount() int {
 	return len(p.marks)

@@ -73,8 +73,8 @@ Keys are rebound under `keys.picker` in `config.yaml`, see
 `picker_toggle_all` in the file picker and the explorer shows or
 hides the files the `file-picker` options leave out. `picker_remove`
 closes the chosen buffer in the buffer picker and keeps the picker
-open. `A-space` marks entries of the file picker and the explorer, the
-title counts them and `ret` opens all marked files at once.
+open. `A-space` marks entries of the file picker and the explorer with
+a `*`, the title counts them and `ret` opens all marked files at once.
 
 ## File explorer
 
@@ -82,9 +82,11 @@ The explorer lists one directory, directories first, `../` on top.
 `space .` opens it on the directory of the buffer with its file
 selected. Listings load in the background, so a slow remote host never
 holds up the editor, and the explorer selects the entry chosen last
-time in a directory it comes back to. Entries git sees changed carry
-their status after the name: `+` added or untracked, `~` modified, `>`
-renamed, `!` conflict, a directory the status of what is below it.
+time in a directory it comes back to. In a git repository a column
+before the names shows the status of changed entries: `+` added or
+untracked, `~` modified, `-` deleted, `>` renamed, `!` conflict, a
+directory the status of what is below it. Git runs only for a directory
+inside a repository on a host that has it.
 
 Moving around:
 

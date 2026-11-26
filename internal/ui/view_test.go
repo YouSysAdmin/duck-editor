@@ -350,14 +350,24 @@ func TestPickerRowTruncatesPathStart(t *testing.T) {
 	}
 }
 
-// TestPickerRowMarkAndStatus draws a mark before the text and the git
-// status after it, before the note.
+// TestPickerRowMarkAndStatus draws the mark and the git status in
+// columns before the text, a row without status keeps the column.
 func TestPickerRowMarkAndStatus(t *testing.T) {
 	t.Parallel()
 
 	th := DefaultTheme()
-	row := renderPickerRow(PickerRow{Text: "main.go", Marked: true, Status: '~', Note: "-> x", Selected: true}, 20, &th, theme.Style{})
-	if got := ansi.Strip(row); got != ">+main.go ~ -> x"+strings.Repeat(" ", 4) {
+	row := renderPickerRow(PickerRow{Text: "main.go", Marked: true, Status: '~', StatusColumn: true, Note: "-> x", Selected: true}, 20, &th, theme.Style{})
+	if got := ansi.Strip(row); got != ">*~ main.go -> x"+strings.Repeat(" ", 4) {
 		t.Fatalf("row %q", got)
+	}
+
+	plain := renderPickerRow(PickerRow{Text: "a.go", StatusColumn: true}, 12, &th, theme.Style{})
+	if got := ansi.Strip(plain); got != "    a.go    " {
+		t.Fatalf("row without status %q", got)
+	}
+
+	other := renderPickerRow(PickerRow{Text: "a.go"}, 8, &th, theme.Style{})
+	if got := ansi.Strip(other); got != "  a.go  " {
+		t.Fatalf("list without the column %q", got)
 	}
 }

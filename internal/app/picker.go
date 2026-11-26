@@ -119,7 +119,7 @@ func (m Model) renderPicker(p *editor.Picker) (*lipgloss.Layer, *tea.Cursor) {
 	rows := make([]ui.PickerRow, 0, layout.ListHeight)
 	for i := p.Offset(); i < len(matches) && len(rows) < layout.ListHeight; i++ {
 		item := p.Items()[matches[i].Index]
-		rows = append(rows, ui.PickerRow{Text: item.Label, Positions: matches[i].Positions, Selected: i == p.SelectedIndex(), Dir: item.Dir, Note: item.Note, Marked: p.Marked(item), Status: item.Status, TruncateStart: p.Paths})
+		rows = append(rows, ui.PickerRow{Text: item.Label, Positions: matches[i].Positions, Selected: i == p.SelectedIndex(), Dir: item.Dir, Note: item.Note, Marked: p.Marked(item), Status: item.Status, StatusColumn: p.StatusColumn(), TruncateStart: p.Paths})
 	}
 
 	view := ui.PickerView{
