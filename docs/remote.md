@@ -45,7 +45,7 @@ connection it is installed into `~/.cache/duck/agent/` on the other side:
   downloaded from GitHub on your machine, checked against `SHA256SUMS` and
   copied. It is built without cgo, so it runs on any C library, Alpine and
   other musl images included. The other side needs neither `curl` nor
-  `wget`, only `sh`,
+  `wget`, only `sh`. When it has `gzip`, the agent is sent compressed,
 - macOS gets the running `dk` when the system matches, otherwise the release
   archive of your version,
 - a release from before the static agents falls back to the full `dk`, which

@@ -3,6 +3,7 @@ package host
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -227,6 +228,10 @@ func goSystem(uname string) (string, string, bool) {
 // needAgent is the answer of a remote side without a matching agent.
 type needAgent struct {
 	uname string
+
+	// gzip is set when the remote side can unpack a gzip stream, the
+	// agent is then sent compressed.
+	gzip bool
 }
 
 func (d *commandDialer) dial(ctx context.Context, interactive bool) (Conn, error) {
@@ -240,7 +245,7 @@ func (d *commandDialer) dial(ctx context.Context, interactive bool) (Conn, error
 			return conn, nil
 		}
 
-		if err := d.install(ctx, interactive, need.uname); err != nil {
+		if err := d.install(ctx, interactive, *need); err != nil {
 			return Conn{}, err
 		}
 	}
@@ -272,7 +277,8 @@ func (d *commandDialer) startScript() string {
 	}
 
 	b.WriteString(`if [ -n "$id" ] && [ -x "$p" ]; then exec "$p" agent` + args + "; fi\n")
-	b.WriteString(`echo "DUCK-NEED $(uname -s) $(uname -m)"` + "\n")
+	b.WriteString(`z=; command -v gzip >/dev/null 2>&1 && z=" gzip"` + "\n")
+	b.WriteString(`echo "DUCK-NEED $(uname -s) $(uname -m)$z"` + "\n")
 
 	return b.String()
 }
@@ -405,7 +411,9 @@ func (d *commandDialer) start(ctx context.Context, interactive bool) (Conn, *nee
 	case strings.HasPrefix(a.line, "DUCK-NEED "):
 		_ = stop()
 
-		return Conn{}, &needAgent{uname: strings.TrimPrefix(a.line, "DUCK-NEED ")}, nil
+		uname, gz := strings.CutSuffix(strings.TrimPrefix(a.line, "DUCK-NEED "), " gzip")
+
+		return Conn{}, &needAgent{uname: uname, gzip: gz}, nil
 	}
 
 	return Conn{R: br, W: stdin, Close: stop}, nil, nil
@@ -431,10 +439,10 @@ func (d *commandDialer) failure(stderr *tailBuffer) error {
 }
 
 // install copies the agent for the remote system to the remote side.
-func (d *commandDialer) install(ctx context.Context, interactive bool, uname string) error {
-	goos, goarch, ok := goSystem(uname)
+func (d *commandDialer) install(ctx context.Context, interactive bool, need needAgent) error {
+	goos, goarch, ok := goSystem(need.uname)
 	if !ok {
-		return fmt.Errorf("%s runs %s, Duck has no build for it", d.name, uname)
+		return fmt.Errorf("%s runs %s, Duck has no build for it", d.name, need.uname)
 	}
 
 	if d.agent == nil {
@@ -472,11 +480,31 @@ func (d *commandDialer) install(ctx context.Context, interactive bool, uname str
 
 	go upload.watch(done, uploadStall, func() { cancel(errUploadStalled) })
 
-	script := `d="${HOME:-/tmp}/.cache/duck/agent/` + id + `"; mkdir -p "$d" && cat > "$d/dk.tmp" && chmod 755 "$d/dk.tmp" && mv "$d/dk.tmp" "$d/dk"`
+	var stdin io.Reader = upload
+	receive := "cat"
+	if need.gzip {
+		pr, pw := io.Pipe()
+		defer func() { _ = pr.Close() }()
+
+		go func() {
+			zw := gzip.NewWriter(pw)
+			_, err := io.Copy(zw, upload)
+			if err == nil {
+				err = zw.Close()
+			}
+
+			_ = pw.CloseWithError(err)
+		}()
+
+		stdin = pr
+		receive = "gzip -dc"
+	}
+
+	script := `d="${HOME:-/tmp}/.cache/duck/agent/` + id + `"; mkdir -p "$d" && ` + receive + ` > "$d/dk.tmp" && chmod 755 "$d/dk.tmp" && mv "$d/dk.tmp" "$d/dk"`
 	argv := d.argv(interactive, script)
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.WaitDelay = time.Second
-	cmd.Stdin = upload
+	cmd.Stdin = stdin
 	stderr := &tailBuffer{max: 4 << 10}
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {

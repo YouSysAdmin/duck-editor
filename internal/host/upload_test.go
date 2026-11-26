@@ -12,6 +12,14 @@ import (
 )
 
 func TestInstallReportsProgress(t *testing.T) {
+	for _, gz := range []bool{false, true} {
+		t.Run(map[bool]string{false: "plain", true: "gzip"}[gz], func(t *testing.T) {
+			testInstall(t, gz)
+		})
+	}
+}
+
+func testInstall(t *testing.T, gz bool) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	bin := filepath.Join(t.TempDir(), "dk")
@@ -28,7 +36,7 @@ func TestInstallReportsProgress(t *testing.T) {
 		progress: func(sent, total int64) { last.Store(sent); size.Store(total) },
 		ids:      map[string]fileID{},
 	}
-	if err := d.install(context.Background(), false, "Linux x86_64"); err != nil {
+	if err := d.install(context.Background(), false, needAgent{uname: "Linux x86_64", gzip: gz}); err != nil {
 		t.Fatal(err)
 	}
 
