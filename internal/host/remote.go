@@ -668,8 +668,7 @@ func (r *Remote) Run(ctx context.Context, cmd Command) ([]byte, []byte, error) {
 
 	resp, err := r.call(ctx, request{Op: opRun, Cmd: cmd})
 	if err != nil {
-		var exitErr *ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*ExitError](err); ok {
 			return resp.Data, exitErr.Stderr, err
 		}
 

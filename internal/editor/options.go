@@ -15,14 +15,14 @@ import (
 // yaml names such as lsp.display-inlay-hints.
 func (e *Editor) optionField(key string) (reflect.Value, error) {
 	v := reflect.ValueOf(&e.Config.Editor).Elem()
-	for _, part := range strings.Split(strings.ToLower(key), ".") {
+	for part := range strings.SplitSeq(strings.ToLower(key), ".") {
 		if v.Kind() != reflect.Struct {
 			return reflect.Value{}, fmt.Errorf("unknown key `%s`", key)
 		}
 
 		found := false
 		for i := range v.NumField() {
-			tag := strings.Split(v.Type().Field(i).Tag.Get("yaml"), ",")[0]
+			tag, _, _ := strings.Cut(v.Type().Field(i).Tag.Get("yaml"), ",")
 			if tag == part {
 				v = v.Field(i)
 				found = true
@@ -44,9 +44,8 @@ func optionKeys() []string {
 	var out []string
 	var walk func(t reflect.Type, prefix string)
 	walk = func(t reflect.Type, prefix string) {
-		for i := range t.NumField() {
-			f := t.Field(i)
-			tag := strings.Split(f.Tag.Get("yaml"), ",")[0]
+		for f := range t.Fields() {
+			tag, _, _ := strings.Cut(f.Tag.Get("yaml"), ",")
 			if tag == "" {
 				continue
 			}
@@ -60,7 +59,7 @@ func optionKeys() []string {
 			out = append(out, prefix+tag)
 		}
 	}
-	walk(reflect.TypeOf(config.Editor{}), "")
+	walk(reflect.TypeFor[config.Editor](), "")
 	slices.Sort(out)
 
 	return out

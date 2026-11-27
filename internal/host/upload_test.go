@@ -1,7 +1,6 @@
 package host
 
 import (
-	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -36,7 +35,7 @@ func testInstall(t *testing.T, gz bool) {
 		progress: func(sent, total int64) { last.Store(sent); size.Store(total) },
 		ids:      map[string]fileID{},
 	}
-	if err := d.install(context.Background(), false, needAgent{uname: "Linux x86_64", gzip: gz}); err != nil {
+	if err := d.install(t.Context(), false, needAgent{uname: "Linux x86_64", gzip: gz}); err != nil {
 		t.Fatal(err)
 	}
 

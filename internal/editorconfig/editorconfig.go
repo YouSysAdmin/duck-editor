@@ -5,9 +5,11 @@ package editorconfig
 import (
 	"bufio"
 	"bytes"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -98,8 +100,7 @@ func Resolve(fsys Files, path string) Properties {
 
 	// Closer files win, so apply from the farthest one.
 	pairs := map[string]string{}
-	for i := len(files) - 1; i >= 0; i-- {
-		f := files[i]
+	for _, f := range slices.Backward(files) {
 		rel, err := filepath.Rel(f.dir, path)
 		if err != nil {
 			continue
@@ -108,9 +109,7 @@ func Resolve(fsys Files, path string) Properties {
 		rel = filepath.ToSlash(rel)
 		for _, sec := range f.sections {
 			if sec.pattern.MatchString(rel) {
-				for k, v := range sec.pairs {
-					pairs[k] = v
-				}
+				maps.Copy(pairs, sec.pairs)
 			}
 		}
 	}

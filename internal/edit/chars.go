@@ -1,6 +1,9 @@
 package edit
 
-import "unicode"
+import (
+	"slices"
+	"unicode"
+)
 
 // CharCategory classifies a char for word motions.
 type CharCategory int
@@ -78,8 +81,8 @@ func FirstNonWhitespace(s string) (int, bool) {
 // char in s.
 func LastNonWhitespace(s string) (int, bool) {
 	runes := []rune(s)
-	for i := len(runes) - 1; i >= 0; i-- {
-		if !unicode.IsSpace(runes[i]) {
+	for i, r := range slices.Backward(runes) {
+		if !unicode.IsSpace(r) {
 			return i, true
 		}
 	}

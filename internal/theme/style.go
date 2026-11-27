@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
+	"maps"
 	"strconv"
 	"strings"
 )
@@ -131,9 +132,7 @@ type palette map[string]color.Color
 
 func newPalette(values map[string]any) (palette, []string) {
 	p := make(palette, len(ansiNames)+len(values))
-	for k, v := range ansiNames {
-		p[k] = v
-	}
+	maps.Copy(p, ansiNames)
 
 	var warnings []string
 	for name, v := range values {

@@ -39,8 +39,7 @@ func Blame(ctx context.Context, h host.Host, path, content string, line int) (Bl
 		Stdin: []byte(content),
 	})
 	if err != nil {
-		var exitErr *host.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*host.ExitError](err); ok {
 			return BlameLine{}, fmt.Errorf("git blame: %s", strings.TrimSpace(string(exitErr.Stderr)))
 		}
 

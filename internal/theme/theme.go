@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -209,9 +210,7 @@ func (l *Loader) read(name string, visited map[string]bool) ([]byte, error) {
 // merge key by key, every other key is replaced whole.
 func mergeThemes(parent, child map[string]any) map[string]any {
 	out := make(map[string]any, len(parent)+len(child))
-	for k, v := range parent {
-		out[k] = v
-	}
+	maps.Copy(out, parent)
 
 	for k, v := range child {
 		if k == "palette" {
@@ -223,15 +222,11 @@ func mergeThemes(parent, child map[string]any) map[string]any {
 
 	pal := map[string]any{}
 	if pp, ok := parent["palette"].(map[string]any); ok {
-		for k, v := range pp {
-			pal[k] = v
-		}
+		maps.Copy(pal, pp)
 	}
 
 	if cp, ok := child["palette"].(map[string]any); ok {
-		for k, v := range cp {
-			pal[k] = v
-		}
+		maps.Copy(pal, cp)
 	}
 
 	out["palette"] = pal

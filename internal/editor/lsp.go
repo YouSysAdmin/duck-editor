@@ -373,8 +373,7 @@ func (e *Editor) registerClient(key string, client *lsp.Client) {
 		if err != nil {
 			e.logf("language server %s stopped: %v", client.Name, err)
 			reason := err.Error()
-			var exitErr *host.ExitError
-			if errors.As(err, &exitErr) && len(exitErr.Stderr) > 0 {
+			if exitErr, ok := errors.AsType[*host.ExitError](err); ok && len(exitErr.Stderr) > 0 {
 				out := strings.TrimSpace(string(exitErr.Stderr))
 				e.logf("language server %s error output:\n%s", client.Name, out)
 				reason += ", " + stderrReason(out)

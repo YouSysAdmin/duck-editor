@@ -47,12 +47,11 @@ func Base(h host.Host, path string) ([]byte, error) {
 		return out, nil
 	}
 
-	var exitErr *host.ExitError
-	if !errors.As(err, &exitErr) {
-		return nil, fmt.Errorf("git show: %w", err)
+	if exitErr, ok := errors.AsType[*host.ExitError](err); ok {
+		return nil, fmt.Errorf("%w: %s", ErrNotTracked, strings.TrimSpace(string(exitErr.Stderr)))
 	}
 
-	return nil, fmt.Errorf("%w: %s", ErrNotTracked, strings.TrimSpace(string(exitErr.Stderr)))
+	return nil, fmt.Errorf("git show: %w", err)
 }
 
 // FileStatus is one entry of the working tree status.

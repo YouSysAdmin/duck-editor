@@ -136,9 +136,7 @@ func (Local) Run(ctx context.Context, c Command) ([]byte, []byte, error) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
-
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() >= 0 {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() >= 0 {
 		err = &ExitError{Code: exitErr.ExitCode(), Stderr: stderr.Bytes()}
 	}
 
@@ -194,8 +192,7 @@ func (p *localProcess) Kill() error           { return p.cmd.Process.Kill() }
 // Wait returns an *ExitError with the end of stderr for a non zero exit.
 func (p *localProcess) Wait() error {
 	err := p.cmd.Wait()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() >= 0 {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() >= 0 {
 		return &ExitError{Code: exitErr.ExitCode(), Stderr: []byte(p.stderr.String())}
 	}
 

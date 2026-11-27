@@ -115,7 +115,7 @@ func TestRemoteFiles(t *testing.T) {
 	}
 
 	var files []string
-	if err := r.Walk(context.Background(), dir, walk.DefaultOptions(), func(rel string) bool {
+	if err := r.Walk(t.Context(), dir, walk.DefaultOptions(), func(rel string) bool {
 		files = append(files, rel)
 
 		return true
@@ -124,7 +124,7 @@ func TestRemoteFiles(t *testing.T) {
 	}
 
 	var matches []search.Match
-	if err := r.Search(context.Background(), dir, walk.DefaultOptions(), search.Query{Pattern: "wor"}, func(m search.Match) bool {
+	if err := r.Search(t.Context(), dir, walk.DefaultOptions(), search.Query{Pattern: "wor"}, func(m search.Match) bool {
 		matches = append(matches, m)
 
 		return true
@@ -142,14 +142,13 @@ func TestRemoteCommands(t *testing.T) {
 	t.Parallel()
 
 	r, _ := connectPipe(t)
-	out, _, err := r.Run(context.Background(), Command{Name: "sh", Args: []string{"-c", "tr a-z A-Z"}, Stdin: []byte("abc")})
+	out, _, err := r.Run(t.Context(), Command{Name: "sh", Args: []string{"-c", "tr a-z A-Z"}, Stdin: []byte("abc")})
 	if err != nil || string(out) != "ABC" {
 		t.Fatalf("run %q %v", out, err)
 	}
 
-	_, stderr, err := r.Run(context.Background(), Command{Name: "sh", Args: []string{"-c", "echo oops >&2; exit 3"}})
-	var exitErr *ExitError
-	if !errors.As(err, &exitErr) || exitErr.Code != 3 || strings.TrimSpace(string(stderr)) != "oops" {
+	_, stderr, err := r.Run(t.Context(), Command{Name: "sh", Args: []string{"-c", "echo oops >&2; exit 3"}})
+	if exitErr, ok := errors.AsType[*ExitError](err); !ok || exitErr.Code != 3 || strings.TrimSpace(string(stderr)) != "oops" {
 		t.Fatalf("exit %v %q", err, stderr)
 	}
 
@@ -226,8 +225,8 @@ func TestProcessExitCarriesStderr(t *testing.T) {
 		}
 
 		_, _ = io.Copy(io.Discard, proc.Stdout())
-		var exitErr *ExitError
-		if err := proc.Wait(); !errors.As(err, &exitErr) || exitErr.Code != 2 || strings.TrimSpace(string(exitErr.Stderr)) != "boom" {
+		err = proc.Wait()
+		if exitErr, ok := errors.AsType[*ExitError](err); !ok || exitErr.Code != 2 || strings.TrimSpace(string(exitErr.Stderr)) != "boom" {
 			t.Fatalf("%s: wait = %v", name, err)
 		}
 	}
@@ -291,7 +290,7 @@ func TestRemoteStdinNeverStallsAgent(t *testing.T) {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	if _, _, err := r.Run(ctx, Command{Name: "true"}); err != nil {

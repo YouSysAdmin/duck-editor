@@ -927,11 +927,9 @@ func (s *Syntax) Highlights(startByte, endByte int) []Highlight {
 				}
 
 				out = append(out, entry{
-					Highlight: Highlight{
-						Start: int(capture.Node.StartByte()),
-						End:   int(capture.Node.EndByte()),
-						Scope: ly.data.highlightNames[capture.Index],
-					},
+					Start:   int(capture.Node.StartByte()),
+					End:     int(capture.Node.EndByte()),
+					Scope:   ly.data.highlightNames[capture.Index],
 					depth:   ly.depth,
 					pattern: match.PatternIndex,
 				})

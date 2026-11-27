@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -261,7 +262,7 @@ func (r statusRenderer) diagnostics(counts [4]int, enabled []string) string {
 	var parts []string
 	for i := 3; i >= 0; i-- {
 		name := [4]string{"hint", "info", "warning", "error"}[i]
-		if counts[i] == 0 || !contains(enabled, name) {
+		if counts[i] == 0 || !slices.Contains(enabled, name) {
 			continue
 		}
 
@@ -269,16 +270,6 @@ func (r statusRenderer) diagnostics(counts [4]int, enabled []string) string {
 	}
 
 	return strings.Join(parts, r.plain(" "))
-}
-
-func contains(list []string, s string) bool {
-	for _, item := range list {
-		if item == s {
-			return true
-		}
-	}
-
-	return false
 }
 
 func orScratch(s string) string {

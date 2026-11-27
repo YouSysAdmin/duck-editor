@@ -144,8 +144,8 @@ func (h *History) jumpTo(to int) []Transaction {
 		txns = append(txns, h.revisions[n].inversion)
 	}
 
-	for i := len(down) - 1; i >= 0; i-- {
-		txns = append(txns, h.revisions[down[i]].transaction)
+	for _, d := range slices.Backward(down) {
+		txns = append(txns, h.revisions[d].transaction)
 	}
 
 	return txns

@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -168,12 +169,10 @@ func recordMacro(cx *Context) {
 func replayMacro(cx *Context) {
 	e := cx.Editor
 	reg := cx.Register('@')
-	for _, r := range e.macroReplaying {
-		if r == reg {
-			e.SetError("Cannot replay from register [%c] because already replaying from same register", reg)
+	if slices.Contains(e.macroReplaying, reg) {
+		e.SetError("Cannot replay from register [%c] because already replaying from same register", reg)
 
-			return
-		}
+		return
 	}
 
 	values, ok := e.readRegister(reg)

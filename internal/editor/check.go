@@ -84,8 +84,7 @@ func (e *Editor) runCheck(doc *Document, c *savedCheck) {
 
 		stdout, stderr, err := h.Run(ctx, cmd)
 		out := strings.TrimSpace(string(stdout) + string(stderr))
-		var exitErr *host.ExitError
-		failed := errors.As(err, &exitErr)
+		_, failed := errors.AsType[*host.ExitError](err)
 		var restoreErr error
 		if failed {
 			restoreErr = restoreFile(h, c, asRoot)

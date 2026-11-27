@@ -203,8 +203,8 @@ func (e *Editor) applyKube(doc *Document, then func()) {
 		defer cancel()
 
 		diff, stderr, err := kubectl(ctx, h, text, append([]string{"diff", "-f", "-"}, k.opts...)...)
-		var exitErr *host.ExitError
-		changed := errors.As(err, &exitErr) && exitErr.Code == 1
+		exitErr, ok := errors.AsType[*host.ExitError](err)
+		changed := ok && exitErr.Code == 1
 		emit(func(e *Editor) {
 			doc, ok := e.Docs[docID]
 			if !ok {

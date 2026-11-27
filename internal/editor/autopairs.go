@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"unicode/utf8"
+
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 )
 
@@ -21,7 +23,9 @@ func (e *Editor) autoPairs(doc *Document) *edit.AutoPairs {
 			pairs := make([]edit.Pair, 0, len(v))
 			for open, closeV := range v {
 				if closeStr, ok := closeV.(string); ok && open != "" && closeStr != "" {
-					pairs = append(pairs, edit.Pair{Open: []rune(open)[0], Close: []rune(closeStr)[0]})
+					o, _ := utf8.DecodeRuneInString(open)
+					c, _ := utf8.DecodeRuneInString(closeStr)
+					pairs = append(pairs, edit.Pair{Open: o, Close: c})
 				}
 			}
 

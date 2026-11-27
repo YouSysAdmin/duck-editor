@@ -102,8 +102,7 @@ func (c *Client) unregister(u Unregistration) {
 // the options a matching registration carries, else the static value,
 // and whether the server offers it at all. On the editor thread.
 func (c *Client) Provider(method, uri, languageID string) (jsontext.Value, bool) {
-	for i := len(c.registrations) - 1; i >= 0; i-- {
-		r := c.registrations[i]
+	for _, r := range slices.Backward(c.registrations) {
 		if r.method == method && matchesDocument(r.selector, uri, languageID) {
 			return r.options, true
 		}

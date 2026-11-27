@@ -688,6 +688,7 @@ func characterInfo(cx *Context, _ []string) error {
 
 	end := text.NextGraphemeBoundary(start)
 	grapheme := text.Slice(start, end)
+	first, _ := utf8.DecodeRuneInString(grapheme)
 	var printable, codes, bytesHex []string
 	for _, ch := range grapheme {
 		switch {
@@ -709,7 +710,7 @@ func characterInfo(cx *Context, _ []string) error {
 		}
 	}
 
-	e.SetStatus("\"%s\" (%s) Dec %d Hex %s", strings.Join(printable, ""), strings.Join(codes, " "), []rune(grapheme)[0], strings.Join(bytesHex, " "))
+	e.SetStatus("\"%s\" (%s) Dec %d Hex %s", strings.Join(printable, ""), strings.Join(codes, " "), first, strings.Join(bytesHex, " "))
 
 	return nil
 }

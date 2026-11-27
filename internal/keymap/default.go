@@ -28,7 +28,7 @@ func node(name string, bindings ...binding) *Node {
 			panic("keymap: unsupported binding target")
 		}
 
-		for _, key := range strings.Fields(bd.keys) {
+		for key := range strings.FieldsSeq(bd.keys) {
 			n.Set(MustParse(key), trie)
 		}
 	}

@@ -37,8 +37,7 @@ func TestDefaultFileNamesEveryOption(t *testing.T) {
 	var walk func(t reflect.Type, path string)
 	var missing []string
 	walk = func(typ reflect.Type, path string) {
-		for i := range typ.NumField() {
-			f := typ.Field(i)
+		for f := range typ.Fields() {
 			name := f.Tag.Get("yaml")
 			if name == "" || name == "-" {
 				continue
@@ -53,7 +52,7 @@ func TestDefaultFileNamesEveryOption(t *testing.T) {
 			}
 		}
 	}
-	walk(reflect.TypeOf(Editor{}), "editor.")
+	walk(reflect.TypeFor[Editor](), "editor.")
 
 	for _, m := range missing {
 		t.Errorf("default.yaml does not mention %s", m)

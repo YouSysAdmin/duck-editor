@@ -89,7 +89,7 @@ func (s *Syntax) IndentFor(text buffer.Rope, pos int, newLine bool) (Indent, boo
 		targetLine = line + 1
 	}
 
-	captures, aligns := collectIndentCaptures(ly, src, text)
+	captures, aligns := collectIndentCaptures(ly, src)
 	root := ly.tree.RootNode()
 	node := root.DescendantForByteRange(uint(bytePos), uint(bytePos))
 	if node == nil {
@@ -258,7 +258,7 @@ func firstTokenOfLine(text buffer.Rope, root *tree_sitter.Node, src []byte, targ
 // collectIndentCaptures runs the indent query and maps node ids to the
 // captures that apply after evaluating the custom predicates, plus the
 // alignment anchors of @align captures.
-func collectIndentCaptures(ly *layer, src []byte, text buffer.Rope) (map[uintptr][]indentCapture, map[uintptr]alignInfo) {
+func collectIndentCaptures(ly *layer, src []byte) (map[uintptr][]indentCapture, map[uintptr]alignInfo) {
 	q := ly.data.indents
 	names := q.CaptureNames()
 	out := map[uintptr][]indentCapture{}

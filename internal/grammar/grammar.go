@@ -98,10 +98,8 @@ func each(ctx context.Context, grammars []syntax.Grammar, opts Options, fn func(
 			break
 		}
 
-		wg.Add(1)
 		sem <- struct{}{}
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() { <-sem }()
 			st := fn(g)
 			mu.Lock()
@@ -111,7 +109,7 @@ func each(ctx context.Context, grammars []syntax.Grammar, opts Options, fn func(
 
 			opts.report(st)
 			mu.Unlock()
-		}()
+		})
 	}
 
 	wg.Wait()

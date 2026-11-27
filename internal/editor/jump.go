@@ -86,7 +86,7 @@ func sortByDistance(positions []int, cursor int) {
 
 // handleJumpKey narrows the labels with the first key and jumps with the
 // second. Any other key cancels.
-func (e *Editor) handleJumpKey(cx *Context, key keymap.Key) {
+func (e *Editor) handleJumpKey(key keymap.Key) {
 	ch, ok := key.Char()
 	if !ok || key.Mods != 0 {
 		e.JumpLabels = nil

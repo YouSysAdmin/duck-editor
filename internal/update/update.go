@@ -76,7 +76,7 @@ func Latest(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, pageTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LatestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, LatestURL, http.NoBody)
 	if err != nil {
 		return "", err
 	}
@@ -303,7 +303,7 @@ func fetch(ctx context.Context, url string, timeout time.Duration) ([]byte, erro
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

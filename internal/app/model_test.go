@@ -377,7 +377,7 @@ func TestJobPanicBecomesError(t *testing.T) {
 
 	m := newSized(t, "x", 40, 10)
 	ch := make(chan editor.JobResult, 1)
-	runJob(editor.QueuedJob{Ctx: context.Background(), Run: func(context.Context, func(editor.JobResult)) {
+	runJob(editor.QueuedJob{Ctx: t.Context(), Run: func(context.Context, func(editor.JobResult)) {
 		panic("boom")
 	}}, ch)
 

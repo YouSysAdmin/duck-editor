@@ -153,8 +153,7 @@ func runShell(ctx context.Context, shell shellRunner, cmd string, input *string)
 	if err != nil {
 		msg := strings.TrimSpace(string(stderr))
 		if msg == "" {
-			var exitErr *host.ExitError
-			if errors.As(err, &exitErr) {
+			if exitErr, ok := errors.AsType[*host.ExitError](err); ok {
 				msg = fmt.Sprintf("shell command failed: status %d", exitErr.Code)
 			} else {
 				msg = err.Error()

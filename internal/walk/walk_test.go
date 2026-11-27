@@ -1,7 +1,6 @@
 package walk
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -80,7 +79,7 @@ func TestFilesWalk(t *testing.T) {
 	write("sub/deep/z.go", "")
 
 	var got []string
-	err := Files(context.Background(), root, DefaultOptions(), func(rel string) bool {
+	err := Files(t.Context(), root, DefaultOptions(), func(rel string) bool {
 		got = append(got, rel)
 
 		return true
@@ -97,7 +96,7 @@ func TestFilesWalk(t *testing.T) {
 	// Walking from a subdirectory still honors the parent ignore file.
 	got = nil
 	write("sub/x.log", "")
-	err = Files(context.Background(), filepath.Join(root, "sub"), DefaultOptions(), func(rel string) bool {
+	err = Files(t.Context(), filepath.Join(root, "sub"), DefaultOptions(), func(rel string) bool {
 		got = append(got, rel)
 
 		return true
@@ -108,7 +107,7 @@ func TestFilesWalk(t *testing.T) {
 
 	// Stopping early.
 	count := 0
-	_ = Files(context.Background(), root, DefaultOptions(), func(string) bool {
+	_ = Files(t.Context(), root, DefaultOptions(), func(string) bool {
 		count++
 
 		return false

@@ -205,7 +205,7 @@ func parentIgnores(root string) []*Matcher {
 			break
 		}
 
-		next := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]
+		next, _, _ := strings.Cut(filepath.ToSlash(rel), "/")
 		dir = filepath.Join(dir, next)
 	}
 

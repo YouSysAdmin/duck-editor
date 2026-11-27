@@ -432,7 +432,7 @@ func (e *Editor) HandleKey(key keymap.Key) {
 
 	switch {
 	case len(e.JumpLabels) > 0:
-		e.handleJumpKey(cx, key)
+		e.handleJumpKey(key)
 	case e.Menu != nil && e.Menu.handleKey(cx, key):
 		// handled by the menu
 	case e.Picker != nil:
@@ -615,8 +615,8 @@ func (e *Editor) Run(name string) {
 }
 
 func (e *Editor) execute(cx *Context, name string) {
-	if strings.HasPrefix(name, ":") {
-		e.runTyped(cx, strings.TrimPrefix(name, ":"))
+	if after, ok := strings.CutPrefix(name, ":"); ok {
+		e.runTyped(cx, after)
 
 		return
 	}

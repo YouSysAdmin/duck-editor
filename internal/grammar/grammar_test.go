@@ -1,7 +1,6 @@
 package grammar
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,7 +48,7 @@ func TestBuildLocalGrammar(t *testing.T) {
 	var statuses []Status
 	opts := Options{RuntimeDir: rt, Jobs: 1, Report: func(s Status) { statuses = append(statuses, s) }}
 	grammars := []syntax.Grammar{{Name: "fake", Path: srcRoot}}
-	if failed := Build(context.Background(), grammars, opts); failed != 0 {
+	if failed := Build(t.Context(), grammars, opts); failed != 0 {
 		t.Fatalf("build failed: %+v", statuses)
 	}
 
@@ -64,7 +63,7 @@ func TestBuildLocalGrammar(t *testing.T) {
 
 	// A second build is a no op until a source changes.
 	statuses = nil
-	Build(context.Background(), grammars, opts)
+	Build(t.Context(), grammars, opts)
 	if statuses[0].Message != "already built" {
 		t.Fatalf("status = %+v", statuses[0])
 	}
@@ -75,7 +74,7 @@ func TestBuildLocalGrammar(t *testing.T) {
 	}
 
 	statuses = nil
-	Build(context.Background(), grammars, opts)
+	Build(t.Context(), grammars, opts)
 	if statuses[0].Message != "built" {
 		t.Fatalf("status after touch = %+v", statuses[0])
 	}
@@ -83,7 +82,7 @@ func TestBuildLocalGrammar(t *testing.T) {
 	// A broken source keeps the previous library.
 	writeFile(t, filepath.Join(srcRoot, "src", "parser.c"), "this is not C")
 	statuses = nil
-	if failed := Build(context.Background(), grammars, opts); failed != 1 || statuses[0].Err == nil {
+	if failed := Build(t.Context(), grammars, opts); failed != 1 || statuses[0].Err == nil {
 		t.Fatalf("expected failure, got %+v", statuses)
 	}
 
@@ -101,7 +100,7 @@ func TestFetchGitGrammar(t *testing.T) {
 	dir := t.TempDir()
 	origin := filepath.Join(dir, "origin")
 	writeFile(t, filepath.Join(origin, "src", "parser.c"), fakeParser)
-	ctx := context.Background()
+	ctx := t.Context()
 	for _, args := range [][]string{
 		{"init", "-q"},
 		{"config", "user.email", "t@t"},

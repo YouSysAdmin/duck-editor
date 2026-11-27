@@ -44,7 +44,7 @@ type Pattern struct {
 // exactly, ^ anchors to the start, $ to the end and ! negates.
 func Parse(query string) Pattern {
 	var p Pattern
-	for _, raw := range strings.Fields(query) {
+	for raw := range strings.FieldsSeq(query) {
 		t := Term{Text: raw}
 		if strings.HasPrefix(t.Text, "!") {
 			t.Negate = true

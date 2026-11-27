@@ -118,8 +118,7 @@ func myers(a, b []string) []Hunk {
 	}
 
 	var hunks []Hunk
-	for i := len(edits) - 1; i >= 0; i-- {
-		p := edits[i]
+	for i, p := range slices.Backward(edits) {
 		// The edit at p consumes one line of a or b.
 		var next point
 		if i > 0 {

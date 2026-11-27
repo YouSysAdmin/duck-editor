@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/YouSysAdmin/duck-editor/internal/host"
 	"github.com/YouSysAdmin/duck-editor/runtime"
@@ -404,14 +405,8 @@ func (l *Languages) merge(user *Languages) {
 		l.add(&merged)
 	}
 
-	for name, srv := range user.servers {
-		l.servers[name] = srv
-	}
-
-	for name, g := range user.grammars {
-		l.grammars[name] = g
-	}
-
+	maps.Copy(l.servers, user.servers)
+	maps.Copy(l.grammars, user.grammars)
 }
 
 // languageFromMap reads the plain fields of a language table. Servers and
@@ -481,7 +476,9 @@ func languageFromMap(name string, m map[string]any) *Language {
 		lang.AutoPairs = map[rune]rune{}
 		for open, closeV := range ap {
 			if closeStr, ok := closeV.(string); ok && open != "" && closeStr != "" {
-				lang.AutoPairs[[]rune(open)[0]] = []rune(closeStr)[0]
+				o, _ := utf8.DecodeRuneInString(open)
+				c, _ := utf8.DecodeRuneInString(closeStr)
+				lang.AutoPairs[o] = c
 			}
 		}
 	}
@@ -614,10 +611,8 @@ func (l *Languages) ForShebang(firstLine string) (*Language, bool) {
 	// Version suffixes such as python3 or ruby2.7 are dropped.
 	interp = strings.TrimRightFunc(interp, func(r rune) bool { return r == '.' || (r >= '0' && r <= '9') })
 	for _, lang := range l.ordered {
-		for _, sb := range lang.Shebangs {
-			if sb == interp {
-				return lang, true
-			}
+		if slices.Contains(lang.Shebangs, interp) {
+			return lang, true
 		}
 	}
 

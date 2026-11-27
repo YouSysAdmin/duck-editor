@@ -694,8 +694,7 @@ func closeBuffers(cx *Context, args []string, force, others bool) error {
 	var modified []string
 	for _, id := range ids {
 		if err := e.CloseDocument(id, force); err != nil {
-			var bm bufferModifiedError
-			if errors.As(err, &bm) {
+			if bm, ok := errors.AsType[bufferModifiedError](err); ok {
 				modified = append(modified, bm.name)
 
 				continue

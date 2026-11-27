@@ -1,6 +1,9 @@
 package lsp
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // SemanticTokenTypes are the token types of the LSP specification, which
 // the client declares it can show.
@@ -55,13 +58,7 @@ func SemanticScope(typ string, modifiers []string) string {
 	}
 
 	has := func(m string) bool {
-		for _, x := range modifiers {
-			if x == m {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(modifiers, m)
 	}
 
 	switch {

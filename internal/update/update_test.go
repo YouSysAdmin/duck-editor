@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -88,7 +87,7 @@ func release(name, content string) map[string][]byte {
 
 func TestLatest(t *testing.T) {
 	serve(t, "v0.4.2", nil)
-	got, err := Latest(context.Background())
+	got, err := Latest(t.Context())
 	if err != nil || got != "0.4.2" {
 		t.Fatalf("Latest() = %q, %v", got, err)
 	}
@@ -97,7 +96,7 @@ func TestLatest(t *testing.T) {
 func TestCheckAsksOnceADay(t *testing.T) {
 	_, hits := serve(t, "v0.4.2", nil)
 	cache := t.TempDir()
-	latest, newer, err := Check(context.Background(), cache, "0.4.0")
+	latest, newer, err := Check(t.Context(), cache, "0.4.0")
 	if err != nil || latest != "0.4.2" || !newer {
 		t.Fatalf("Check() = %q, %v, %v", latest, newer, err)
 	}
@@ -106,7 +105,7 @@ func TestCheckAsksOnceADay(t *testing.T) {
 		t.Fatal("no stamp written:", err)
 	}
 
-	latest, newer, err = Check(context.Background(), cache, "0.4.2")
+	latest, newer, err = Check(t.Context(), cache, "0.4.2")
 	if err != nil || latest != "0.4.2" || newer {
 		t.Fatalf("second Check() = %q, %v, %v", latest, newer, err)
 	}
@@ -115,7 +114,7 @@ func TestCheckAsksOnceADay(t *testing.T) {
 		t.Fatalf("GitHub asked %d times, want once", hits.Load())
 	}
 
-	if _, _, err := Check(context.Background(), cache, "dev"); err != nil || hits.Load() != 1 {
+	if _, _, err := Check(t.Context(), cache, "dev"); err != nil || hits.Load() != 1 {
 		t.Fatal("a development build asked GitHub")
 	}
 }
@@ -124,11 +123,11 @@ func TestDownloadChecksTheSum(t *testing.T) {
 	files := release("dk-linux-amd64", "binary")
 	files["SHA256SUMS"] = []byte(strings.Repeat("0", 64) + "  dk-linux-amd64.tar.gz\n")
 	serve(t, "v1.0.0", files)
-	if _, err := Download(context.Background(), "1.0.0", "dk-linux-amd64"); err == nil || !strings.Contains(err.Error(), "checksum") {
+	if _, err := Download(t.Context(), "1.0.0", "dk-linux-amd64"); err == nil || !strings.Contains(err.Error(), "checksum") {
 		t.Fatalf("Download() = %v, want a checksum error", err)
 	}
 
-	if _, err := Download(context.Background(), "1.0.0", "dk-plan9-mips"); err == nil || !strings.Contains(err.Error(), ErrNoArchive.Error()) {
+	if _, err := Download(t.Context(), "1.0.0", "dk-plan9-mips"); err == nil || !strings.Contains(err.Error(), ErrNoArchive.Error()) {
 		t.Fatalf("Download() = %v, want %v", err, ErrNoArchive)
 	}
 }
@@ -152,7 +151,7 @@ func TestInstallReplacesTheBinary(t *testing.T) {
 	t.Cleanup(func() { ExecutablePath = old })
 
 	var steps []string
-	replaced, err := Install(context.Background(), "1.0.0", func(s string) { steps = append(steps, s) })
+	replaced, err := Install(t.Context(), "1.0.0", func(s string) { steps = append(steps, s) })
 	if err != nil {
 		t.Fatal(err)
 	}

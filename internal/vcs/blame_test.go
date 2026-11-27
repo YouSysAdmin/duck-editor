@@ -1,7 +1,6 @@
 package vcs
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,7 +37,7 @@ func TestBlame(t *testing.T) {
 	git("add", "a.txt")
 	git("-c", "user.name=Ann", "-c", "user.email=ann@example.com", "commit", "-q", "-m", "first lines")
 
-	b, err := Blame(context.Background(), host.Local{}, path, "one\nchanged\nnew\n", 0)
+	b, err := Blame(t.Context(), host.Local{}, path, "one\nchanged\nnew\n", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +46,7 @@ func TestBlame(t *testing.T) {
 		t.Fatalf("committed line = %+v", b)
 	}
 
-	b, err = Blame(context.Background(), host.Local{}, path, "one\nchanged\nnew\n", 2)
+	b, err = Blame(t.Context(), host.Local{}, path, "one\nchanged\nnew\n", 2)
 	if err != nil {
 		t.Fatal(err)
 	}

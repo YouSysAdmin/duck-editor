@@ -1,7 +1,6 @@
 package walk
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -65,7 +64,7 @@ func TestDirFilterMatchesFiles(t *testing.T) {
 	}
 
 	walked := map[string]bool{}
-	if err := Files(context.Background(), root, DefaultOptions(), func(rel string) bool {
+	if err := Files(t.Context(), root, DefaultOptions(), func(rel string) bool {
 		walked[rel] = true
 
 		return true
@@ -110,7 +109,7 @@ func TestInsideIgnoredDir(t *testing.T) {
 	}
 
 	var walked []string
-	if err := Files(context.Background(), filepath.Join(root, "build"), DefaultOptions(), func(rel string) bool {
+	if err := Files(t.Context(), filepath.Join(root, "build"), DefaultOptions(), func(rel string) bool {
 		walked = append(walked, rel)
 
 		return true

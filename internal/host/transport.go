@@ -271,12 +271,12 @@ func (d *commandDialer) startScript() string {
 
 	b.WriteString("*) id= ;;\nesac\n")
 	b.WriteString(`p="${HOME:-/tmp}/.cache/duck/agent/$id/dk"` + "\n")
-	args := ""
+	b.WriteString(`if [ -n "$id" ] && [ -x "$p" ]; then exec "$p" agent`)
 	for _, a := range d.agentArgs {
-		args += " " + ShellQuote(a)
+		b.WriteString(" " + ShellQuote(a))
 	}
 
-	b.WriteString(`if [ -n "$id" ] && [ -x "$p" ]; then exec "$p" agent` + args + "; fi\n")
+	b.WriteString("; fi\n")
 	b.WriteString(`z=; command -v gzip >/dev/null 2>&1 && z=" gzip"` + "\n")
 	b.WriteString(`echo "DUCK-NEED $(uname -s) $(uname -m)$z"` + "\n")
 

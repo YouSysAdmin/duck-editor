@@ -1,7 +1,6 @@
 package vcs
 
 import (
-	"context"
 	"maps"
 	"os"
 	"os/exec"
@@ -57,7 +56,7 @@ func TestDirStatus(t *testing.T) {
 	write("src/mixed/add.go", "x\n")
 	write("top.txt", "two\n")
 
-	got, err := DirStatus(context.Background(), host.Local{}, filepath.Join(dir, "src"))
+	got, err := DirStatus(t.Context(), host.Local{}, filepath.Join(dir, "src"))
 	if err != nil {
 		t.Fatal(err)
 	}
