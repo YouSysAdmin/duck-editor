@@ -33,7 +33,7 @@ func init() {
 				return errArgument("diff-host", "a path, the buffer has no file")
 			}
 
-			w, err := e.findWorkspace(args[0])
+			w, err := e.findWorkspace(args[0], true)
 			if err != nil {
 				return err
 			}

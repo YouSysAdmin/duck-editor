@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -105,5 +106,44 @@ func TestProjectWorkspaces(t *testing.T) {
 
 	if w := byName["mine"]; w.Project || w.Path != "/srv" {
 		t.Fatalf("user workspace %+v", w)
+	}
+}
+
+// TestAddWorkspace inserts an entry at its sorted place and keeps the
+// comments of the file.
+func TestAddWorkspace(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "sub", "workspaces.yaml")
+	if err := AddWorkspace(path, Workspace{Name: "zeta", Path: "/z"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(path, []byte("# my places\nalpha:\n  path: /a # here\nzeta:\n  path: /z\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	w := Workspace{Name: "mid", Host: "box", Port: 2222, Path: "/srv", Description: "the box"}
+	if err := AddWorkspace(path, w); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(path)
+	text := string(data)
+	if !strings.Contains(text, "# my places") || !strings.Contains(text, "# here") {
+		t.Fatalf("comments lost:\n%s", text)
+	}
+
+	ws, err := LoadWorkspaces(path)
+	if err != nil || len(ws) != 3 || ws[1].Name != "mid" || ws[1].Port != 2222 || ws[1].Description != "the box" {
+		t.Fatalf("workspaces %+v %v", ws, err)
+	}
+
+	if strings.Index(text, "mid:") > strings.Index(text, "zeta:") || strings.Index(text, "mid:") < strings.Index(text, "alpha:") {
+		t.Fatalf("not sorted:\n%s", text)
+	}
+
+	if err := AddWorkspace(path, w); err == nil {
+		t.Fatal("a duplicate name was added")
 	}
 }

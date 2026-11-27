@@ -147,8 +147,9 @@ kubectl logs, `:follow cmd` the output of any command. `:filter regex` in such a
 ## Workspaces and Kubernetes
 
 `~/.config/duck/workspaces.yaml` names places to work, a directory here, a host, a container or a pod, a project adds its own in
-`.duck/workspaces.yaml`. `dk @name` opens one, `dk -w`
-starts with a picker that lists the hosts of `~/.ssh/config` too, `:ws [name]` or `space W` switches to another.
+`.duck/workspaces.yaml`. `dk @name` opens one, `dk -w` starts with their picker (only the project ones when it has some, `C-i` adds yours), `:ws [name]` or `space W` switches to another,
+`:ws-add [name]` saves the place of this session, `--project` into `.duck/workspaces.yaml`. The hosts of `~/.ssh/config` have their own picker: `dk -H`, `:host [name]`
+or `space H`.
 
 `:dh host [path]` compares the buffer with the same file on a workspace or ssh host, the diff opens in a split.
 

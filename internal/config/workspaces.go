@@ -14,7 +14,9 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/YouSysAdmin/duck-editor/internal/atomicfile"
 	"github.com/YouSysAdmin/duck-editor/internal/host"
+	"github.com/YouSysAdmin/duck-editor/internal/yamlnode"
 )
 
 // Workspace is a place to work: a directory on this machine, on a host
@@ -41,6 +43,9 @@ type Workspace struct {
 	// directory of the container when empty. A relative local path in a
 	// project file starts at the project root.
 	Path string `yaml:"path"`
+
+	// Description says what the workspace is for, shown in the picker.
+	Description string `yaml:"description"`
 
 	// Project is set for a workspace of a project .duck directory.
 	Project bool `yaml:"-"`
@@ -144,6 +149,87 @@ func LoadWorkspaces(path string) ([]Workspace, error) {
 	slices.SortFunc(out, func(a, b Workspace) int { return strings.Compare(a.Name, b.Name) })
 
 	return out, nil
+}
+
+// AddWorkspace adds w to a workspaces file under its name, at its sorted
+// place, keeping the comments and order of the other entries. A missing
+// file is created, a name already there is an error.
+func AddWorkspace(path string, w Workspace) error {
+	if w.Name == "" {
+		return errors.New("a workspace needs a name")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
+
+	if doc.Kind == 0 {
+		doc = yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{{Kind: yaml.MappingNode}}}
+	}
+
+	root := doc.Content[0]
+	if root.Kind != yaml.MappingNode {
+		return fmt.Errorf("%s: not a mapping of workspaces", path)
+	}
+
+	if k, _ := yamlnode.Entry(root, w.Name); k != nil {
+		return fmt.Errorf("%s: workspace %s exists", path, w.Name)
+	}
+
+	entry := &yaml.Node{Kind: yaml.MappingNode}
+	for _, f := range [][2]string{
+		{"description", w.Description},
+		{"host", w.Host}, {"port", portString(w.Port)}, {"user", w.User}, {"identity", w.Identity},
+		{"docker", w.Docker}, {"kubectl", w.Kubectl},
+		{"namespace", w.Namespace}, {"context", w.Context}, {"container", w.Container},
+		{"path", w.Path},
+	} {
+		if f[1] != "" {
+			entry.Content = append(entry.Content, yamlnode.Scalar(f[0]), yamlnode.Scalar(f[1]))
+		}
+	}
+
+	at := len(root.Content)
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value > w.Name {
+			at = i
+
+			break
+		}
+	}
+
+	root.Content = slices.Insert(root.Content, at, yamlnode.Scalar(w.Name), entry)
+
+	var out strings.Builder
+	enc := yaml.NewEncoder(&out)
+	enc.SetIndent(2)
+	if err := enc.Encode(&doc); err != nil {
+		return err
+	}
+
+	if err := enc.Close(); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+
+	return atomicfile.Write(path, []byte(out.String()), 0o644)
+}
+
+func portString(port int) string {
+	if port <= 0 {
+		return ""
+	}
+
+	return strconv.Itoa(port)
 }
 
 // SSHHosts lists the Host names of an ssh config file and the files it

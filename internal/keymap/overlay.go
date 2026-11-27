@@ -31,7 +31,7 @@ var actions = map[Mode][]Action{
 		{"picker_preview_up", "Scroll the preview half a page up"},
 		{"picker_parent", "Go up a directory in the explorer"},
 		{"picker_descend", "Open the selected entry of the explorer"},
-		{"picker_toggle_all", "Show or hide the files the file-picker options leave out"},
+		{"picker_toggle_all", "Show or hide the files the file-picker options leave out, or your workspaces next to those of the project"},
 		{"picker_toggle_recursive", "Switch between the explorer and the file picker of its directory"},
 		{"picker_toggle_mark", "Mark or unmark the selected item, marked items open together"},
 		{"picker_create", "Create a file, or a directory ending in a slash, in the explorer"},

@@ -130,3 +130,22 @@ func TestWorkspaceTarget(t *testing.T) {
 		t.Fatal("a workspace without a place should fail")
 	}
 }
+
+// TestTargetWorkspace turns a remote target back into a workspace that
+// leads to the same target.
+func TestTargetWorkspace(t *testing.T) {
+	t.Parallel()
+
+	for _, want := range []remoteTarget{
+		{kind: "ssh", dest: "10.0.0.1", port: "2222", user: "deploy", identity: "/k", path: "/srv"},
+		{kind: "docker", dest: "app", user: "dev", path: "/srv"},
+		{kind: "kubectl", dest: "api-1", namespace: "prod", context: "c", container: "web", path: "/app"},
+	} {
+		w := want.workspace(want.path)
+		w.Name = "x"
+		got, _, err := workspaceTarget(w)
+		if err != nil || got == nil || *got != want {
+			t.Errorf("%+v came back as %+v %v", want, got, err)
+		}
+	}
+}

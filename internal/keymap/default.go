@@ -299,6 +299,7 @@ func Default() map[Mode]*Trie {
 			b("'", "last_picker"),
 			b("w", windowNode()),
 			b("W", "workspace_picker"),
+			b("H", "host_picker"),
 			b("y", "yank_to_clipboard"),
 			b("Y", "yank_main_selection_to_clipboard"),
 			b("p", "paste_clipboard_after"),

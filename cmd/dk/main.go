@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -70,8 +69,9 @@ func usageError(text, format string, args ...any) error {
 const usage = `usage:
   dk [-l lang] [file...]    edit files, file:line[:col] goes to a position, - reads stdin
   dk dir                    browse a directory, -- before a name like a command
-  dk @name                  open a workspace of workspaces.yaml or a host of ~/.ssh/config
+  dk @name                  open a workspace of workspaces.yaml
   dk -w                     start with the workspace picker
+  dk -H                     start with the picker of the hosts of ~/.ssh/config
   dk host:path              edit on another machine over ssh, also ssh://[user@]host[:port]/path
   dk docker://ctr/path      edit in a running container, kubectl://pod/path for a pod
   dk k8s://deploy/api      edit a Kubernetes object as :kedit does, ?ns=name&context=ctx
@@ -102,7 +102,8 @@ func run(args []string) error {
 	fs := flag.NewFlagSet("dk", flag.ContinueOnError)
 	fs.Usage = func() { _, _ = fmt.Fprint(fs.Output(), usage) }
 	lang := fs.String("l", "", "language of the opened files, as :set-language takes it")
-	pick := fs.Bool("w", false, "start with the workspace picker")
+	pickWs := fs.Bool("w", false, "start with the workspace picker")
+	pickHost := fs.Bool("H", false, "start with the picker of the hosts of ~/.ssh/config")
 	if stop, err := parseFlags(fs, args); stop {
 		return err
 	}
@@ -112,7 +113,15 @@ func run(args []string) error {
 	projectDir = config.WorkspaceDir()
 
 	// A session may end for another workspace, which opens next.
-	err := firstSession(fs.Args(), *lang, *pick)
+	picker := ""
+	switch {
+	case *pickWs:
+		picker = "workspace_picker"
+	case *pickHost:
+		picker = "host_picker"
+	}
+
+	err := firstSession(fs.Args(), *lang, picker)
 	for err == nil && switchTo != nil {
 		w := *switchTo
 		switchTo = nil
@@ -126,7 +135,7 @@ func run(args []string) error {
 var switchTo *config.Workspace
 
 // firstSession opens what the command line names.
-func firstSession(args []string, lang string, pick bool) error {
+func firstSession(args []string, lang, picker string) error {
 	if len(args) == 1 && strings.HasPrefix(args[0], "@") {
 		w, err := findWorkspace(strings.TrimPrefix(args[0], "@"))
 		if err != nil {
@@ -163,32 +172,40 @@ func firstSession(args []string, lang string, pick bool) error {
 		files = append(files, file)
 	}
 
-	pickWorkspace = pick
+	startPicker = picker
 
 	return edit(files, lang)
 }
 
-// pickWorkspace opens the workspace picker when the next session starts.
-var pickWorkspace bool
+// startPicker is the picker command the next session starts with.
+var startPicker string
+
+// openedWorkspace is the workspace the next session opens, nil for a
+// place named on the command line.
+var openedWorkspace *config.Workspace
 
 // projectDir is the .duck directory of the project dk started in.
 var projectDir string
 
 // workspaceSource reads the workspaces.yaml of the user and of the
-// project dk started in, and the hosts of ~/.ssh/config.
-func workspaceSource() ([]config.Workspace, []string, error) {
-	ws, err := config.LoadWorkspaceFiles(config.WorkspacesPath(), projectDir)
-	var hosts []string
-	if home, herr := os.UserHomeDir(); herr == nil {
-		hosts = config.SSHHosts(filepath.Join(home, ".ssh", "config"))
-	}
-
-	return ws, hosts, err
+// project dk started in.
+func workspaceSource() ([]config.Workspace, error) {
+	return config.LoadWorkspaceFiles(config.WorkspacesPath(), projectDir)
 }
 
-// findWorkspace looks a name up among the workspaces, then the ssh hosts.
+// sshHosts lists the hosts of ~/.ssh/config.
+func sshHosts() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	return config.SSHHosts(filepath.Join(home, ".ssh", "config"))
+}
+
+// findWorkspace looks a name up among the workspaces.
 func findWorkspace(name string) (config.Workspace, error) {
-	ws, hosts, err := workspaceSource()
+	ws, err := workspaceSource()
 	if err != nil {
 		return config.Workspace{}, err
 	}
@@ -199,11 +216,7 @@ func findWorkspace(name string) (config.Workspace, error) {
 		}
 	}
 
-	if slices.Contains(hosts, name) {
-		return config.Workspace{Name: name, Host: name}, nil
-	}
-
-	return config.Workspace{}, fmt.Errorf("no workspace or ssh host named %s, workspaces live in %s", name, config.WorkspacesPath())
+	return config.Workspace{}, fmt.Errorf("no workspace named %s in %s, use dk %s: for an ssh host", name, config.WorkspacesPath(), name)
 }
 
 // openWorkspace opens a session in a workspace: over ssh, in a container
@@ -214,6 +227,7 @@ func openWorkspace(w config.Workspace) error {
 		return err
 	}
 
+	openedWorkspace = &w
 	if t == nil {
 		return edit([]fileArg{{path: local}}, "")
 	}
@@ -447,12 +461,42 @@ type sessionStart struct {
 
 	// kube is a Kubernetes object to open instead of a file.
 	kube *kubeTarget
+
+	// place is where a remote session works, the program fills it in for
+	// a local one.
+	place config.Workspace
 }
 
 // openedDoc is a document with the position to go to.
 type openedDoc struct {
 	doc       *editor.Document
 	line, col int
+}
+
+// sessionPlace describes where a session works: the workspace it opened
+// through, the remote target or the local working directory.
+func sessionPlace(h host.Host, start sessionStart) config.Workspace {
+	opened := openedWorkspace
+	openedWorkspace = nil
+	switch {
+	case start.kube != nil:
+		return config.Workspace{}
+	case opened != nil:
+		return *opened
+	case start.place != (config.Workspace{}):
+		return start.place
+	}
+
+	if _, local := h.(host.Local); !local {
+		return config.Workspace{}
+	}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return config.Workspace{}
+	}
+
+	return config.Workspace{Path: dir}
 }
 
 // session runs the editor on h as start says. wsDir is the project .duck
@@ -531,11 +575,18 @@ func session(h host.Host, workDir, wsDir string, start sessionStart) error {
 	}
 
 	ed.Workspaces = workspaceSource
+	ed.SSHHosts = sshHosts
+	ed.WorkspacesFile = config.WorkspacesPath()
+	if projectDir != "" {
+		ed.ProjectWorkspacesFile = filepath.Join(projectDir, "workspaces.yaml")
+	}
+
 	ed.ConnectHost = connectWorkspace
+	ed.Place = sessionPlace(h, start)
 	switch {
-	case pickWorkspace:
-		pickWorkspace = false
-		ed.Run("workspace_picker")
+	case startPicker != "":
+		ed.Run(startPicker)
+		startPicker = ""
 	case explore:
 		ed.Run("file_explorer_in_current_directory")
 	case start.kube != nil:

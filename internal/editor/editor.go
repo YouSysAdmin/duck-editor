@@ -171,6 +171,20 @@ type Editor struct {
 	// Workspaces lists where :workspace can go, nil when nowhere.
 	Workspaces WorkspaceSource
 
+	// SSHHosts lists the hosts :host can go to, nil when none.
+	SSHHosts HostSource
+
+	// WorkspacesFile is where :ws-add writes, empty when nowhere.
+	WorkspacesFile string
+
+	// ProjectWorkspacesFile is where :ws-add --project writes, empty
+	// without a project .duck directory.
+	ProjectWorkspacesFile string
+
+	// Place is where this session works, with the workspace name when it
+	// opened through one. Empty for a session that has no place to save.
+	Place config.Workspace
+
 	// nextWorkspace is the workspace the session ends for.
 	nextWorkspace *config.Workspace
 

@@ -100,7 +100,7 @@ dk host:/etc/nginx           # edit on another machine, see docs/remote.md
 dk @worker                   # a workspace of ~/.config/duck/workspaces.yaml
 dk k8s://secrets/app?ns=prod  # a Kubernetes object, secrets decoded, see docs/ops.md
 dk update                    # install the latest release
-dk -w                        # pick a workspace or an ssh host
+dk -w                        # pick a workspace, -H a host of ~/.ssh/config
 ```
 
 ## Building

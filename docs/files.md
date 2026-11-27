@@ -14,8 +14,9 @@ dk main.go:42:7                # at a line and column, as compilers print them
 kubectl get pod -o yaml | dk -l yaml -   # stdin into a buffer, -l names the language
 dk .                           # browse a directory, it becomes the working directory
 dk -- grammar                  # a file named like a subcommand
-dk @worker                     # a workspace, or a host of ~/.ssh/config
+dk @worker                     # a workspace of workspaces.yaml
 dk -w                          # start with the workspace picker
+dk -H                          # start with the picker of the hosts of ~/.ssh/config
 dk host:/etc/nginx             # another machine, see Remote editing
 dk k8s://secrets/app?ns=prod  # a Kubernetes object, see Ops tools
 ```

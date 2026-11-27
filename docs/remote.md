@@ -57,11 +57,12 @@ The other side may run Linux on amd64 or arm64, or macOS on Apple silicon.
 
 ## Workspaces
 
-`~/.config/duck/workspaces.yaml` names the places you work in, keyed by
-name:
+`~/.config/duck/workspaces.yaml` is your list of projects, keyed by name:
+a directory on this machine, a host, a container or a pod.
 
 ```yaml
 worker:
+  description: build server # shown in the picker and matched by its filter
   host: 10.0.0.1 # an address or a Host of ~/.ssh/config
   port: 2222
   user: deploy
@@ -84,10 +85,21 @@ project it starts in, next to yours, and a project workspace replaces one
 of yours with the same name. A relative local `path` there starts at the
 project root.
 
-`dk @worker` opens one, `dk -w` starts with a picker of the workspaces and
-the hosts of `~/.ssh/config`. In the editor `:ws [name]` or `space W`
-switches: the session ends, with unsaved buffers it refuses, and the
-other workspace opens with its explorer. There is no password field, a
+`dk @worker` opens one, `dk -w` starts with their picker. In the editor
+`:ws [name]` or `space W` switches: the session ends, with unsaved
+buffers it refuses, and the other workspace opens with its explorer. The
+picker marks the workspace of this session with `*` and lists it last.
+When the project has workspaces of its own the picker lists only those,
+`C-i` adds yours, without project workspaces it lists yours.
+`:ws-add [name]` saves where this session works, a directory here or
+the host, container or pod with its working directory, under the name
+given or the name of the working directory. `:ws-add --project [name]`
+writes the `.duck/workspaces.yaml` of the project dk started in instead,
+a local path inside the project relative to its root.
+
+The hosts of `~/.ssh/config` are not workspaces, they have their own
+picker: `dk -H`, `:host [name]` or `space H` open one over ssh in its
+home directory. `:dh` accepts a workspace or an ssh host. There is no password field, a
 password in this file would sit there in the clear. ssh asks for one when
 the session starts, a key in `identity` or the ssh agent needs none.
 

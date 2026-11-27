@@ -136,20 +136,50 @@ func TestBase64(t *testing.T) {
 func TestWorkspaceSwitch(t *testing.T) {
 	t.Parallel()
 
-	source := func() ([]config.Workspace, []string, error) {
-		return []config.Workspace{{Name: "worker", Host: "10.0.0.1", Path: "/srv/app"}}, []string{"worker", "mac-mini"}, nil
+	source := func() ([]config.Workspace, error) {
+		return []config.Workspace{
+			{Name: "worker", Host: "10.0.0.1", Path: "/srv/app", Description: "build box"},
+			{Name: "notes", Path: "/srv/notes"},
+		}, nil
 	}
+	hosts := func() []string { return []string{"worker", "mac-mini"} }
 	e := newTestEditor(t, "#[a|]#")
-	e.Workspaces = source
+	e.Workspaces, e.SSHHosts = source, hosts
+	e.Place = config.Workspace{Path: "/srv/notes/"}
 	e.feed(t, " W")
 	if e.Picker == nil || len(e.Picker.Items()) != 2 {
 		t.Fatalf("picker %+v", e.Picker)
 	}
 
-	e.feed(t, "mac<ret>")
+	items := e.Picker.Items()
+	if !strings.Contains(items[0].Label, "build box") || !strings.HasPrefix(items[1].Label, "* notes") {
+		t.Fatalf("the current workspace is not marked last: %q %q", items[0].Label, items[1].Label)
+	}
+
+	e.feed(t, "build<ret>")
 	w := e.TakeNextWorkspace()
-	if w == nil || w.Host != "mac-mini" || !e.ShouldQuit() {
+	if w == nil || w.Name != "worker" || !e.ShouldQuit() {
 		t.Fatalf("switch to %+v, quit %v", w, e.ShouldQuit())
+	}
+
+	e = newTestEditor(t, "#[a|]#")
+	e.Workspaces, e.SSHHosts = source, hosts
+	e.feed(t, " H")
+	if e.Picker == nil || len(e.Picker.Items()) != 2 {
+		t.Fatalf("host picker %+v", e.Picker)
+	}
+
+	e.feed(t, "mac<ret>")
+	w = e.TakeNextWorkspace()
+	if w == nil || w.Host != "mac-mini" || !e.ShouldQuit() {
+		t.Fatalf("switch to host %+v, quit %v", w, e.ShouldQuit())
+	}
+
+	e = newTestEditor(t, "#[a|]#")
+	e.Workspaces, e.SSHHosts = source, hosts
+	e.runTyped(&Context{Editor: e}, "ws mac-mini")
+	if e.TakeNextWorkspace() != nil || !e.Status().IsError {
+		t.Fatalf(":ws took an ssh host: %+v", e.Status())
 	}
 
 	e = newTestEditor(t, "#[a|]#")
@@ -158,6 +188,84 @@ func TestWorkspaceSwitch(t *testing.T) {
 	e.runTyped(&Context{Editor: e}, "ws worker")
 	if e.TakeNextWorkspace() != nil || e.ShouldQuit() || !e.Status().IsError {
 		t.Fatalf("an unsaved buffer did not stop the switch: %+v", e.Status())
+	}
+}
+
+// TestWorkspaceProjectList shows the project workspaces alone when the
+// project has some, C-i adds those of the user.
+func TestWorkspaceProjectList(t *testing.T) {
+	t.Parallel()
+
+	e := newTestEditor(t, "#[a|]#")
+	e.Workspaces = func() ([]config.Workspace, error) {
+		return []config.Workspace{{Name: "ansible", Path: "/p/ansible", Project: true}, {Name: "mine", Path: "/srv"}}, nil
+	}
+	e.feed(t, " W")
+	if e.Picker == nil || len(e.Picker.Items()) != 1 || !strings.Contains(e.Picker.Items()[0].Label, "ansible") {
+		t.Fatalf("project picker %+v", e.Picker)
+	}
+
+	e.feed(t, "<C-i>")
+	if len(e.Picker.Items()) != 2 || !strings.HasSuffix(e.Picker.Title, "(all)") || !strings.Contains(e.Picker.Items()[0].Label, "(project)") {
+		t.Fatalf("all workspaces %q %+v", e.Picker.Title, e.Picker.Items())
+	}
+
+	e.feed(t, "mine<ret>")
+	if w := e.TakeNextWorkspace(); w == nil || w.Name != "mine" {
+		t.Fatalf("switch to %+v", w)
+	}
+
+	e = newTestEditor(t, "#[a|]#")
+	e.Workspaces = func() ([]config.Workspace, error) { return []config.Workspace{{Name: "mine", Path: "/srv"}}, nil }
+	e.feed(t, " W<C-i>")
+	if len(e.Picker.Items()) != 1 || e.Picker.Title != "Workspaces" {
+		t.Fatalf("user picker %q %+v", e.Picker.Title, e.Picker.Items())
+	}
+}
+
+// TestWorkspaceAdd saves the place of the session to the workspaces
+// file and refuses a name already there.
+func TestWorkspaceAdd(t *testing.T) {
+	t.Parallel()
+
+	file := filepath.Join(t.TempDir(), "workspaces.yaml")
+	e := newTestEditor(t, "#[a|]#")
+	e.WorkspacesFile = file
+	e.runTyped(&Context{Editor: e}, "ws-add box")
+	if !e.Status().IsError {
+		t.Fatalf("a session without a place was saved: %+v", e.Status())
+	}
+
+	e.Place = config.Workspace{Docker: "app", User: "dev", Path: "/srv"}
+	e.runTyped(&Context{Editor: e}, "ws-add box")
+	ws, err := config.LoadWorkspaces(file)
+	if err != nil || len(ws) != 1 || ws[0].Name != "box" || ws[0].Docker != "app" || ws[0].User != "dev" || ws[0].Path != e.WorkingDir() {
+		t.Fatalf("workspaces %+v %v, status %+v", ws, err, e.Status())
+	}
+
+	if e.Place.Name != "box" {
+		t.Fatalf("the place did not take the name: %+v", e.Place)
+	}
+
+	e.runTyped(&Context{Editor: e}, "ws-add box")
+	if !e.Status().IsError {
+		t.Fatalf("a duplicate name was saved: %+v", e.Status())
+	}
+
+	root := t.TempDir()
+	e.ProjectWorkspacesFile = filepath.Join(root, ".duck", "workspaces.yaml")
+	e.Place = config.Workspace{Path: root}
+	e.workDir = filepath.Join(root, "ansible")
+	e.runTyped(&Context{Editor: e}, "ws-add --project ans")
+	ws, err = config.LoadWorkspaces(e.ProjectWorkspacesFile)
+	if err != nil || len(ws) != 1 || ws[0].Path != "ansible" {
+		t.Fatalf("project workspaces %+v %v, status %+v", ws, err, e.Status())
+	}
+
+	e.ProjectWorkspacesFile = ""
+	e.runTyped(&Context{Editor: e}, "ws-add -p other")
+	if !e.Status().IsError {
+		t.Fatalf("--project without a project wrote somewhere: %+v", e.Status())
 	}
 }
 
@@ -172,7 +280,8 @@ func TestDiffHost(t *testing.T) {
 	}
 
 	e := newTestEditor(t, "#[w|]#orker 4\nlisten 80\n")
-	e.Workspaces = func() ([]config.Workspace, []string, error) { return nil, []string{"web2"}, nil }
+	e.Workspaces = func() ([]config.Workspace, error) { return nil, nil }
+	e.SSHHosts = func() []string { return []string{"web2"} }
 	connects := 0
 	e.ConnectHost = func(context.Context, config.Workspace) (host.Host, error) {
 		connects++
@@ -303,7 +412,9 @@ func TestPickerPreviews(t *testing.T) {
 	}
 
 	e.feed(t, "<esc>")
-	e.Workspaces = func() ([]config.Workspace, []string, error) { return nil, []string{"a", "b"}, nil }
+	e.Workspaces = func() ([]config.Workspace, error) {
+		return []config.Workspace{{Name: "a", Path: "/a"}, {Name: "b", Path: "/b"}}, nil
+	}
 	e.feed(t, " W")
 	if e.Picker == nil || e.Picker.Previews() {
 		t.Fatal("a plain list shows a preview pane")

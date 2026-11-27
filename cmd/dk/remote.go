@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -40,6 +41,22 @@ type remoteTarget struct {
 	// relative to the directory the agent starts in, or is empty for
 	// that directory itself.
 	path string
+}
+
+// workspace describes the target as a workspace working in path.
+func (t remoteTarget) workspace(path string) config.Workspace {
+	w := config.Workspace{User: t.user, Identity: t.identity, Namespace: t.namespace, Context: t.context, Container: t.container, Path: path}
+	switch t.kind {
+	case "docker":
+		w.Docker = t.dest
+	case "kubectl":
+		w.Kubectl = t.dest
+	default:
+		w.Host = t.dest
+		w.Port, _ = strconv.Atoi(t.port)
+	}
+
+	return w
 }
 
 // parseRemote recognizes ssh://[user@]host[:port]/path,
@@ -237,11 +254,13 @@ func editRemote(target remoteTarget, lang string) error {
 	}
 
 	if err == nil && info.IsDir() {
-		return session(r, path, editor.FindWorkspaceConfig(r, path), sessionStart{doc: editor.NewDocument("", ""), explore: true, lang: lang})
+		start := sessionStart{doc: editor.NewDocument("", ""), explore: true, lang: lang, place: target.workspace(path)}
+
+		return session(r, path, editor.FindWorkspaceConfig(r, path), start)
 	}
 
 	dir := filepath.Dir(path)
-	start := sessionStart{doc: editor.NewDocument("", ""), lang: lang}
+	start := sessionStart{doc: editor.NewDocument("", ""), lang: lang, place: target.workspace(dir)}
 	if doc, err := editor.OpenDocument(r, path); err != nil {
 		start.errs = []string{err.Error()}
 	} else {
