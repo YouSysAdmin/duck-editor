@@ -423,7 +423,10 @@ func pasteImpl(cx *Context, values []string, action pasteAction, count int) {
 		case action == pasteBefore:
 			pos = r.From()
 		case action == pasteAfter:
-			pos = r.To()
+			// A range ending on a line break gets the text before the
+			// break, so it does not join the next line.
+			_, line := r.LineRange(text)
+			pos = min(r.To(), text.LineEndCharIndex(line))
 		default:
 			pos = r.Cursor(text)
 		}

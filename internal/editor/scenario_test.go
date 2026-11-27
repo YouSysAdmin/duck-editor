@@ -323,3 +323,26 @@ func TestMoveLines(t *testing.T) {
 	// Separate selections move each.
 	checkNL(t, "a\n#[b|]#\nc\n#(d|)#\ne", "<A-down>", "a\nc\n#[b|]#\ne\n#(d|)#")
 }
+
+func TestPasteOnLineBreak(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct{ in, value, keys, want string }{
+		{"aaa\n#[\n|]#bbb\n", "one\ntwo", "p", "aaa\n#[one\ntwo|]#\nbbb\n"},
+		{"aaa\n#[\n|]#bbb\n", "one\ntwo", "P", "aaa\n#[one\ntwo|]#\nbbb\n"},
+		{"aaa\n#[\n|]#bbb\n", "one\ntwo\n", "p", "aaa\n\n#[one\ntwo\n|]#bbb\n"},
+		{"aa#[a\n|]#bbb\n", "x", "p", "aaa#[x|]#\nbbb\n"},
+		{"a#[a|]#a\nbbb\n", "x", "p", "aa#[x|]#a\nbbb\n"},
+	}
+	for _, c := range cases {
+		e := newTestEditor(t, c.in)
+		if err := e.yankTo('"', []string{c.value}); err != nil {
+			t.Fatal(err)
+		}
+
+		e.feed(t, c.keys)
+		if got := e.annotated(); got != c.want {
+			t.Errorf("%q %s with %q:\n got %q\nwant %q", c.in, c.keys, c.value, got, c.want)
+		}
+	}
+}
