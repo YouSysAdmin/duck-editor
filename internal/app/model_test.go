@@ -681,3 +681,36 @@ func TestPopupScrolls(t *testing.T) {
 		t.Fatalf("after C-u:\n%s", got)
 	}
 }
+
+// TestFollowedPreviewWraps wraps the long lines of a followed buffer in
+// the preview and ends with its last line at the bottom.
+func TestFollowedPreviewWraps(t *testing.T) {
+	t.Parallel()
+
+	m := newSized(t, "x", 80, 20)
+	ed := m.editor
+	ed.Run(":follow printf 'first\\n" + strings.Repeat("word ", 12) + "end\\nlast\\n'")
+	doc := ed.Doc()
+	for _, job := range ed.TakeJobs() {
+		ch := make(chan editor.JobResult, 16)
+		runJob(job, ch)
+		for r := range ch {
+			ed.ApplyResult(r)
+		}
+	}
+
+	if !doc.Followed() || !strings.HasSuffix(doc.Text().String(), "last\n") {
+		t.Fatalf("followed %q", doc.Text().String())
+	}
+
+	p := editor.NewPicker("t", []editor.PickerItem{{Label: "f", DocID: doc.ID, Line: doc.LineCount() - 1}}, nil)
+	lines, _ := m.renderPreview(p, 30, 4)
+	plain := make([]string, len(lines))
+	for i, l := range lines {
+		plain[i] = strings.TrimSpace(ansi.Strip(l))
+	}
+
+	if len(plain) != 4 || !strings.HasSuffix(plain[3], "last") || !strings.HasSuffix(plain[2], "end") || strings.Contains(strings.Join(plain, "\n"), "first") {
+		t.Fatalf("preview rows %q", plain)
+	}
+}

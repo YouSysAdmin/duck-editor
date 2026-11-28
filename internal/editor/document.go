@@ -430,6 +430,12 @@ func (d *Document) ReadOnly() bool {
 	return d.readOnly
 }
 
+// Followed reports whether the buffer shows a followed stream, a log,
+// a command or a task.
+func (d *Document) Followed() bool {
+	return d.tail != nil
+}
+
 // TailPath is the followed file of a tail buffer, empty for others.
 func (d *Document) TailPath() string {
 	if d.tail == nil {

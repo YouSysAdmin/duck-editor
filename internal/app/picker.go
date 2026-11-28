@@ -228,6 +228,10 @@ func (m Model) renderPreview(p *editor.Picker, width, height int) ([]string, str
 		doc = pv.Doc
 	}
 
+	if doc.Followed() {
+		return m.renderFollowedPreview(doc, item.Line+p.PreviewScroll()+height/2, width, height), title
+	}
+
 	line := max(item.Line, 0)
 	first := min(max(line-height/2+p.PreviewScroll(), 0), max(doc.LineCount()-1, 0))
 	vp := ui.Viewport{
@@ -263,6 +267,65 @@ func (m Model) renderPreview(p *editor.Picker, width, height int) ([]string, str
 	}
 
 	return strings.Split(ui.RenderDocument(doc, vp, m.theme, spans), "\n"), title
+}
+
+// renderFollowedPreview shows the output of a followed stream with its
+// long lines wrapped, ending with the line bottom at the last row.
+func (m Model) renderFollowedPreview(doc *editor.Document, bottom, width, height int) []string {
+	count := doc.LineCount()
+	text := doc.Text()
+	// The empty line after the final line break is not shown.
+	last := count - 1
+	if last > 0 && text.LineWithoutEnding(last) == "" {
+		last--
+	}
+
+	bottom = min(max(bottom, 0), last)
+	sw := m.editor.Config.Editor.SoftWrap
+	vp := ui.Viewport{
+		Width:        width,
+		Height:       height,
+		LineCount:    count,
+		CursorLine:   -1,
+		Cursorcolumn: -1,
+		TabWidth:     doc.TabWidth(),
+	}
+	vp.Wrap = &ui.WrapOptions{
+		Width:           max(width-ui.GutterWidthFor(nil, count, 0), 1),
+		MaxWrap:         min(sw.MaxWrap, max(width/4, 1)),
+		MaxIndentRetain: sw.MaxIndentRetain,
+		Indicator:       sw.WrapIndicator,
+	}
+
+	// Lines are taken from the bottom up until they fill the pane, the
+	// top one may show only its last rows.
+	first, rows := bottom, 0
+	for ; first >= 0; first-- {
+		rows += vp.RowCount(text.LineWithoutEnding(first), first, first == count-1)
+		if rows >= height {
+			break
+		}
+	}
+
+	if first < 0 {
+		first, rows = 0, height
+	}
+
+	vp.FirstLine, vp.FirstRow = first, rows-height
+	startChar := text.LineToChar(first)
+	endChar := text.Len()
+	if bottom+1 < count {
+		endChar = text.LineToChar(bottom + 1)
+	}
+
+	spans := []ui.Span{}
+	for _, h := range doc.Highlights(startChar, endChar) {
+		spans = append(spans, ui.Span{Start: h.Start, End: h.End, Style: m.theme.Scope(h.Scope)})
+	}
+
+	out := strings.Split(ui.RenderDocument(doc, vp, m.theme, spans), "\n")
+
+	return out[:min(len(out), height)]
 }
 
 // wrapLines breaks text at spaces to fit width cells, for text shown in
