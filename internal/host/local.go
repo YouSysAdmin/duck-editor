@@ -156,23 +156,46 @@ func command(ctx context.Context, c Command) *exec.Cmd {
 // Start implements Host.
 func (Local) Start(c Command) (Process, error) {
 	cmd := command(context.Background(), c)
+	if c.Group {
+		setGroup(cmd)
+	}
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
 	}
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
+	stderr := &tailBuffer{max: stderrTail}
+	p := &localProcess{cmd: cmd, stdin: stdin, stderr: stderr, group: c.Group}
+	if c.MergeStderr {
+		r, w, err := os.Pipe()
+		if err != nil {
+			return nil, err
+		}
+
+		cmd.Stdout, cmd.Stderr = w, w
+		p.stdout, p.pipe = r, r
+		err = cmd.Start()
+		_ = w.Close()
+		if err != nil {
+			_ = r.Close()
+
+			return nil, fmt.Errorf("start %s: %w", c.Name, err)
+		}
+
+		return p, nil
+	}
+
+	if p.stdout, err = cmd.StdoutPipe(); err != nil {
 		return nil, err
 	}
 
-	stderr := &tailBuffer{max: stderrTail}
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start %s: %w", c.Name, err)
 	}
 
-	return &localProcess{cmd: cmd, stdin: stdin, stdout: stdout, stderr: stderr}, nil
+	return p, nil
 }
 
 // stderrTail is how much error output of a started process is kept.
@@ -183,15 +206,32 @@ type localProcess struct {
 	stdin  io.WriteCloser
 	stdout io.Reader
 	stderr *tailBuffer
+
+	// pipe is the read end of merged output, closed after the exit.
+	pipe *os.File
+
+	// group says the process leads its own process group.
+	group bool
 }
 
 func (p *localProcess) Stdin() io.WriteCloser { return p.stdin }
 func (p *localProcess) Stdout() io.Reader     { return p.stdout }
-func (p *localProcess) Kill() error           { return p.cmd.Process.Kill() }
+
+func (p *localProcess) Kill() error {
+	if p.group {
+		return killGroup(p.cmd.Process)
+	}
+
+	return p.cmd.Process.Kill()
+}
 
 // Wait returns an *ExitError with the end of stderr for a non zero exit.
 func (p *localProcess) Wait() error {
 	err := p.cmd.Wait()
+	if p.pipe != nil {
+		_ = p.pipe.Close()
+	}
+
 	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok && exitErr.ExitCode() >= 0 {
 		return &ExitError{Code: exitErr.ExitCode(), Stderr: []byte(p.stderr.String())}
 	}

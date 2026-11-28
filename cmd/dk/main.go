@@ -616,6 +616,7 @@ func session(h host.Host, workDir, wsDir string, start sessionStart) error {
 	}
 
 	ed.SaveSession()
+	ed.StopFollows()
 	ed.StopLanguageServers()
 	ed.CloseHosts()
 	switchTo = ed.TakeNextWorkspace()

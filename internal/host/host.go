@@ -119,6 +119,15 @@ type Command struct {
 
 	// Stdin is fed to the program, nil gives it no input.
 	Stdin []byte
+
+	// Group starts a program of Start in its own process group, Kill
+	// then also ends the processes it started, such as the children of
+	// a shell.
+	Group bool
+
+	// MergeStderr sends the error output of a program of Start to its
+	// stdout.
+	MergeStderr bool
 }
 
 // Process is a started command.

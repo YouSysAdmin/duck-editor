@@ -56,6 +56,10 @@ type tailState struct {
 
 	// window caches the highlights of the last drawn range.
 	window windowCache
+
+	// done is closed when the job of the running stream has ended and
+	// its process is reaped.
+	done chan struct{}
 }
 
 // name is what messages call the stream.
@@ -240,8 +244,14 @@ func (e *Editor) startTail(doc *Document, lines int) {
 	t := doc.tail
 	t.cancel = cancel
 	t.gen++
+	done := make(chan struct{})
+	t.done = done
 	gen, docID, h, cmd := t.gen, doc.ID, t.host, t.command(lines)
+	// A shell and what it starts end together.
+	cmd.Group = true
 	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
+		defer close(done)
+
 		proc, err := h.Start(cmd)
 		if err != nil {
 			emit(func(e *Editor) { e.tailStopped(docID, gen, err) })
@@ -353,6 +363,27 @@ func (e *Editor) tailStopped(id DocID, gen int, err error) {
 		e.SetError("%s stopped: %v", doc.tail.name(), err)
 	case err == nil && doc.tail.path == "":
 		e.SetStatus("%s ended", doc.tail.name())
+	}
+}
+
+// StopFollows ends every followed stream and waits a moment for their
+// processes to be killed, called before the session ends.
+func (e *Editor) StopFollows() {
+	var running []chan struct{}
+	for _, doc := range e.documentsByID() {
+		if doc.tail != nil && doc.tail.cancel != nil {
+			running = append(running, doc.tail.done)
+			e.stopTail(doc)
+		}
+	}
+
+	deadline := time.After(2 * time.Second)
+	for _, done := range running {
+		select {
+		case <-done:
+		case <-deadline:
+			return
+		}
 	}
 }
 

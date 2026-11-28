@@ -10,7 +10,7 @@ import (
 
 // protocolVersion changes whenever the messages below change, an agent
 // of another version is replaced.
-const protocolVersion = 5
+const protocolVersion = 6
 
 // agentMarker starts the line an agent prints before the message stream,
 // lines before it come from shell startup files and are skipped.
