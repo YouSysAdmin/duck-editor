@@ -461,6 +461,8 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 		p.cursor = 0
 	case "picker_line_end":
 		p.cursor = len(p.query)
+	case "picker_key_help":
+		e.openKeyHelp()
 	case "picker_delete_word_backward":
 		start := p.cursor
 		for start > 0 && unicode.IsSpace(p.query[start-1]) {

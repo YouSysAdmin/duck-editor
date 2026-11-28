@@ -115,6 +115,59 @@ func (n *Node) Entries(describe func(command string) string) []Entry {
 	return out
 }
 
+// Section is the bindings of one node for a key help: the node name,
+// the key paths leading to it and its entries.
+type Section struct {
+	Title    string
+	Prefixes []string
+	Entries  []Entry
+}
+
+// Sections lists the node of the trie and every node below it, in trie
+// order. Nodes with the same name and entries, such as a menu bound to
+// two keys, come once with all their prefixes.
+func (t *Trie) Sections(describe func(command string) string) []Section {
+	var out []Section
+	var walk func(n *Node, prefix string)
+	walk = func(n *Node, prefix string) {
+		entries := n.Entries(describe)
+		if i := slices.IndexFunc(out, func(s Section) bool {
+			return s.Title == n.Name && slices.EqualFunc(s.Entries, entries, func(a, b Entry) bool {
+				return a.Desc == b.Desc && slices.Equal(a.Keys, b.Keys)
+			})
+		}); i >= 0 {
+			out[i].Prefixes = append(out[i].Prefixes, prefix)
+
+			return
+		}
+
+		sec := Section{Title: n.Name, Entries: entries}
+		if prefix != "" {
+			sec.Prefixes = []string{prefix}
+		}
+
+		out = append(out, sec)
+		for _, key := range n.order {
+			child := n.children[key]
+			if child.Node == nil {
+				continue
+			}
+
+			path := key.String()
+			if prefix != "" {
+				path = prefix + " " + path
+			}
+
+			walk(child.Node, path)
+		}
+	}
+	if t != nil && t.Node != nil {
+		walk(t.Node, "")
+	}
+
+	return out
+}
+
 // Search descends the trie along keys.
 func (t *Trie) Search(keys []Key) (*Trie, bool) {
 	cur := t

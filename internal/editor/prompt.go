@@ -265,6 +265,8 @@ func (p *Prompt) handleKey(cx *Context, key keymap.Key) {
 func (p *Prompt) runAction(cx *Context, action string) bool {
 	e := cx.Editor
 	switch action {
+	case "prompt_key_help":
+		e.openKeyHelp()
 	case "prompt_insert_register":
 		p.readRegister = true
 	case "prompt_delete_char_backward":

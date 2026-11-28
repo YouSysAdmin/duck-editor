@@ -2,6 +2,7 @@
 
 Modal editor with selection first editing: select something, then act on it. `:bc` closes this buffer, `:w <path>` saves a copy.
 Keys in a pending menu (`space`, `g`, `z`, `m`, `[`, `]`, `C-w`) are listed in a box at the bottom right, so short reminders are enough here.
+`F1` lists every key of the mode, picker, command line or menu in focus, typing filters the list.
 The full documentation is at https://yousysadmin.github.io/duck-editor/
 
 ## Modes

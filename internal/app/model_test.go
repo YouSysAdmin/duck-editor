@@ -19,6 +19,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/config"
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/editor"
+	"github.com/YouSysAdmin/duck-editor/internal/keymap"
 	"github.com/YouSysAdmin/duck-editor/internal/theme"
 	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
@@ -712,5 +713,62 @@ func TestFollowedPreviewWraps(t *testing.T) {
 
 	if len(plain) != 4 || !strings.HasSuffix(plain[3], "last") || !strings.HasSuffix(plain[2], "end") || strings.Contains(strings.Join(plain, "\n"), "first") {
 		t.Fatalf("preview rows %q", plain)
+	}
+}
+
+// TestKeyHelpRender draws the key help box in the middle of the screen
+// with its headings and keys, the cursor in its filter.
+func TestKeyHelpRender(t *testing.T) {
+	t.Parallel()
+
+	m := newSized(t, "x", 90, 30)
+	m.editor.Run("key_help")
+	v := m.View()
+	lines := strings.Split(ansi.Strip(v.Content), "\n")
+	top := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "Keys: normal mode") })
+	if top < 0 {
+		t.Fatalf("no key help in\n%s", strings.Join(lines, "\n"))
+	}
+
+	box := lines[top : top+m.editor.KeyHelpHeight()+4]
+	text := strings.Join(box, "\n")
+	if !strings.Contains(text, "Normal mode") || !strings.Contains(text, "Move left") || !strings.Contains(box[len(box)-1], "\u2514") {
+		t.Fatalf("key help\n%s", text)
+	}
+
+	if v.Cursor == nil || v.Cursor.Y != top+1 {
+		t.Fatalf("cursor %+v, box at row %d", v.Cursor, top)
+	}
+}
+
+// TestKeyHelpColumnStays keeps the descriptions in one column while the
+// key help scrolls.
+func TestKeyHelpColumnStays(t *testing.T) {
+	t.Parallel()
+
+	m := newSized(t, "x", 90, 20)
+	m.editor.Run("key_help")
+	column := func() int {
+		lines := strings.Split(ansi.Strip(m.View().Content), "\n")
+		for _, l := range lines {
+			if i := strings.Index(l, "Move left"); i >= 0 {
+				return i
+			}
+		}
+
+		for _, l := range lines {
+			if i := strings.Index(l, "Undo change"); i >= 0 {
+				return i
+			}
+		}
+
+		return -1
+	}
+	first := column()
+	for range 60 {
+		m.editor.HandleKey(keymap.Key{Code: keymap.KeyDown})
+		if got := column(); got >= 0 && got != first {
+			t.Fatalf("descriptions moved from column %d to %d", first, got)
+		}
 	}
 }

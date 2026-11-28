@@ -17,7 +17,9 @@ three modes:
   selection, `esc` returns to normal mode.
 
 Keys that open a menu (`g`, `m`, `[`, `]`, `space`, `z`, `C-w`) show the
-keys available next in a box at the bottom right. `space ?` searches every
+keys available next in a box at the bottom right. `F1` lists the keys of
+what has the focus, the mode, a picker, the command line or a menu, typing
+filters the list and `esc` or `F1` closes it. `space ?` searches every
 command by name. Change any binding in `config.yaml`, see
 [Configuration](config.md#key-bindings).
 
@@ -158,6 +160,7 @@ The tables below are generated from the default key map.
 | `C-z`            | Suspend and return to shell                                                                      |
 | `C-a`            | Increment item under cursor                                                                      |
 | `C-x`            | Decrement item under cursor                                                                      |
+| `F1`             | Show the keys of the current mode                                                                |
 
 ### Goto
 
@@ -405,6 +408,7 @@ Any other key inserts its character.
 | `pagedown`                      | Move page down                                              |
 | `home`                          | Go to line start                                            |
 | `end`                           | Go to newline at line end                                   |
+| `F1`                            | Show the keys of the current mode                           |
 
 <!-- END insert -->
 
@@ -470,6 +474,7 @@ The explorer actions go up and open in the file explorer only,
 | `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                                                                                         |
 | `C-a`                    | `picker_line_start`           | Move to the start of the filter                                                                                                                  |
 | `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                                                                                    |
+| `F1`                     | `picker_key_help`             | Show the keys of the picker                                                                                                                      |
 
 <!-- END picker -->
 
@@ -498,6 +503,7 @@ The explorer actions go up and open in the file explorer only,
 | `A-f` `C-right`     | `prompt_word_right`           | Move a word right                               |
 | `home` `C-a`        | `prompt_line_start`           | Move to the start of the line                   |
 | `end` `C-e`         | `prompt_line_end`             | Move to the end of the line                     |
+| `F1`                | `prompt_key_help`             | Show the keys of the command line               |
 
 <!-- END prompt -->
 
@@ -505,12 +511,13 @@ The explorer actions go up and open in the file explorer only,
 
 <!-- BEGIN menu -->
 
-| Keys                   | Action        | Does                     |
-| ---------------------- | ------------- | ------------------------ |
-| `ret`                  | `menu_accept` | Choose the selected item |
-| `esc` `C-c`            | `menu_close`  | Close the menu           |
-| `tab` `down` `C-n` `j` | `menu_next`   | Select the next item     |
-| `S-tab` `up` `C-p` `k` | `menu_prev`   | Select the previous item |
+| Keys                   | Action          | Does                      |
+| ---------------------- | --------------- | ------------------------- |
+| `ret`                  | `menu_accept`   | Choose the selected item  |
+| `esc` `C-c`            | `menu_close`    | Close the menu            |
+| `tab` `down` `C-n` `j` | `menu_next`     | Select the next item      |
+| `S-tab` `up` `C-p` `k` | `menu_prev`     | Select the previous item  |
+| `F1`                   | `menu_key_help` | Show the keys of the menu |
 
 <!-- END menu -->
 

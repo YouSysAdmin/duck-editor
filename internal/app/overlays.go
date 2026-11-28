@@ -592,3 +592,26 @@ func diagnosticFrame(doc *editor.Document, d editor.Diagnostic, width int) (stri
 
 	return prefix + body.String() + suffix, caret, true
 }
+
+// renderKeyHelp draws the key help box in the middle of the screen, over
+// everything, with the cursor in its filter.
+func (m Model) renderKeyHelp(k *editor.KeyHelp) (*lipgloss.Layer, *tea.Cursor) {
+	page := m.editor.KeyHelpHeight()
+	rows := k.Rows()
+	matched := 0
+	for _, r := range rows {
+		if !r.Heading {
+			matched++
+		}
+	}
+
+	visible := rows[min(k.Scroll(), len(rows)):min(k.Scroll()+page, len(rows))]
+	width := min(100, max(m.width-4, 10))
+	height := page + 4
+	x, y := max((m.width-width)/2, 0), max((m.height-height)/2, 0)
+	view := ui.KeyHelpView{Width: width, Height: height, Title: k.Title, Query: k.Query(), Matched: matched, Total: k.Total(), Rows: visible, KeyWidth: ui.KeyHelpKeyWidth(rows)}
+	cursor := tea.NewCursor(x+ui.KeyHelpPromptX+lipgloss.Width(k.Query()), y+1)
+	cursor.Shape = tea.CursorBar
+
+	return lipgloss.NewLayer(ui.RenderKeyHelp(view, m.theme)).X(x).Y(y).Z(20), cursor
+}

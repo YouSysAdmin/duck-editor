@@ -32,7 +32,8 @@ the chosen entry. Most pickers open from `space`:
 ## Keys in a picker
 
 Keys are rebound under `keys.picker` in `config.yaml`, see
-[Key bindings](keys.md#pickers-and-other-overlays).
+[Key bindings](keys.md#pickers-and-other-overlays). `F1` in a picker
+lists these keys over it, `esc` returns to the picker.
 
 <!-- BEGIN picker -->
 
@@ -69,6 +70,7 @@ Keys are rebound under `keys.picker` in `config.yaml`, see
 | `right` `C-f`            | `picker_move_right`           | Move right in the filter                                                                                                                         |
 | `C-a`                    | `picker_line_start`           | Move to the start of the filter                                                                                                                  |
 | `C-e`                    | `picker_line_end`             | Move to the end of the filter                                                                                                                    |
+| `F1`                     | `picker_key_help`             | Show the keys of the picker                                                                                                                      |
 
 <!-- END picker -->
 

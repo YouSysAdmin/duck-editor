@@ -399,6 +399,12 @@ func (m Model) View() tea.View {
 		cursor = pc
 	}
 
+	if k := ed.KeyHelp; k != nil {
+		layer, kc := m.renderKeyHelp(k)
+		root.AddLayers(layer)
+		cursor = kc
+	}
+
 	canvas := lipgloss.NewCanvas(m.width, m.height)
 	canvas.Compose(lipgloss.NewCompositor(root))
 
@@ -411,7 +417,7 @@ func (m Model) View() tea.View {
 	v.ReportFocus = true
 	v.BackgroundColor = m.theme.BackgroundColor()
 
-	if ed.Prompt != nil && ed.Picker == nil {
+	if ed.Prompt != nil && ed.Picker == nil && ed.KeyHelp == nil {
 		col := lipgloss.Width(ed.Prompt.Prefix) + lipgloss.Width(ed.Prompt.DisplayCursor()) - m.promptShift()
 		v.Cursor = tea.NewCursor(col, m.height-1)
 		v.Cursor.Shape = tea.CursorBar

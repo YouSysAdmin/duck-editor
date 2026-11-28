@@ -331,6 +331,7 @@ func Default() map[Mode]*Trie {
 
 		b("C-a", "increment"),
 		b("C-x", "decrement"),
+		b("F1", "key_help"),
 	)
 
 	selectNode := cloneNode(normal)
@@ -399,6 +400,7 @@ func Default() map[Mode]*Trie {
 		b("pagedown", "page_down"),
 		b("home", "goto_line_start"),
 		b("end", "goto_line_end_newline"),
+		b("F1", "key_help"),
 	)
 
 	maps := overlays()

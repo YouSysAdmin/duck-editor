@@ -181,6 +181,9 @@ type Editor struct {
 	// without a project .duck directory.
 	ProjectWorkspacesFile string
 
+	// KeyHelp lists the keys of what has the focus, nil when closed.
+	KeyHelp *KeyHelp
+
 	// TasksFile is the tasks.yaml of the project .duck directory, an
 	// empty path without one.
 	TasksFile host.File
@@ -428,6 +431,12 @@ func (e *Editor) HandleKey(key keymap.Key) {
 	}
 
 	cx := &Context{Editor: e}
+	if e.KeyHelp != nil {
+		e.KeyHelp.handleKey(e, key)
+
+		return
+	}
+
 	if e.Popup != nil {
 		// A long popup scrolls, popup_close takes the key, any other key
 		// closes it and acts as usual.

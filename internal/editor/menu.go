@@ -71,6 +71,8 @@ func (m *Menu) handleKey(cx *Context, key keymap.Key) bool {
 		m.onSelect(cx, m.selected)
 	case "menu_close":
 		e.closeMenu()
+	case "menu_key_help":
+		e.openKeyHelp()
 	case "no_op":
 	default:
 		e.closeMenu()
