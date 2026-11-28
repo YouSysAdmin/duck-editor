@@ -181,6 +181,13 @@ type Editor struct {
 	// without a project .duck directory.
 	ProjectWorkspacesFile string
 
+	// TasksFile is the tasks.yaml of the project .duck directory, an
+	// empty path without one.
+	TasksFile host.File
+
+	// taskNames caches the task names for completion.
+	taskNames []string
+
 	// Place is where this session works, with the workspace name when it
 	// opened through one. Empty for a session that has no place to save.
 	Place config.Workspace

@@ -581,6 +581,10 @@ func session(h host.Host, workDir, wsDir string, start sessionStart) error {
 		ed.ProjectWorkspacesFile = filepath.Join(projectDir, "workspaces.yaml")
 	}
 
+	if wsDir != "" {
+		ed.TasksFile = host.File{Host: h, Path: filepath.Join(wsDir, "tasks.yaml")}
+	}
+
 	ed.ConnectHost = connectWorkspace
 	ed.Place = sessionPlace(h, start)
 	switch {

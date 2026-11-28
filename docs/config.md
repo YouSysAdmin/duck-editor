@@ -35,6 +35,8 @@ working directory, with its own `config.yaml` and `languages.yaml`. They
 apply on top of the user files: options override field by field, key
 bindings and language entries merge. `:config-open-workspace` opens the
 project file. Project files are trusted as they are, there is no prompt.
+`.duck/workspaces.yaml` adds [workspaces](remote.md) and
+`.duck/tasks.yaml` background [tasks](ops.md#tasks) of the project.
 
 ## Changing options while editing
 

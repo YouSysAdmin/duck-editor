@@ -829,6 +829,8 @@ func (e *Editor) completeTyped(input string) []PromptCompletion {
 		if e.Syntax != nil && e.Syntax.Languages() != nil {
 			return completeWords(append([]string{"text"}, e.Syntax.Languages().Names()...), typed, start, len(runes))
 		}
+	case "task", "task-stop", "task-restart", "task-output":
+		return completeWords(e.taskNameList(), typed, start, len(runes))
 	case "set-option", "get-option", "toggle-option":
 		if len(fields) == 1 || (len(fields) == 2 && start < len(runes)) {
 			return completeWords(optionKeys(), typed, start, len(runes))

@@ -888,6 +888,7 @@ func (m Model) status(v *editor.View, doc *editor.Document, focused bool) ui.Sta
 		Spinner:              ed.Spinner(),
 		Host:                 doc.HostName(),
 		HostDown:             !doc.HostStatus().Connected,
+		Tasks:                ed.RunningTasks(),
 	}
 }
 

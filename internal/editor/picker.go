@@ -10,6 +10,7 @@ import (
 	"github.com/YouSysAdmin/duck-editor/internal/edit"
 	"github.com/YouSysAdmin/duck-editor/internal/fuzzy"
 	"github.com/YouSysAdmin/duck-editor/internal/keymap"
+	"github.com/YouSysAdmin/duck-editor/internal/ui"
 )
 
 // PickerItem is one selectable entry.
@@ -48,6 +49,11 @@ type PickerItem struct {
 	// Note follows Label in a dim style and is not matched, such as the
 	// target of a symbolic link.
 	Note string
+
+	// Tag follows Label in the color of TagKind and is not matched, a
+	// state such as running.
+	Tag     string
+	TagKind ui.TagKind
 
 	// Status is the git state of an explorer entry, a kind of
 	// vcs.FileStatus or zero.
@@ -129,6 +135,16 @@ type Picker struct {
 	// remove takes the selected item away, picker_remove in the buffer
 	// picker, and reports whether it went.
 	remove func(cx *Context, item PickerItem) bool
+
+	// stay keeps the picker open when the item is accepted, for a list
+	// whose items act in place such as tasks to start.
+	stay func(item PickerItem) bool
+
+	// output shows the full output of an item, a task.
+	output func(cx *Context, item PickerItem)
+
+	// refresh rebuilds the items when the state they show changes.
+	refresh func(e *Editor)
 
 	// rerun builds the picker again from the current state for
 	// last_picker, for lists such as the open buffers that go stale.
@@ -415,6 +431,10 @@ func (p *Picker) handleKey(cx *Context, key keymap.Key, pageSize int) {
 			p.showAll = !p.showAll
 			p.relist(cx)
 		}
+	case "picker_show_output":
+		if item, ok := p.Selected(); ok && p.output != nil {
+			p.output(cx, item)
+		}
 	case "picker_remove":
 		if item, ok := p.Selected(); ok && p.remove != nil && p.remove(cx, item) {
 			row := p.selected
@@ -547,6 +567,14 @@ func (p *Picker) toggleMark() {
 func (p *Picker) accept(cx *Context, action PickerAction) {
 	item, ok := p.Selected()
 	e := cx.Editor
+	if ok && p.stay != nil && len(p.marks) == 0 && p.stay(item) {
+		if p.onSelect != nil {
+			p.onSelect(cx, item, action)
+		}
+
+		return
+	}
+
 	e.closePicker()
 	if p.onSelect == nil {
 		return

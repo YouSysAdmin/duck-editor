@@ -122,6 +122,45 @@ so and names the `:sudo-journal` command to see them.
 Over a lost connection the stream stops, after the reconnect it resumes
 with the lines that come from then on, the lines in between are missing.
 
+## Tasks
+
+A project names its long running commands, a development server, a
+watcher, `docker compose up`, in `.duck/tasks.yaml`. A task is a
+command or a table:
+
+```yaml
+site: hugo server -D --navigateToChanged
+api:
+  command: go run ./cmd/api
+  dir: services/api # relative to the directory holding .duck
+  description: the API on port 8080
+  env:
+    LOG_LEVEL: debug
+```
+
+`:task name` starts one in the background, `space t` or `:task` alone
+picks one from a list that shows which run, which ended and how. The
+command runs through the shell in the project root or in `dir`, on the
+host of the workspace, its output and error output go to a read only
+buffer that is not shown. In the picker the state is green while a
+task runs and red after it failed. Enter starts a task or stops a
+running one and leaves the picker open, `esc` closes it. `C-l` shows
+the full output of the selected task, also of one that ended or
+failed. The preview shows the last lines.
+
+| Command                | Does                                                         |
+| ---------------------- | ------------------------------------------------------------ |
+| `:task [name]`         | start a task, pick one without a name                        |
+| `:task-output name`    | show the output buffer, `:filter` works in it                |
+| `:task-stop [name]`    | stop a task, the one of the current buffer without a name    |
+| `:task-restart [name]` | stop and start again with the command as the file has it now |
+
+The statusline counts the running tasks at its right end. A task that
+fails says so with its exit status. Stopping a task, closing its buffer
+or quitting the editor ends the command together with the processes it
+started. The file is read again on every `:task`, an edit applies to
+the next start.
+
 ## Kubernetes objects
 
 `:kedit deploy/api -n prod` loads an object with `kubectl get -o yaml`

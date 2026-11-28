@@ -65,6 +65,9 @@ type Status struct {
 	// HostDown is set while it cannot be reached.
 	Host     string
 	HostDown bool
+
+	// Tasks counts the project tasks running in the background.
+	Tasks int
 }
 
 // StatuslineLayout is the element configuration.
@@ -86,7 +89,7 @@ func RenderStatusline(s Status, layout StatuslineLayout, width int, th *Theme) s
 	r := statusRenderer{s: s, layout: layout, th: th, line: line}
 	left := r.section(layout.Left)
 	center := r.section(layout.Center)
-	right := r.section(layout.Right) + r.host()
+	right := r.section(layout.Right) + r.tasks() + r.host()
 
 	lw, cw, rw := lipgloss.Width(left), lipgloss.Width(center), lipgloss.Width(right)
 	if lw+cw+rw > width {
@@ -129,6 +132,19 @@ func (r statusRenderer) host() string {
 	}
 
 	return r.th.Render(r.line.Patch(r.th.StatusSeparator), r.s.Host+" ")
+}
+
+// tasks counts the running project tasks at the right end, whatever the
+// layout.
+func (r statusRenderer) tasks() string {
+	switch r.s.Tasks {
+	case 0:
+		return ""
+	case 1:
+		return r.th.Render(r.line.Patch(r.th.StatusSeparator), "1 task ")
+	}
+
+	return r.th.Render(r.line.Patch(r.th.StatusSeparator), strconv.Itoa(r.s.Tasks)+" tasks ")
 }
 
 // section renders elements separated by one space, a leading space in

@@ -144,6 +144,12 @@ it follows everything. `:sudo-journal` does it as root. `:dlogs [container]` and
 kubectl logs, `:follow cmd` the output of any command. `:filter regex` in such a buffer shows only the matching lines, new ones too,
 `:filter` alone shows all again.
 
+## Tasks
+
+`.duck/tasks.yaml` names long running commands of a project, `name: command` or a table with `command`, `dir`, `env` and
+`description`. `:task name` starts one in the background, `:task` or `space t` picks one and shows which run, enter starts or stops one and keeps
+the picker open, `C-l` shows its full output. `:task-output name` shows the output, `:task-stop` and `:task-restart` stop and restart. Quitting ends them.
+
 ## Workspaces and Kubernetes
 
 `~/.config/duck/workspaces.yaml` names places to work, a directory here, a host, a container or a pod, a project adds its own in

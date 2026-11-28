@@ -57,6 +57,13 @@ type tailState struct {
 	// window caches the highlights of the last drawn range.
 	window windowCache
 
+	// task names the project task the stream runs, empty for others.
+	task string
+
+	// exit says how the stream last ended, empty while it runs or before
+	// it started.
+	exit string
+
 	// done is closed when the job of the running stream has ended and
 	// its process is reaped.
 	done chan struct{}
@@ -168,6 +175,13 @@ func (e *Editor) openTail(h host.Host, path string) error {
 // openFollow shows a stream in a new read only buffer. The language for
 // highlighting comes from langPath, the log language without one.
 func (e *Editor) openFollow(t *tailState, langPath string) {
+	doc := e.openFollowDoc(t, langPath)
+	e.Switch(doc.ID, ActionReplace)
+}
+
+// openFollowDoc starts a followed stream in a new buffer without showing
+// it.
+func (e *Editor) openFollowDoc(t *tailState, langPath string) *Document {
 	doc := NewDocument("", "")
 	doc.host = t.host
 	doc.readOnly = true
@@ -188,8 +202,9 @@ func (e *Editor) openFollow(t *tailState, langPath string) {
 		}
 	}
 
-	e.Switch(doc.ID, ActionReplace)
 	e.startTail(doc, e.tailLines())
+
+	return doc
 }
 
 // tailLines is the tail-lines option with a floor.
@@ -220,6 +235,8 @@ func (e *Editor) stopTail(doc *Document) {
 	doc.tail.cancel()
 	doc.tail.cancel = nil
 	doc.tail.gen++
+	doc.tail.exit = "stopped"
+	e.refreshPicker()
 }
 
 // resumeTails restarts the streams of the workspace host after a
@@ -244,11 +261,13 @@ func (e *Editor) startTail(doc *Document, lines int) {
 	t := doc.tail
 	t.cancel = cancel
 	t.gen++
+	t.exit = ""
 	done := make(chan struct{})
 	t.done = done
 	gen, docID, h, cmd := t.gen, doc.ID, t.host, t.command(lines)
 	// A shell and what it starts end together.
 	cmd.Group = true
+	e.refreshPicker()
 	e.queueJob(ctx, func(ctx context.Context, emit func(JobResult)) {
 		defer close(done)
 
@@ -358,16 +377,30 @@ func (e *Editor) tailStopped(id DocID, gen int, err error) {
 		doc.tail.cancel = nil
 	}
 
+	doc.tail.exit = "ended"
+	if code, ok := errors.AsType[*host.ExitError](err); ok {
+		doc.tail.exit = fmt.Sprintf("exited %d", code.Code)
+	} else if err != nil {
+		doc.tail.exit = "failed"
+	}
+
+	e.refreshPicker()
+
 	switch {
-	case err != nil && !e.hostGone(err):
+	case err != nil && e.hostGone(err):
+	case err != nil && doc.tail.task != "":
+		e.SetError("task %s %s: %v", doc.tail.task, doc.tail.exit, firstLines(err.Error(), 1))
+	case err != nil:
 		e.SetError("%s stopped: %v", doc.tail.name(), err)
-	case err == nil && doc.tail.path == "":
+	case doc.tail.task != "":
+		e.SetStatus("task %s ended", doc.tail.task)
+	case doc.tail.path == "":
 		e.SetStatus("%s ended", doc.tail.name())
 	}
 }
 
-// StopFollows ends every followed stream and waits a moment for their
-// processes to be killed, called before the session ends.
+// StopFollows ends every followed stream and task and waits a moment for
+// their processes to be killed, called before the session ends.
 func (e *Editor) StopFollows() {
 	var running []chan struct{}
 	for _, doc := range e.documentsByID() {

@@ -20,7 +20,11 @@ type PickerRow struct {
 	// Dir marks a directory entry, drawn in the directory style.
 	Dir bool
 
-	// Note follows Text in the dimmed style.
+	// Tag follows Text in the style of TagKind, a state such as running.
+	Tag     string
+	TagKind TagKind
+
+	// Note follows Text and Tag in the dimmed style.
 	Note string
 
 	// Marked draws a mark before Text.
@@ -35,6 +39,28 @@ type PickerRow struct {
 	// TruncateStart cuts a too long Text at its start, so a path keeps
 	// its file name.
 	TruncateStart bool
+}
+
+// TagKind picks the color of a picker row tag.
+type TagKind int
+
+// Tag kinds.
+const (
+	TagDim TagKind = iota
+	TagGood
+	TagBad
+)
+
+// tagStyle colors a tag by kind.
+func tagStyle(kind TagKind, th *Theme) theme.Style {
+	switch kind {
+	case TagGood:
+		return th.DiffAdd
+	case TagBad:
+		return th.Error
+	}
+
+	return th.Dimmed()
 }
 
 // PickerView is everything the picker overlay renders.
@@ -254,6 +280,9 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 	}
 
 	suffix := lipgloss.Width(row.Note)
+	if row.Tag != "" {
+		suffix += 1 + lipgloss.Width(row.Tag)
+	}
 
 	// Group runs of matched and unmatched bytes, walking the match
 	// offsets in order alongside the text.
@@ -308,6 +337,11 @@ func renderPickerRow(row PickerRow, width int, th *Theme, base theme.Style) stri
 	}
 
 	flush()
+	if row.Tag != "" {
+		sb.WriteString(th.Render(style, " "))
+		sb.WriteString(th.Render(style.Patch(tagStyle(row.TagKind, th)), row.Tag))
+	}
+
 	if row.Note != "" {
 		sb.WriteString(th.Render(style.Patch(th.Dimmed()), " "+row.Note))
 	}
